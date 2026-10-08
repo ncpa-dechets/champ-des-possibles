@@ -21,6 +21,7 @@ html,body{margin:0;height:100%;color:var(--encre);background:#e9eaec;overflow:hi
 .leaflet-container{font-family:inherit;background:#eceeef}
 .card{position:absolute;z-index:1000;background:#fff;border-radius:14px;box-shadow:var(--ombre)}
 #card{top:14px;left:14px;width:340px;max-height:calc(100% - 28px);overflow-y:auto;padding:16px 18px 14px;border-top:3px solid var(--rouge)}
+.retour{display:inline-block;margin:0 0 6px;font-size:12.5px;color:#6b7078;text-decoration:none}.retour:hover{color:#B91E27;text-decoration:underline}
 .eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--rouge);font-weight:700}
 h1{font-size:17px;line-height:1.2;margin:2px 0 12px;font-weight:700}
 .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gris);font-weight:700;margin-bottom:3px}
@@ -152,6 +153,7 @@ details.reseaux label{display:flex;gap:6px;align-items:flex-start;margin:4px 0;l
 <div id="map"></div>
 
 <div id="card" class="card">
+  <a class="retour" href="../index.html" title="Retour à l'accueil Champs des possibles">← Tous les outils</a>
   <div class="eyebrow" id="h-eyebrow"></div>
   <h1 id="h-titre"></h1>
   <div id="data" class="data"></div>
@@ -866,6 +868,7 @@ const communesLayer = L.geoJSON(null, { style: { color: "#5f6670", weight: 0.8, 
 const contourLayer = L.layerGroup().addTo(map);
 const routesLayer = L.layerGroup().addTo(map);
 const destLayer = L.layerGroup().addTo(map);
+const timeLblLayer = L.layerGroup().addTo(map);   // étiquettes de temps des sites listés (couches nombreuses)
 const startMarker = L.marker([49.26, -0.12], { draggable: true, zIndexOffset: 1000, keyboard: false,
   icon: L.divIcon({ className: "", html: '<div class="startmark"></div>', iconSize: [20, 20], iconAnchor: [10, 10] }) });
 startMarker.bindTooltip("Départ", { permanent: true, direction: "top", offset: [0, -12], className: "tt-start" });
@@ -1359,7 +1362,7 @@ function badge(Ly, i, small){
 }
 /* redraw = recalculer aussi la carte pour les modes qui ne dépendent pas du point */
 function updatePoint(redraw){
-  routesLayer.clearLayers();
+  routesLayer.clearLayers(); timeLblLayer.clearLayers();
   const pr = cur();
   if(!pr || !map.hasLayer(startMarker)){ S.fw = null; return; }
   const ll = startMarker.getLatLng(), k = coef(), STEP = P().pas;
@@ -1414,10 +1417,18 @@ function updatePoint(redraw){
     L.polyline(r.pts, { pane: "routes", color: "#fff", weight: best ? 8 : 5.5, opacity: 0.95, interactive: false }).addTo(routesLayer);
     L.polyline(r.pts, { pane: "routes", color: col, weight: best ? 4.5 : 2.5, opacity: best ? 1 : 0.9, dashArray: best ? null : "5 6", interactive: false }).addTo(routesLayer);
   });
-  // étiquettes des sites (petites couches)
-  if(small) S.markers.forEach((m, i) => {
+  // étiquettes des sites : toutes en permanence pour les petites couches (≤ 6 sites, comme l'outil déchèteries),
+  // sinon étiquette de temps sur chacun des sites listés dans le volet
+  const perm = small && res.items.length <= 6;
+  if(perm) S.markers.forEach((m, i) => {
     const r = rows.find(x => x.i === i);
     m.setTooltipContent(esc(shortName(res.items[i].nom, def.type)) + (r ? (r.ok ? " · " + fmtMin(r.t) : " · sans convention") : ""));
+    if(!m.isTooltipOpen()) m.openTooltip();
+  });
+  else okRows.forEach(r => {
+    const d = res.items[r.i];
+    L.tooltip({ permanent: true, direction: "right", offset: small ? [12, 0] : [8, 0], className: "tt-dark" })
+      .setLatLng([d.lat, d.lon]).setContent(esc(shortName(d.nom, def.type)) + " · " + fmtMin(r.t)).addTo(timeLblLayer);
   });
   const b = okRows[0];
   html += `<div class="sep"></div><div class="lbl">${esc(def.court)} · accès le plus rapide</div>` +

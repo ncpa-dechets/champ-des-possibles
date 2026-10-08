@@ -77,6 +77,8 @@ a.carte:hover{transform:translateY(-3px);background:var(--carte-haut);border-col
 .corps .desc{margin:0 0 16px;color:var(--gris);font-size:15px}
 .interet{margin:0 0 16px;padding:10px 14px;background:color-mix(in srgb,var(--c) 7%,transparent);border-left:2px solid var(--c);border-radius:0 8px 8px 0;font-size:14px;color:var(--encre)}
 .interet b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--c);margin-bottom:2px}
+.limites{margin:0 0 16px;padding:10px 14px;background:rgba(224,118,122,.08);border-left:2px solid var(--accent);border-radius:0 8px 8px 0;font-size:14px;color:var(--encre)}
+.limites b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:2px}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;padding:0;list-style:none}
 .tags li{font-size:12.5px;color:var(--gris);background:rgba(255,255,255,.04);border-radius:6px;padding:2px 9px}
 .ouvrir{margin-top:auto;padding-top:14px;border-top:1px solid var(--trait);display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:700}
@@ -169,8 +171,19 @@ const OUTILS = [
     tags: ["6 stations", "Hub'Eau · Vigicrues", "Open-Meteo"]
   },
   {
+    theme: "eau",
+    titre: "Montée des eaux",
+    fichier: "outils/montee-des-eaux.html",
+    apercu: "submersion",
+    badge: "Démonstration",
+    description: "Modèle très simplifié : on choisit un niveau d'eau et la carte montre les terrains plus bas que ce niveau et reliés à la mer, avec les bâtiments et logements concernés, commune par commune.",
+    interet: "Illustrer une méthode et ouvrir la discussion sur les secteurs bas du littoral et de la vallée de la Dives.",
+    limites: "Simple démonstration aux possibilités très limitées : ni carte d'aléa, ni carte de risque. Il faudrait des données complémentaires et des scénarios vérifiés. Le PPRL reste la seule référence.",
+    tags: ["Relief IGN RGE ALTI", "Bâtiments BD TOPO", "Export CSV"]
+  },
+  {
     theme: "tourisme",
-    titre: "Randonnées",
+    titre: "Balades et randonnées",
     fichier: "outils/randonnees-ncpa.html",
     apercu: "profil",
     badge: "Démonstration",
@@ -222,6 +235,15 @@ const APERCUS = {
       </g>
       <circle cx="186" cy="42" r="5" class="vide" stroke="currentColor" stroke-width="2.5"/>
     </svg>`,
+  submersion: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <path d="M0 74 L80 74 L80 132 L0 132Z" fill="currentColor" opacity=".28"/>
+      <path d="M118 74 L162 74 L178 86 L196 96 L222 90 L240 74 Z" fill="currentColor" opacity=".22"/>
+      <line x1="0" y1="74" x2="360" y2="74" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 5" opacity=".8"/>
+      <path d="M80 74 L92 52 L104 50 L118 74 L162 74 L178 86 L196 96 L222 90 L240 74 L268 54 L300 42 L360 34 L360 132 L80 132Z" fill="currentColor" opacity=".1"/>
+      <path d="M80 74 L92 52 L104 50 L118 74 L162 74 L178 86 L196 96 L222 90 L240 74 L268 54 L300 42 L360 34" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+      <circle cx="98" cy="51" r="6" class="marq"/>
+    </svg>`,
   profil: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <path d="M0 104 L34 96 L62 84 L90 88 L122 64 L154 56 L182 70 L214 42 L246 50 L278 76 L310 70 L360 92 L360 132 L0 132Z" fill="currentColor" opacity=".16"/>
@@ -243,6 +265,7 @@ function carte(o, t) {
         <h3>${esc(o.titre)}</h3>
         <p class="desc">${esc(o.description)}</p>
         <p class="interet"><b>Intérêt</b>${esc(o.interet)}</p>
+        ${o.limites ? `<p class="limites"><b>Limites</b>${esc(o.limites)}</p>` : ""}
         <ul class="tags">${(o.tags || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>
         <div class="ouvrir"><span>Ouvrir l'outil</span><span aria-hidden="true">→</span></div>
       </div>

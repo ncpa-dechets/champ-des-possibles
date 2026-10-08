@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Randonnées NCPA – démonstration</title>
+<title>Balades et randonnées à NCPA – démonstration</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -23,6 +23,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--rouge);outline-offset:2px}
 
 header{flex:0 0 auto;padding:10px 20px 10px;border-bottom:3px solid var(--rouge);display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.retour{display:inline-block;margin:0 0 6px;font-size:12.5px;color:#6b7078;text-decoration:none}.retour:hover{color:#B91E27;text-decoration:underline}
 .eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--rouge);font-weight:700}
 header h1{margin:0;font-size:22px;font-weight:700;line-height:1.2}
 .tag-demo{font-size:12px;color:var(--gris);border:1px solid var(--trait);border-radius:20px;padding:2px 10px;white-space:nowrap}
@@ -107,8 +108,9 @@ ol.etapes li button.actif{background:#E6E9DC}
 <body>
 <header>
   <div>
+    <a class="retour" href="../index.html" title="Retour à l'accueil Champs des possibles">← Tous les outils</a>
     <div class="eyebrow">Randonnées NCPA</div>
-    <h1>Balades et randonnées en Normandie Cabourg Pays d'Auge</h1>
+    <h1>Balades et randonnées à NCPA</h1>
   </div>
   <span class="tag-demo">Version de démonstration</span>
 </header>
