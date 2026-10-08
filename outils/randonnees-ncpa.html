@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Randonnées NCPA – démonstration</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js"></script>
+<style>
+:root{
+  --rouge:#B91E27; --vert:#B1B993;
+  --encre:#1F2622; --gris:#5F6862; --pale:#8A928C;
+  --fond:#FFFFFF; --panneau:#F5F6F0; --trait:#DDE0D3;
+  --police:Calibri,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--police);color:var(--encre);background:var(--fond);height:100vh;display:flex;flex-direction:column;font-size:15px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--rouge);outline-offset:2px}
+
+header{flex:0 0 auto;padding:10px 20px 10px;border-bottom:3px solid var(--rouge);display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--rouge);font-weight:700}
+header h1{margin:0;font-size:22px;font-weight:700;line-height:1.2}
+.tag-demo{font-size:12px;color:var(--gris);border:1px solid var(--trait);border-radius:20px;padding:2px 10px;white-space:nowrap}
+
+.app{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:330px 1fr;grid-template-rows:1fr 200px;grid-template-areas:"side map" "side profil"}
+aside{grid-area:side;overflow-y:auto;background:var(--panneau);border-right:1px solid var(--trait)}
+#map{grid-area:map;position:relative;min-height:0}
+#profil{grid-area:profil;position:relative;border-top:1px solid var(--trait);background:var(--fond)}
+
+/* Choix du circuit */
+.choix{display:flex;flex-direction:column;gap:6px;padding:14px 14px 4px}
+.choix button{display:flex;align-items:center;gap:10px;text-align:left;background:var(--fond);border:1px solid var(--trait);border-radius:6px;padding:8px 10px}
+.choix button .pastille{width:14px;height:4px;border-radius:2px;flex:0 0 auto}
+.choix button .nom{font-weight:700;flex:1}
+.choix button .km{color:var(--gris);font-size:13px}
+.choix button[aria-pressed="true"]{border-color:var(--encre);box-shadow:inset 3px 0 0 var(--c)}
+
+.bloc{padding:12px 16px;border-bottom:1px solid var(--trait)}
+.bloc:last-child{border-bottom:0}
+.titre-circuit{margin:2px 0 2px;font-size:20px;line-height:1.2}
+.depart{font-size:13px;color:var(--gris)}
+.intro{margin:8px 0 0;font-size:14px}
+.avoir{margin:6px 0 0;font-size:13px;color:var(--gris)}
+
+.chiffres{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin:0}
+.chiffres div{border-left:3px solid var(--vert);padding-left:8px}
+.chiffres dt{font-size:12px;color:var(--gris)}
+.chiffres dd{margin:0;font-size:20px;font-weight:700;line-height:1.15}
+.chiffres dd small{font-size:13px;font-weight:400;color:var(--gris)}
+.vitesse{margin-top:12px;font-size:13px;color:var(--gris)}
+.vitesse label{display:flex;align-items:center;gap:8px}
+.vitesse input{flex:1;accent-color:var(--rouge)}
+.vitesse output{font-weight:700;color:var(--encre);min-width:58px;text-align:right}
+.note{font-size:12px;color:var(--pale);margin:6px 0 0}
+
+.entete-etapes{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.entete-etapes h3{margin:0;font-size:16px}
+.lien-btn{background:none;border:0;padding:0;color:var(--rouge);font-size:13px;text-decoration:underline}
+.avert{font-size:12px;color:#7A5A12;background:#FBF3DC;border-radius:4px;padding:6px 8px;margin:8px 0 0}
+.avert.calage{color:var(--fond);background:var(--rouge)}
+ol.etapes{list-style:none;margin:8px 0 0;padding:0}
+ol.etapes li button{display:flex;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:6px;padding:7px 6px;font-size:14px}
+ol.etapes li button:hover{background:#ECEEE5}
+ol.etapes li button.actif{background:#E6E9DC}
+.num{flex:0 0 24px;height:24px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.num.provisoire{opacity:.6}
+.km-etape{display:block;font-size:12px;color:var(--pale)}
+
+.liens{display:flex;flex-wrap:wrap;gap:8px}
+.liens a,.liens button{font-size:13px;border:1px solid var(--trait);background:var(--fond);border-radius:4px;padding:5px 9px;color:var(--encre);text-decoration:none}
+.liens a:hover,.liens button:hover{border-color:var(--encre)}
+
+/* Marqueurs */
+.mk-etape{width:24px;height:24px;border-radius:50%;color:#fff;font:700 12px/24px var(--police);text-align:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.mk-etape.sel{transform:scale(1.25)}
+.mk-etape.drag{cursor:grab;outline:2px dashed var(--rouge);outline-offset:2px}
+.mk-depart{background:var(--rouge);color:#fff;font:700 11px/1 var(--police);padding:5px 7px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);position:relative}
+.mk-depart::after{content:"";position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:var(--rouge)}
+.leaflet-popup-content{font-family:var(--police);font-size:14px;margin:10px 12px}
+.leaflet-popup-content strong{display:block;margin-bottom:2px}
+
+/* Profil */
+#profil svg{display:block;width:100%;height:100%}
+#profil .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--gris);font-size:14px;padding:0 20px;text-align:center}
+.axe text{font-size:11px;fill:var(--pale);font-family:var(--police)}
+.axe line{stroke:#ECEEE5}
+.bulle{position:absolute;pointer-events:none;background:var(--encre);color:#fff;font-size:12px;padding:3px 7px;border-radius:4px;white-space:nowrap;transform:translate(-50%,-120%);display:none}
+.titre-profil{position:absolute;left:52px;top:4px;font-size:12px;color:var(--gris)}
+
+@media (max-width:860px){
+  body{height:auto}
+  header{padding:10px 14px}
+  header h1{font-size:19px}
+  .app{grid-template-columns:1fr;grid-template-rows:auto 55vh 190px auto;grid-template-areas:"haut" "map" "profil" "etapes"}
+  aside{display:contents}
+  #haut{grid-area:haut;background:var(--panneau)}
+  #bas{grid-area:etapes;background:var(--panneau)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="eyebrow">Randonnées NCPA</div>
+    <h1>Balades et randonnées en Normandie Cabourg Pays d'Auge</h1>
+  </div>
+  <span class="tag-demo">Version de démonstration</span>
+</header>
+
+<div class="app">
+  <aside>
+    <div id="haut">
+      <div class="choix" id="choix" role="group" aria-label="Choisir un circuit"></div>
+      <div class="bloc" id="fiche"></div>
+      <div class="bloc" id="stats"></div>
+    </div>
+    <div id="bas">
+      <div class="bloc" id="etapes"></div>
+      <div class="bloc" id="liens"></div>
+    </div>
+  </aside>
+  <div id="map"></div>
+  <div id="profil"><div class="msg">Choisissez un circuit.</div></div>
+</div>
+
+<script type="application/json" id="donnees">{"circuits":[{"id":"deux-fontaines","nom":"Les deux fontaines","commune":"Gonneville-sur-Mer","niveau":"Facile","dureeFiche":"3 h 00","distanceFiche":9.0,"denivFiche":240,"couleur":"#2E6A97","intro":"Une boucle entre Gonneville-sur-Mer et Grangues, sur la piste de deux fontaines réputées guérisseuses : Sainte-Honorine pour les yeux, la source Saint-Roch pour les maladies contagieuses.","aVoir":"L'église Notre-Dame de Gonneville-sur-Mer et l'église de Grangues, avec son mur-pignon asymétrique.","fiche":"https://www.normandie-cabourg-paysdauge-tourisme.fr/itineraire/les-deux-fontaines/","gpx":"https://normandie.media.tourinsoft.eu/upload/les-deux-fontaines-2.gpx","depart":[49.2804568,-0.0411713],"trace":[[49.281308,-0.040012],[49.28076,-0.040793],[49.280652,-0.040806],[49.280332,-0.041353],[49.280555,-0.041853],[49.280717,-0.042371],[49.280618,-0.044487],[49.280272,-0.044816],[49.279447,-0.045494],[49.278989,-0.045373],[49.277875,-0.045637],[49.276756,-0.046111],[49.276437,-0.046562],[49.275585,-0.046794],[49.273689,-0.047011],[49.273996,-0.048251],[49.274668,-0.050241],[49.274871,-0.051334],[49.273758,-0.052185],[49.273625,-0.052577],[49.272316,-0.053886],[49.272843,-0.055233],[49.273001,-0.056276],[49.273673,-0.058254],[49.274175,-0.059377],[49.273732,-0.060185],[49.273464,-0.060733],[49.273293,-0.061439],[49.273294,-0.061686],[49.27305,-0.061613],[49.272613,-0.061563],[49.272397,-0.061598],[49.272081,-0.06132],[49.271802,-0.061421],[49.271547,-0.061465],[49.271363,-0.061454],[49.271223,-0.061822],[49.270986,-0.062372],[49.270391,-0.062184],[49.269859,-0.061917],[49.269702,-0.061779],[49.269406,-0.061914],[49.268841,-0.061775],[49.268602,-0.06149],[49.268358,-0.061088],[49.267985,-0.060643],[49.267801,-0.060338],[49.267202,-0.059081],[49.266344,-0.058384],[49.266201,-0.057953],[49.266227,-0.05631],[49.2659,-0.056455],[49.265736,-0.056857],[49.265736,-0.056856],[49.265669,-0.057111],[49.264465,-0.056076],[49.263625,-0.055839],[49.263035,-0.056086],[49.262302,-0.056465],[49.262092,-0.056876],[49.261893,-0.057428],[49.261721,-0.057558],[49.262559,-0.058477],[49.26383,-0.059868],[49.264035,-0.06028],[49.264071,-0.061292],[49.264378,-0.063119],[49.264777,-0.064365],[49.265149,-0.064857],[49.265998,-0.064743],[49.265971,-0.066409],[49.26619,-0.067456],[49.265882,-0.068072],[49.266273,-0.068424],[49.266359,-0.068664],[49.266474,-0.068977],[49.266886,-0.068508],[49.267252,-0.068036],[49.267552,-0.06709],[49.267717,-0.067265],[49.268389,-0.066858],[49.268941,-0.066304],[49.269202,-0.066296],[49.26936,-0.06614],[49.269785,-0.066354],[49.270886,-0.064774],[49.271532,-0.064766],[49.271541,-0.064414],[49.271975,-0.064275],[49.272283,-0.063659],[49.273294,-0.063202],[49.273607,-0.063596],[49.2739,-0.064789],[49.274216,-0.065653],[49.274956,-0.06558],[49.275213,-0.065736],[49.276729,-0.06538],[49.277048,-0.067349],[49.278343,-0.066603],[49.279564,-0.065736],[49.280848,-0.065436],[49.28132,-0.065018],[49.281078,-0.063052],[49.281192,-0.060357],[49.280505,-0.059564],[49.280185,-0.058863],[49.280062,-0.057634],[49.279999,-0.056502],[49.27967,-0.05613],[49.28,-0.054645],[49.279698,-0.053194],[49.279346,-0.052515],[49.27904,-0.051839],[49.279707,-0.050421],[49.280248,-0.049678],[49.280722,-0.048578],[49.280722,-0.046134],[49.280606,-0.045092],[49.280636,-0.044421],[49.280749,-0.042435],[49.280613,-0.041929],[49.280366,-0.041362],[49.280602,-0.040939],[49.280676,-0.040848],[49.280783,-0.040844],[49.281371,-0.039968],[49.281304,-0.039708],[49.281422,-0.039631]],"ele":null,"etapes":[{"texte":"Rejoindre la route vers l'église, puis descendre à droite par le chemin du Four, en passant par la fontaine Sainte-Honorine. Continuer tout droit.","km":null},{"texte":"Traverser la route avec prudence et prendre en face le chemin de la Trigale, sur environ 1 km (passages boueux par temps de pluie).","km":null},{"texte":"Au carrefour, à gauche par le chemin de Dramard, jusqu'à la D45.","km":null},{"texte":"Longer la D45 à gauche sur 150 m, puis prendre à droite le chemin de la fontaine Crespel. Prudence à la traversée.","km":null},{"texte":"Poursuivre sur 500 m : panorama sur la droite.","km":null},{"texte":"Peu après, à droite par le chemin du Moulin de Grangues (1 km de bois humides et d'herbes hautes) jusqu'à la route de l'Église. Version courte : tout droit jusqu'à l'étape 13.","km":null},{"texte":"À gauche, longer la route sur 250 m.","km":null},{"texte":"À droite par le chemin du Bocage, pour la dernière montée.","km":null},{"texte":"Redescendre à gauche par la route.","km":null},{"texte":"Passer devant le lavoir jusqu'à l'église de Grangues. La source Saint-Roch se trouve à son entrée.","km":null},{"texte":"Contourner l'église par la droite (chemin de la Verbazière), monter par le chemin herbeux à droite, puis tourner encore à droite.","km":null},{"texte":"Sur le chemin goudronné, aller légèrement à gauche, puis monter par le chemin de droite.","km":null},{"texte":"200 m plus loin, tourner à droite avant les maisons : chemin du Montenoit.","km":null},{"texte":"Au bout du chemin, à gauche jusqu'à la D45. Traverser, continuer en face sur 150 m, puis à droite sur la Route Neuve.","km":null},{"texte":"Après la ferme, tourner à gauche à angle droit et continuer tout droit.","km":null},{"texte":"Au carrefour suivant, à droite par le chemin du Four, puis suivre la route jusqu'au départ.","km":null}]},{"id":"bois-de-dozule","nom":"Le bois de Dozulé","commune":"Dozulé","niveau":"Moyen","dureeFiche":"3 h 30","distanceFiche":14.0,"denivFiche":null,"couleur":"#3D7A3A","intro":"Une boucle au départ de Dozulé, entre patrimoine bâti et naturel du Pays d'Auge, avec plusieurs points de vue sur le bourg et sa campagne.","aVoir":"","fiche":"https://www.normandie-cabourg-paysdauge-tourisme.fr/itineraire/le-bois-de-dozule/","gpx":"https://normandie.media.tourinsoft.eu/upload/Le-bois-de-Dozule.gpx","depart":[49.2269152,-0.0454574],"trace":[[49.229511,-0.039743],[49.227822,-0.041341],[49.22744,-0.042177],[49.227189,-0.042856],[49.226807,-0.043659],[49.226416,-0.044922],[49.226314,-0.04574],[49.226235,-0.046491],[49.226222,-0.047147],[49.226208,-0.047837],[49.225805,-0.047523],[49.224564,-0.047202],[49.224349,-0.047193],[49.224109,-0.047345],[49.223651,-0.047621],[49.22337,-0.047672],[49.222833,-0.047647],[49.222556,-0.047504],[49.222159,-0.046895],[49.221677,-0.046279],[49.221364,-0.04574],[49.221075,-0.045168],[49.221122,-0.044908],[49.22117,-0.044679],[49.22102,-0.044672],[49.220628,-0.044917],[49.220368,-0.045004],[49.220002,-0.04502],[49.219762,-0.045174],[49.219502,-0.045226],[49.219559,-0.045623],[49.218907,-0.041904],[49.217512,-0.041349],[49.216432,-0.041156],[49.215755,-0.041012],[49.211067,-0.039711],[49.209762,-0.039323],[49.209789,-0.039061],[49.209905,-0.038608],[49.210002,-0.038086],[49.210139,-0.037666],[49.2103,-0.03718],[49.210378,-0.036427],[49.21043,-0.036004],[49.210376,-0.035475],[49.210278,-0.034978],[49.210178,-0.034579],[49.209974,-0.034012],[49.209771,-0.033378],[49.209546,-0.032874],[49.209256,-0.032237],[49.209073,-0.031702],[49.208933,-0.031171],[49.208714,-0.030305],[49.208757,-0.029224],[49.208844,-0.028012],[49.208885,-0.027061],[49.20901,-0.025098],[49.208997,-0.024669],[49.208401,-0.022113],[49.208181,-0.021281],[49.208954,-0.021222],[49.209651,-0.021402],[49.21023,-0.021696],[49.210059,-0.020499],[49.209871,-0.019153],[49.210044,-0.01827],[49.209804,-0.017605],[49.209584,-0.016911],[49.209601,-0.016021],[49.209677,-0.015133],[49.208786,-0.014915],[49.208423,-0.014571],[49.208839,-0.013531],[49.208978,-0.012069],[49.209318,-0.010117],[49.20963,-0.008592],[49.210677,-0.008818],[49.21132,-0.008817],[49.21195,-0.008459],[49.213037,-0.008568],[49.214104,-0.007785],[49.214172,-0.008323],[49.214745,-0.008885],[49.215318,-0.009446],[49.215983,-0.010367],[49.216855,-0.011508],[49.216012,-0.011884],[49.215014,-0.012018],[49.214366,-0.012315],[49.214193,-0.01317],[49.213971,-0.014616],[49.214373,-0.014961],[49.215074,-0.014963],[49.215829,-0.015207],[49.216739,-0.015591],[49.217181,-0.015773],[49.21697,-0.016567],[49.216811,-0.017748],[49.216778,-0.01843],[49.217079,-0.018979],[49.217089,-0.019484],[49.216864,-0.020039],[49.216846,-0.02093],[49.217349,-0.023033],[49.218303,-0.022036],[49.219259,-0.020951],[49.22012,-0.019712],[49.220743,-0.01876],[49.220923,-0.019073],[49.221689,-0.018385],[49.22215,-0.017947],[49.222771,-0.016989],[49.22441,-0.014632],[49.224795,-0.014159],[49.225091,-0.013965],[49.225521,-0.012883],[49.226382,-0.011644],[49.227298,-0.010616],[49.22819,-0.009765],[49.228448,-0.01156],[49.228786,-0.013181],[49.229616,-0.013578],[49.2307,-0.013924],[49.231687,-0.014177],[49.232442,-0.014421],[49.232153,-0.015299],[49.23136,-0.016005],[49.230812,-0.017111],[49.229774,-0.018429],[49.230377,-0.019789],[49.230776,-0.020944],[49.231353,-0.022192],[49.2321,-0.023917],[49.232657,-0.025251],[49.233302,-0.026142],[49.233486,-0.026687],[49.233628,-0.027348],[49.233295,-0.02748],[49.232961,-0.027644],[49.232453,-0.027739],[49.231673,-0.027792],[49.231111,-0.027677],[49.230489,-0.027619],[49.229633,-0.027579],[49.229158,-0.026993],[49.228819,-0.026413],[49.228505,-0.025537],[49.228331,-0.024488],[49.228301,-0.022972],[49.22798,-0.021468],[49.227758,-0.021875],[49.227516,-0.02237],[49.22735,-0.022837],[49.227068,-0.023329],[49.226882,-0.023827],[49.226515,-0.024731],[49.226081,-0.026012],[49.225789,-0.02659],[49.225497,-0.0272],[49.225384,-0.027491],[49.225584,-0.028289],[49.22568,-0.028852],[49.225694,-0.029214],[49.225603,-0.029473],[49.225246,-0.030113],[49.225624,-0.030558],[49.225852,-0.030997],[49.225944,-0.031855],[49.225977,-0.032315],[49.226034,-0.032681],[49.226219,-0.03315],[49.226236,-0.033381],[49.226201,-0.034069],[49.226187,-0.034759],[49.22631,-0.035093],[49.226475,-0.035429],[49.22635,-0.03631],[49.226215,-0.0366],[49.225989,-0.037148],[49.225805,-0.037765],[49.22559,-0.038838],[49.225343,-0.039385],[49.22536,-0.039617],[49.225486,-0.039753],[49.225652,-0.040023],[49.226608,-0.04181],[49.226753,-0.042079],[49.227071,-0.042292],[49.227262,-0.042431],[49.227303,-0.042532]],"ele":null,"etapes":[{"texte":"Depuis le parking place Charles-Émile Pinson, suivre l'avenue d'Ornano puis, à gauche, le chemin de Varibeau jusqu'à une route. Continuer tout droit, prendre la 2e route à gauche, puis le chemin à gauche qui remonte le coteau.","km":null},{"texte":"À la route, à gauche sur 1 km environ, puis le sentier à droite qui remonte le coteau. En haut, à droite (montée raide) jusqu'à la route. Continuer en face, 1re route à gauche, dépasser le transformateur, puis prendre un chemin à droite et continuer tout droit.","km":null},{"texte":"Au croisement, à droite sur un large chemin. Couper deux petites routes, puis descendre dans la peupleraie jusqu'à la route (passage humide).","km":null},{"texte":"Traverser et prendre en face le chemin dit « de traverse », puis à gauche (passages humides). À la route, à droite puis à gauche par le chemin Philbec.","km":null},{"texte":"À la grosse souche, à droite : sentier étroit et encaissé jusqu'à un large chemin. Tout droit, puis à droite au croisement. Par le chemin de Cantepie, rejoindre la route et tourner à droite vers Saint-Jouin. Après l'église, chemin Girard à gauche ; à la route, à gauche, puis un large chemin à droite.","km":null},{"texte":"Au croisement de chemins, à gauche puis à droite. Sortir du bois par la gauche jusqu'à une route.","km":null},{"texte":"Descendre cette petite route ; au stop, à droite. Continuer tout droit jusqu'au départ.","km":null}]}]}</script>
+<script>
+"use strict";
+// Copie de la page d'origine, pour pouvoir en télécharger une version mise à jour
+const PAGE_INITIALE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+const DONNEES = JSON.parse(document.getElementById('donnees').textContent);
+const CIRCUITS = DONNEES.circuits;
+const PAS_M = 20;            // un point tous les 20 m pour le profil
+const M_PAR_HEURE_MONTEE = 300; // règle courante : +1 h par 300 m de montée
+
+const etat = { actif: null, vitesse: 4, calage: false, etapeSel: null };
+
+/* ---------- Outils de calcul ---------- */
+function distance(a, b) {
+  const R = 6371000, r = Math.PI / 180;
+  const dLat = (b[0] - a[0]) * r, dLon = (b[1] - a[1]) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function densifier(trace) {
+  const pts = [{ lat: trace[0][0], lon: trace[0][1], d: 0 }];
+  let cumul = 0;
+  for (let i = 1; i < trace.length; i++) {
+    const a = trace[i - 1], b = trace[i], seg = distance(a, b);
+    const n = Math.max(1, Math.ceil(seg / PAS_M));
+    for (let k = 1; k <= n; k++) {
+      const t = k / n;
+      pts.push({ lat: a[0] + (b[0] - a[0]) * t, lon: a[1] + (b[1] - a[1]) * t, d: cumul + seg * t });
+    }
+    cumul += seg;
+  }
+  return pts;
+}
+function lisser(z, demi) {
+  return z.map((_, i) => {
+    let s = 0, n = 0;
+    for (let k = Math.max(0, i - demi); k <= Math.min(z.length - 1, i + demi); k++) { s += z[k]; n++; }
+    return s / n;
+  });
+}
+function indexProche(c, d) { // recherche dichotomique sur la distance cumulée
+  let lo = 0, hi = c.pts.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (c.pts[m].d < d) lo = m; else hi = m; }
+  return (d - c.pts[lo].d) < (c.pts[hi].d - d) ? lo : hi;
+}
+function indexPlusProcheDe(c, latlng) {
+  let best = 0, min = Infinity;
+  c.pts.forEach((p, i) => { const dd = distance([p.lat, p.lon], [latlng.lat, latlng.lng]); if (dd < min) { min = dd; best = i; } });
+  return best;
+}
+const fmtKm = m => (m / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function fmtDuree(h) {
+  const min = Math.round(h * 60 / 5) * 5;
+  return Math.floor(min / 60) + ' h ' + String(min % 60).padStart(2, '0');
+}
+
+/* ---------- Préparation des circuits ---------- */
+CIRCUITS.forEach(c => {
+  c.pts = densifier(c.trace);
+  c.longueur = c.pts[c.pts.length - 1].d;
+  if (!(Array.isArray(c.ele) && c.ele.length === c.pts.length)) c.ele = null;
+  const n = c.etapes.length;
+  c.etapes.forEach((e, i) => {
+    e.provisoire = (e.km == null);
+    if (e.km == null) e.km = (i / n) * c.longueur / 1000; // répartition régulière en attendant le calage
+  });
+});
+
+/* ---------- Altitudes (service IGN Géoplateforme) ---------- */
+async function chargerAltitudes(c) {
+  const z = new Array(c.pts.length).fill(null);
+  const lot = 100;
+  for (let i = 0; i < c.pts.length; i += lot) {
+    const part = c.pts.slice(i, i + lot);
+    const url = 'https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json'
+      + '?lon=' + encodeURIComponent(part.map(p => p.lon.toFixed(6)).join('|'))
+      + '&lat=' + encodeURIComponent(part.map(p => p.lat.toFixed(6)).join('|'))
+      + '&resource=ign_rge_alti_wld&delimiter=%7C&indent=false&measures=false&zonly=true';
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    (j.elevations || []).forEach((v, k) => {
+      const val = (typeof v === 'number') ? v : (v && v.z);
+      z[i + k] = (val == null || val < -1000) ? null : val;
+    });
+  }
+  // combler d'éventuels trous
+  let dernier = z.find(v => v != null);
+  if (dernier == null) throw new Error('aucune altitude');
+  for (let i = 0; i < z.length; i++) { if (z[i] == null) z[i] = dernier; else dernier = z[i]; }
+  return z.map(v => Math.round(v * 10) / 10);
+}
+function assurerAltitudes(c) {
+  if (c.ele) return Promise.resolve(c.ele);
+  if (!c.chargement) {
+    c.chargement = chargerAltitudes(c)
+      .then(z => { c.ele = z; return z; })
+      .catch(err => { c.chargement = null; throw err; });
+  }
+  return c.chargement;
+}
+function statsAltitude(c) {
+  if (!c.ele) return null;
+  const z = lisser(c.ele, 3); // lissage sur ~±60 m pour gommer talus et haies
+  let plus = 0, moins = 0;
+  for (let i = 1; i < z.length; i++) { const d = z[i] - z[i - 1]; if (d > 0) plus += d; else moins -= d; }
+  return { plus, moins, min: Math.min(...c.ele), max: Math.max(...c.ele) };
+}
+
+/* ---------- Carte ---------- */
+const map = L.map('map', { zoomControl: true });
+const attrOSM = '© <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">contributeurs OpenStreetMap</a>';
+const fonds = {
+  'Plan': L.maplibreGL({ style: 'https://tiles.openfreemap.org/styles/positron', attribution: attrOSM }),
+  'Plan IGN': L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image%2Fpng&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', { maxZoom: 19, maxNativeZoom: 19, attribution: '© IGN / Géoplateforme' }),
+  'Photo aérienne': L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image%2Fjpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', { maxZoom: 20, maxNativeZoom: 19, attribution: '© IGN / Géoplateforme' })
+};
+fonds['Plan'].addTo(map);
+L.control.layers(fonds, null, { position: 'topright' }).addTo(map);
+L.control.scale({ imperial: false }).addTo(map);
+
+const groupeEtapes = L.layerGroup().addTo(map);
+const curseurCarte = L.circleMarker([0, 0], { radius: 7, color: '#fff', weight: 3, fillColor: '#1F2622', fillOpacity: 1, interactive: false });
+
+CIRCUITS.forEach(c => {
+  const ll = c.pts.map(p => [p.lat, p.lon]);
+  c.liser = L.polyline(ll, { color: '#fff', weight: 8, opacity: .9 });
+  c.ligne = L.polyline(ll, { color: c.couleur, weight: 4, opacity: 1 });
+  c.groupe = L.featureGroup([c.liser, c.ligne]).addTo(map);
+  c.groupe.on('click', ev => {
+    L.DomEvent.stopPropagation(ev);
+    if (etat.actif !== c) { selectionner(c); return; }
+    if (etat.calage && etat.etapeSel != null) placerEtape(c, etat.etapeSel, indexPlusProcheDe(c, ev.latlng));
+  });
+  c.groupe.on('mousemove', ev => { if (etat.actif === c) montrerPoint(indexPlusProcheDe(c, ev.latlng)); });
+  c.groupe.on('mouseout', cacherPoint);
+  c.marqueurDepart = L.marker(c.depart, {
+    icon: L.divIcon({ className: '', html: '<div class="mk-depart">Départ</div>', iconSize: null, iconAnchor: [24, 28] }),
+    keyboard: false, zIndexOffset: 1000
+  }).bindTooltip('Départ : ' + c.commune, { direction: 'top', offset: [0, -28] });
+});
+
+/* ---------- Affichage ---------- */
+function selectionner(c) {
+  etat.actif = c; etat.etapeSel = null;
+  CIRCUITS.forEach(o => {
+    const sel = (o === c);
+    o.ligne.setStyle({ weight: sel ? 5 : 3, opacity: sel ? 1 : .45 });
+    o.liser.setStyle({ weight: sel ? 9 : 6, opacity: sel ? .95 : .5 });
+    if (sel) o.groupe.bringToFront();
+    if (sel) o.marqueurDepart.addTo(map); else o.marqueurDepart.remove();
+  });
+  map.fitBounds(c.groupe.getBounds(), { padding: [30, 30] });
+  dessinerChoix(); dessinerFiche(); dessinerStats(); dessinerEtapes(); dessinerLiens(); dessinerMarqueursEtapes();
+  dessinerProfil();
+  if (!c.ele) {
+    c.erreurAlti = false;
+    assurerAltitudes(c).then(() => { if (etat.actif === c) { dessinerStats(); dessinerProfil(); } })
+      .catch(() => { c.erreurAlti = true; if (etat.actif === c) dessinerProfil(); });
+  }
+}
+
+function dessinerChoix() {
+  const zone = document.getElementById('choix');
+  zone.innerHTML = '';
+  CIRCUITS.forEach(c => {
+    const b = document.createElement('button');
+    b.setAttribute('aria-pressed', etat.actif === c);
+    b.style.setProperty('--c', c.couleur);
+    b.innerHTML = `<span class="pastille" style="background:${c.couleur}"></span><span class="nom">${c.nom}</span><span class="km">${fmtKm(c.longueur)} km</span>`;
+    b.onclick = () => selectionner(c);
+    zone.appendChild(b);
+  });
+}
+
+function dessinerFiche() {
+  const c = etat.actif;
+  document.getElementById('fiche').innerHTML = `
+    <h2 class="titre-circuit">${c.nom}</h2>
+    <div class="depart">Départ : ${c.commune}, niveau ${c.niveau.toLowerCase()}</div>
+    <p class="intro">${c.intro}</p>
+    ${c.aVoir ? `<p class="avoir">À voir en chemin : ${c.aVoir}</p>` : ''}`;
+}
+
+function dessinerStats() {
+  const c = etat.actif, s = statsAltitude(c);
+  const hDist = c.longueur / 1000 / etat.vitesse;
+  const duree = s ? fmtDuree(hDist + s.plus / M_PAR_HEURE_MONTEE) : fmtDuree(hDist);
+  const enCours = '<small>calcul…</small>';
+  const fiche = `Fiche office de tourisme : ${c.distanceFiche.toLocaleString('fr-FR', { minimumFractionDigits: 1 })} km, ${c.dureeFiche}${c.denivFiche ? ', ' + c.denivFiche + ' m de dénivelé' : ''}.`;
+  document.getElementById('stats').innerHTML = `
+    <dl class="chiffres">
+      <div><dt>Distance</dt><dd>${fmtKm(c.longueur)} <small>km</small></dd></div>
+      <div><dt>Temps de marche estimé</dt><dd id="duree">${duree}${s ? '' : ' <small>(sans dénivelé)</small>'}</dd></div>
+      <div><dt>Montée cumulée</dt><dd>${s ? Math.round(s.plus) + ' <small>m</small>' : enCours}</dd></div>
+      <div><dt>Altitude min / max</dt><dd>${s ? Math.round(s.min) + ' / ' + Math.round(s.max) + ' <small>m</small>' : enCours}</dd></div>
+    </dl>
+    <div class="vitesse">
+      <label>Allure <input type="range" id="vit" min="3" max="5" step="0.5" value="${etat.vitesse}" aria-label="Allure de marche en km/h"> <output>${String(etat.vitesse).replace('.', ',')} km/h</output></label>
+      <p class="note">Estimation : distance à cette allure, plus 1 h par ${M_PAR_HEURE_MONTEE} m de montée. Pauses non comprises.</p>
+      <p class="note">${fiche}</p>
+    </div>`;
+  document.getElementById('vit').oninput = ev => {
+    etat.vitesse = parseFloat(ev.target.value);
+    const h = c.longueur / 1000 / etat.vitesse + (s ? s.plus / M_PAR_HEURE_MONTEE : 0);
+    document.getElementById('duree').innerHTML = fmtDuree(h) + (s ? '' : ' <small>(sans dénivelé)</small>');
+    ev.target.nextElementSibling.textContent = String(etat.vitesse).replace('.', ',') + ' km/h';
+  };
+}
+
+function dessinerEtapes() {
+  const c = etat.actif;
+  const provisoires = c.etapes.some(e => e.provisoire);
+  let avert = '';
+  if (etat.calage) avert = `<p class="avert calage">Calage actif : faites glisser un numéro sur le tracé, ou sélectionnez une étape puis cliquez sur le tracé.</p>`;
+  else if (provisoires) avert = `<p class="avert">Les positions des étapes sur la carte sont provisoires (réparties régulièrement le long du tracé).</p>`;
+  const items = c.etapes.map((e, i) => `
+    <li><button data-i="${i}" class="${etat.etapeSel === i ? 'actif' : ''}">
+      <span class="num ${e.provisoire ? 'provisoire' : ''}" style="background:${c.couleur}">${i + 1}</span>
+      <span>${e.texte}<span class="km-etape">km ${e.km.toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })}${e.provisoire ? ' (provisoire)' : ''}</span></span>
+    </button></li>`).join('');
+  document.getElementById('etapes').innerHTML = `
+    <div class="entete-etapes"><h3>Étapes</h3><button class="lien-btn" id="btnCalage">${etat.calage ? 'Terminer le calage' : 'Caler les étapes'}</button></div>
+    ${avert}<ol class="etapes">${items}</ol>`;
+  document.getElementById('btnCalage').onclick = () => { etat.calage = !etat.calage; dessinerEtapes(); dessinerMarqueursEtapes(); dessinerLiens(); };
+  document.querySelectorAll('ol.etapes button').forEach(b => b.onclick = () => choisirEtape(parseInt(b.dataset.i, 10)));
+}
+
+function dessinerLiens() {
+  const c = etat.actif;
+  document.getElementById('liens').innerHTML = `
+    <div class="liens">
+      <a href="${c.fiche}" target="_blank" rel="noopener">Fiche complète</a>
+      <a href="${c.gpx}" target="_blank" rel="noopener">Télécharger le GPX</a>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${c.depart[0]},${c.depart[1]}" target="_blank" rel="noopener">Itinéraire vers le départ</a>
+      ${etat.calage || CIRCUITS.some(o => o.modifie) ? '<button id="btnExport">Enregistrer une copie de la page</button>' : ''}
+    </div>
+    ${etat.calage || CIRCUITS.some(o => o.modifie) ? '<p class="note">La copie conserve les étapes calées et les altitudes déjà chargées : le profil s\'affichera alors sans connexion au service IGN.</p>' : ''}`;
+  const b = document.getElementById('btnExport');
+  if (b) b.onclick = exporterPage;
+}
+
+function dessinerMarqueursEtapes() {
+  groupeEtapes.clearLayers();
+  const c = etat.actif;
+  c.marqueurs = c.etapes.map((e, i) => {
+    const p = c.pts[indexProche(c, e.km * 1000)];
+    const m = L.marker([p.lat, p.lon], {
+      draggable: etat.calage,
+      icon: L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12],
+        html: `<div class="mk-etape ${etat.etapeSel === i ? 'sel' : ''} ${etat.calage ? 'drag' : ''}" style="background:${c.couleur};${e.provisoire ? 'opacity:.75' : ''}">${i + 1}</div>` }),
+      zIndexOffset: 500 + i
+    }).bindPopup(`<strong>Étape ${i + 1}</strong>${e.texte}`, { maxWidth: 280 });
+    m.on('click', () => choisirEtape(i, false));
+    m.on('dragend', () => placerEtape(c, i, indexPlusProcheDe(c, m.getLatLng())));
+    return m.addTo(groupeEtapes);
+  });
+}
+
+function choisirEtape(i, centrer = true) {
+  const c = etat.actif;
+  etat.etapeSel = i;
+  dessinerEtapes(); dessinerMarqueursEtapes(); dessinerProfil();
+  const m = c.marqueurs[i];
+  if (centrer) map.panTo(m.getLatLng());
+  if (!etat.calage) m.openPopup();
+  const li = document.querySelector(`ol.etapes button[data-i="${i}"]`);
+  if (li) li.scrollIntoView({ block: 'nearest' });
+}
+
+function placerEtape(c, i, idx) {
+  c.etapes[i].km = c.pts[idx].d / 1000;
+  c.etapes[i].provisoire = false;
+  c.modifie = true;
+  etat.etapeSel = i;
+  dessinerEtapes(); dessinerMarqueursEtapes(); dessinerProfil(); dessinerLiens();
+}
+
+/* ---------- Profil altimétrique ---------- */
+const zoneProfil = document.getElementById('profil');
+let geomProfil = null;
+
+function dessinerProfil() {
+  const c = etat.actif, erreur = c.erreurAlti && !c.ele;
+  geomProfil = null;
+  if (!c.ele) {
+    zoneProfil.innerHTML = erreur
+      ? '<div class="msg">Profil indisponible : le service d\'altitude de l\'IGN n\'a pas répondu. Vérifiez la connexion internet puis rechargez la page.</div>'
+      : '<div class="msg">Chargement du profil altimétrique (IGN)…</div>';
+    return;
+  }
+  const W = zoneProfil.clientWidth, H = zoneProfil.clientHeight;
+  const m = { g: 46, d: 14, h: 26, b: 24 };
+  const zMin0 = Math.min(...c.ele), zMax0 = Math.max(...c.ele);
+  let zMin = Math.floor(zMin0 / 10) * 10, zMax = Math.ceil(zMax0 / 10) * 10;
+  if (zMax - zMin < 60) { const mil = (zMax + zMin) / 2; zMin = Math.floor((mil - 30) / 10) * 10; zMax = zMin + 60; }
+  if (zMin < 0 && zMin0 >= 0) zMin = 0;
+  const L_ = c.longueur;
+  const X = d => m.g + d / L_ * (W - m.g - m.d);
+  const Y = z => H - m.b - (z - zMin) / (zMax - zMin) * (H - m.h - m.b);
+  const ligne = c.pts.map((p, i) => `${X(p.d).toFixed(1)},${Y(c.ele[i]).toFixed(1)}`).join(' ');
+  const aire = `${X(0)},${Y(zMin)} ${ligne} ${X(L_)},${Y(zMin)}`;
+
+  let axes = '';
+  const pasZ = (zMax - zMin) > 150 ? 50 : (zMax - zMin) > 60 ? 20 : 10;
+  for (let z = Math.ceil(zMin / pasZ) * pasZ; z <= zMax; z += pasZ)
+    axes += `<line x1="${m.g}" x2="${W - m.d}" y1="${Y(z)}" y2="${Y(z)}"/><text x="${m.g - 6}" y="${Y(z) + 4}" text-anchor="end">${z} m</text>`;
+  const pasKm = L_ > 12000 ? 2 : 1;
+  for (let k = 0; k * 1000 <= L_; k += pasKm)
+    axes += `<text x="${X(k * 1000)}" y="${H - 6}" text-anchor="middle">${k} km</text>`;
+
+  const etapes = c.etapes.map((e, i) => {
+    const x = X(e.km * 1000), sel = etat.etapeSel === i;
+    return `<g class="rep-etape" data-i="${i}" style="cursor:pointer">
+      <line x1="${x}" x2="${x}" y1="${m.h - 4}" y2="${H - m.b}" stroke="${c.couleur}" stroke-width="${sel ? 2 : 1}" stroke-dasharray="${sel ? '' : '3 3'}" opacity="${sel ? 1 : .55}"/>
+      <circle cx="${x}" cy="${m.h - 13}" r="${sel ? 10 : 9}" fill="${c.couleur}" opacity="${e.provisoire ? .7 : 1}"/>
+      <text x="${x}" y="${m.h - 9}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="Calibri,Segoe UI,sans-serif">${i + 1}</text></g>`;
+  }).join('');
+
+  zoneProfil.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Profil altimétrique de ${c.nom}">
+      <g class="axe">${axes}</g>
+      <polygon points="${aire}" fill="${c.couleur}" opacity=".16"/>
+      <polyline points="${ligne}" fill="none" stroke="${c.couleur}" stroke-width="2" stroke-linejoin="round"/>
+      ${etapes}
+      <g id="curseurProfil" style="display:none"><line y1="${m.h}" y2="${H - m.b}" stroke="#1F2622" stroke-width="1"/><circle r="4.5" fill="#1F2622" stroke="#fff" stroke-width="2"/></g>
+      <rect x="${m.g}" y="${m.h}" width="${W - m.g - m.d}" height="${H - m.h - m.b}" fill="transparent" id="zoneSurvol"/>
+    </svg><div class="bulle" id="bulle"></div>`;
+  geomProfil = { X, Y, m, W };
+
+  const svg = zoneProfil.querySelector('svg');
+  const survol = document.getElementById('zoneSurvol');
+  survol.addEventListener('mousemove', ev => {
+    const r = svg.getBoundingClientRect();
+    const x = (ev.clientX - r.left) * (W / r.width);
+    const d = Math.max(0, Math.min(L_, (x - m.g) / (W - m.g - m.d) * L_));
+    montrerPoint(indexProche(c, d));
+  });
+  survol.addEventListener('mouseleave', cacherPoint);
+  zoneProfil.querySelectorAll('.rep-etape').forEach(g => g.addEventListener('click', () => choisirEtape(parseInt(g.dataset.i, 10))));
+}
+
+function montrerPoint(idx) {
+  const c = etat.actif, p = c.pts[idx];
+  curseurCarte.setLatLng([p.lat, p.lon]).addTo(map);
+  if (!geomProfil || !c.ele) return;
+  const x = geomProfil.X(p.d), y = geomProfil.Y(c.ele[idx]);
+  const g = document.getElementById('curseurProfil');
+  g.style.display = '';
+  g.querySelector('line').setAttribute('x1', x); g.querySelector('line').setAttribute('x2', x);
+  g.querySelector('circle').setAttribute('cx', x); g.querySelector('circle').setAttribute('cy', y);
+  const b = document.getElementById('bulle'), svg = zoneProfil.querySelector('svg');
+  const k = svg.getBoundingClientRect().width / geomProfil.W;
+  b.style.display = 'block';
+  b.style.left = Math.min(Math.max(x * k, 50), zoneProfil.clientWidth - 50) + 'px';
+  b.style.top = (y * k) + 'px';
+  b.textContent = `km ${fmtKm(p.d)}, altitude ${Math.round(c.ele[idx])} m`;
+}
+function cacherPoint() {
+  curseurCarte.remove();
+  const g = document.getElementById('curseurProfil'); if (g) g.style.display = 'none';
+  const b = document.getElementById('bulle'); if (b) b.style.display = 'none';
+}
+
+/* ---------- Export : copie de la page avec les données mises à jour ---------- */
+async function exporterPage() {
+  // on tente de charger les altitudes de tous les circuits pour un profil hors ligne
+  await Promise.all(CIRCUITS.map(c => assurerAltitudes(c).catch(() => null)));
+  const sortie = {
+    circuits: CIRCUITS.map(c => ({
+      id: c.id, nom: c.nom, commune: c.commune, niveau: c.niveau, dureeFiche: c.dureeFiche,
+      distanceFiche: c.distanceFiche, denivFiche: c.denivFiche, couleur: c.couleur,
+      intro: c.intro, aVoir: c.aVoir, fiche: c.fiche, gpx: c.gpx, depart: c.depart, trace: c.trace,
+      ele: c.ele || null,
+      etapes: c.etapes.map(e => ({ texte: e.texte, km: e.provisoire ? null : Math.round(e.km * 1000) / 1000 }))
+    }))
+  };
+  const json = JSON.stringify(sortie).replace(/</g, '\\u003c');
+  const html = PAGE_INITIALE.replace(/(<script type="application\/json" id="donnees">)[\s\S]*?(<\/script>)/, (t, a, b) => a + json + b);
+  const lien = document.createElement('a');
+  lien.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  lien.download = 'randonnees-ncpa.html';
+  document.body.appendChild(lien); lien.click(); lien.remove();
+}
+
+/* ---------- Démarrage ---------- */
+selectionner(CIRCUITS[0]);
+setTimeout(() => map.invalidateSize(), 50);
+let attente;
+new ResizeObserver(() => { clearTimeout(attente); attente = setTimeout(() => { map.invalidateSize(); if (etat.actif) dessinerProfil(); }, 120); }).observe(zoneProfil);
+</script>
+</body>
+</html>
