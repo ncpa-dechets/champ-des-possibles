@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Isochrones & isodistances — API IGN Géoplateforme</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root{
+  --accent:#2f5fd0; --accent-hover:#244db0; --accent-soft:#eaf0fc; --accent-text:#1d3f94;
+  --text:#1f2328; --muted:#5b636c; --faint:#8b929a;
+  --line:#e3e6ea; --line-strong:#c9cfd6;
+  --card:#ffffff; --soft:#f2f4f7;
+  --danger:#c62f2f; --ok:#24804a; --warn-bg:#fff6e0; --warn:#8a5a00;
+  --radius:14px; --shadow:0 6px 24px rgba(20,30,50,.16),0 1px 3px rgba(20,30,50,.10);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--text);font-size:14px}
+#map{position:absolute;inset:0}
+button{font:inherit;color:inherit}
+
+/* ---- Panneau de réglages ---- */
+#panel{position:absolute;z-index:1000;top:14px;left:14px;width:310px;max-height:calc(100% - 28px);
+  display:flex;flex-direction:column;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:transform .25s ease,opacity .25s ease}
+#panel.hidden{transform:translateX(calc(-100% - 20px));opacity:0;pointer-events:none}
+.ph{display:flex;align-items:center;gap:10px;padding:14px 14px 10px}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;flex:0 0 auto}
+.ph h1{font-size:16px;font-weight:600;margin:0;line-height:1.2}
+.ph p{margin:1px 0 0;font-size:12px;color:var(--muted)}
+.iconbtn{border:none;background:transparent;width:30px;height:30px;border-radius:8px;cursor:pointer;color:var(--muted);display:grid;place-items:center;flex:0 0 auto}
+.iconbtn:hover{background:var(--soft);color:var(--text)}
+.iconbtn.danger:hover{color:var(--danger);background:#fbeaea}
+.pb{padding:0 14px 14px;overflow-y:auto}
+.field{margin-top:12px}
+.label{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 6px;display:flex;justify-content:space-between}
+.label span{font-weight:400;color:var(--faint)}
+
+.search{position:relative}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint)}
+input[type=text],input[type=number],select{width:100%;height:36px;padding:0 10px;border:1px solid var(--line-strong);border-radius:10px;font:inherit;background:#fff;color:var(--text)}
+.search input{padding-left:32px}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#suggest{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:10px;z-index:10;max-height:260px;overflow-y:auto;display:none;box-shadow:var(--shadow)}
+#suggest div{padding:8px 10px;font-size:13px;cursor:pointer}
+#suggest div+div{border-top:1px solid var(--soft)}
+#suggest div.active,#suggest div:hover{background:var(--accent-soft)}
+#suggest small{color:var(--muted)}
+.hint{font-size:12px;color:var(--faint);margin:6px 2px 0}
+#pointInfo{display:none;margin-top:8px;padding:8px 10px;background:var(--soft);border-radius:10px;font-size:13px}
+#pointInfo .c{font-size:11px;color:var(--faint);margin-top:2px;font-variant-numeric:tabular-nums}
+#importBtn{width:100%;margin-top:8px;height:34px;border-style:dashed;color:var(--accent-text)}
+#importBtn:hover{background:var(--accent-soft);border-color:var(--accent)}
+
+/* Boutons à bascule : l'option choisie est pleine, bien contrastée */
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:10px;padding:3px;gap:3px;background:#fff}
+.seg button{flex:1;border:none;background:transparent;padding:7px 4px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px}
+.seg button:hover:not(.on){background:var(--soft);color:var(--text)}
+.seg button.on{background:var(--accent);color:#fff;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line-strong);background:#fff;border-radius:999px;padding:4px 11px;cursor:pointer;font-size:13px;font-variant-numeric:tabular-nums}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.custom{border-style:dashed}
+.chip.custom.on{border-style:solid}
+.addrow{display:flex;gap:6px;margin-top:8px;align-items:center}
+.addrow input{height:32px;flex:1}
+.addrow .u{font-size:12px;color:var(--muted);min-width:26px}
+.btn{border:1px solid var(--line-strong);background:#fff;border-radius:10px;height:32px;padding:0 12px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.primary:hover{background:var(--accent-hover)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.go{margin-top:14px;width:100%;height:40px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.go:hover{background:var(--accent-hover)}
+#updBtn{display:none;margin-top:6px;width:100%;height:36px;white-space:nowrap;overflow:hidden}
+#status{font-size:12px;margin-top:8px;min-height:16px;color:var(--muted)}
+#status.err{color:var(--danger)}
+#status.ok{color:var(--ok)}
+
+details.adv{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+details.adv summary{cursor:pointer;font-size:13px;color:var(--muted);list-style:none;display:flex;align-items:center;gap:6px}
+details.adv summary::-webkit-details-marker{display:none}
+details.adv summary .chev{transition:transform .2s}
+details.adv[open] summary .chev{transform:rotate(90deg)}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0;cursor:pointer}
+.chk input{accent-color:var(--accent);width:15px;height:15px}
+footer.src{font-size:11px;color:var(--faint);margin-top:12px;line-height:1.4}
+
+/* ---- Mes calculs ---- */
+#res{position:absolute;z-index:1000;right:14px;bottom:30px;width:340px;max-height:calc(100% - 140px);background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);display:none;flex-direction:column;overflow:hidden;border:2px solid var(--accent)}
+#res .rh{padding:10px 10px 10px 14px;display:flex;align-items:center;gap:8px;background:var(--accent);color:#fff}
+#res .rh b{font-size:15px;flex:1}
+#res .rh .iconbtn{color:#fff}
+#res .rh .iconbtn:hover{background:rgba(255,255,255,.18)}
+.count{background:#fff;color:var(--accent);border-radius:999px;font-size:12px;font-weight:700;padding:1px 8px;margin-left:6px}
+#list{overflow-y:auto;flex:1}
+.grp{border-bottom:1px solid var(--line)}
+.grp.active{background:var(--accent-soft)}
+.gh{display:flex;align-items:center;gap:6px;padding:8px 8px 8px 6px}
+.gt{flex:1;min-width:0;cursor:pointer}
+.gt b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gt small{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--accent-soft);color:var(--accent-text);border-radius:4px;padding:0 4px;margin-right:4px;vertical-align:1px}
+.grp.off .gt,.grp.off .ramp{opacity:.4}
+.ramp{display:flex;gap:2px;flex:0 0 auto}
+.ramp i{width:7px;height:18px;border-radius:2px;display:block}
+.eye.off{color:var(--faint)}
+.gb{padding:0 10px 10px 12px}
+.gb table{width:100%;border-collapse:collapse;font-size:13px}
+.gb td{padding:4px 2px;font-variant-numeric:tabular-nums}
+.gb td.n{text-align:right;color:var(--muted)}
+.gb tr.band{cursor:pointer}
+.gb tr.band.off td{opacity:.35}
+.gb tr.fail td{color:var(--danger);font-size:12px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:8px;vertical-align:-1px}
+.gact{display:flex;gap:6px;margin-top:8px;align-items:center}
+.gact select{height:30px;font-size:12px;flex:1;padding:0 6px}
+.gact .btn{height:30px;padding:0 9px;font-size:12px}
+.gb details{font-size:11px;margin-top:6px}
+.gb details summary{cursor:pointer;color:var(--faint)}
+.gb details a{display:block;word-break:break-all;color:var(--muted);margin:3px 0}
+#res .rf{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:#fafbfc}
+#res .rf .primary{flex:1;height:36px;white-space:nowrap}
+#res .rf .btn{white-space:nowrap}
+
+/* ---- Fenêtre d'import ---- */
+#imp{position:absolute;z-index:1100;top:50%;left:50%;transform:translate(-50%,-50%);width:440px;max-width:calc(100% - 24px);max-height:calc(100% - 24px);background:var(--card);border-radius:var(--radius);box-shadow:0 12px 48px rgba(20,30,50,.30);display:none;flex-direction:column;overflow:hidden}
+#imp .dh{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+#imp .dh b{font-size:16px;flex:1}
+#imp .db{padding:4px 16px 14px;overflow-y:auto}
+#imp .df{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:#fafbfc}
+#imp .df .btn{height:38px;padding:0 16px}
+.info{margin-top:10px;padding:10px 12px;background:var(--soft);border-radius:10px;font-size:13px;line-height:1.45}
+.info .w{display:block;margin-top:6px;padding:6px 8px;background:var(--warn-bg);color:var(--warn);border-radius:6px;font-size:12px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line-strong);border-radius:10px;padding:9px 11px;margin-bottom:6px;cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt input{accent-color:var(--accent);margin-top:3px}
+.opt b{font-size:13px;display:block}
+.opt small{font-size:12px;color:var(--muted)}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.inrow{display:flex;align-items:center;gap:8px}
+.inrow input{width:110px}
+.summary{margin-top:14px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);color:var(--accent-text);font-size:13px;line-height:1.45;border-radius:0}
+.summary.err{border-left-color:var(--danger);background:#fbeaea;color:var(--danger)}
+
+/* ---- Barre de progression ---- */
+#prog{position:absolute;z-index:1050;top:14px;left:50%;transform:translateX(-50%);width:380px;max-width:calc(100% - 24px);background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;display:none}
+#prog .prh{display:flex;align-items:center;gap:10px}
+#prog .prh b{flex:1;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#prog .bar{height:10px;background:var(--soft);border-radius:999px;margin:10px 0 6px;overflow:hidden}
+#prog .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .3s ease}
+#prog .pt{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+#prog .pt .f{color:var(--danger)}
+
+/* ---- Divers ---- */
+.floatbtn{position:absolute;z-index:999;display:none;align-items:center;gap:8px;height:40px;padding:0 14px;border:none;border-radius:12px;background:#fff;box-shadow:var(--shadow);cursor:pointer;font-weight:600}
+#openPanel{top:14px;left:14px}
+#openRes{right:14px;bottom:30px;background:var(--accent);color:#fff}
+#busy{position:absolute;z-index:1001;top:16px;left:50%;transform:translateX(-50%);background:#fff;border-radius:999px;padding:7px 16px;font-size:13px;box-shadow:var(--shadow);display:none;align-items:center;gap:8px}
+.spin{width:14px;height:14px;border:2px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#drop{position:absolute;inset:0;z-index:2000;background:rgba(47,95,208,.18);border:4px dashed var(--accent);display:none;align-items:center;justify-content:center;pointer-events:none}
+#drop div{background:#fff;padding:18px 26px;border-radius:var(--radius);box-shadow:var(--shadow);font-size:16px;font-weight:600;color:var(--accent-text)}
+.pt-icon{width:20px;height:20px;border-radius:50%;background:var(--text);border:3px solid #fff;box-shadow:0 0 0 2px var(--accent),0 2px 8px rgba(0,0,0,.35)}
+.leaflet-tooltip.iso-tip{font-family:inherit;font-size:13px;border-radius:8px;border:none;box-shadow:var(--shadow)}
+.leaflet-control-layers,.leaflet-bar{border:none!important;border-radius:10px!important;box-shadow:var(--shadow)!important;overflow:hidden}
+.leaflet-container{font-family:inherit;cursor:crosshair}
+.leaflet-interactive{cursor:pointer}
+
+@media (max-width:700px){
+  #panel{left:8px;right:8px;top:8px;width:auto;max-height:55%}
+  #res{left:8px;right:8px;width:auto;bottom:24px;max-height:40%}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<aside id="panel">
+  <div class="ph">
+    <div class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2f5fd0" stroke-width="2"><circle cx="12" cy="12" r="2.5" fill="#2f5fd0"/><circle cx="12" cy="12" r="6.5" opacity=".7"/><circle cx="12" cy="12" r="10.5" opacity=".4"/></svg>
+    </div>
+    <div style="flex:1"><h1>Isochrones</h1><p>Zones accessibles en temps ou en distance</p></div>
+    <button class="iconbtn" id="hidePanel" title="Masquer le panneau" aria-label="Masquer le panneau">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+  </div>
+
+  <div class="pb">
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="text" id="addr" placeholder="Adresse, commune ou « lat, lon »" autocomplete="off">
+      <div id="suggest"></div>
+    </div>
+    <p class="hint">Ou cliquez sur la carte pour placer le point.</p>
+    <div id="pointInfo"><div id="pointLabel"></div><div class="c" id="pointCoords"></div></div>
+    <button class="btn" id="importBtn" title="Fichier de points GeoJSON, 50 points maximum. Vous pouvez aussi le glisser sur la carte.">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Importer des points (GeoJSON)</button>
+    <input type="file" id="fileIn" accept=".geojson,.json,application/geo+json,application/json" hidden>
+
+    <div class="field">
+      <div class="label">Calcul</div>
+      <div class="seg" id="segCost">
+        <button data-v="time" class="on">Temps</button>
+        <button data-v="distance">Distance</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">Valeurs <span>plusieurs choix possibles</span></div>
+      <div class="chips" id="chips"></div>
+      <div class="addrow">
+        <input type="number" id="customVal" min="0.1" step="any" placeholder="Autre valeur">
+        <span class="u" id="customUnit">min</span>
+        <button class="btn" id="addVal">Ajouter</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">Mode de déplacement</div>
+      <div class="seg" id="segProfile">
+        <button data-v="car" class="on">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-5H7l-2 5z"/><circle cx="8" cy="17" r="1.5"/><circle cx="16" cy="17" r="1.5"/></svg>Voiture</button>
+        <button data-v="pedestrian">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13" cy="4" r="1.8"/><path d="M9 21l2-7 3 3v5M8 11l3-3 3 2 3 3"/></svg>Piéton</button>
+      </div>
+    </div>
+
+    <button class="go" id="go">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Nouveau calcul
+    </button>
+    <button class="btn" id="updBtn"></button>
+    <div id="status"></div>
+
+    <details class="adv">
+      <summary><svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>Options avancées</summary>
+      <div class="field">
+        <div class="label">Sens du trajet</div>
+        <div class="seg" id="segDir">
+          <button data-v="departure" class="on">Depuis le point</button>
+          <button data-v="arrival">Vers le point</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="label">Éviter</div>
+        <label class="chk"><input type="checkbox" class="avoid" value="autoroute"> Autoroutes</label>
+        <label class="chk"><input type="checkbox" class="avoid" value="tunnel"> Tunnels</label>
+        <label class="chk"><input type="checkbox" class="avoid" value="pont"> Ponts</label>
+      </div>
+      <div class="field">
+        <div class="label">Moteur de calcul IGN</div>
+        <select id="resource">
+          <option value="bdtopo-valhalla">Valhalla (recommandé)</option>
+          <option value="bdtopo-pgr">pgRouting</option>
+        </select>
+      </div>
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="auto" checked> Mettre à jour le calcul sélectionné quand je fais glisser le point</label>
+      <footer class="src">Calcul : API Géoplateforme IGN, réseau routier BD TOPO® (5 requêtes par seconde au maximum). Adresses : Base Adresse Nationale. Temps théoriques, sans trafic réel. Les calculs sont conservés dans ce navigateur.</footer>
+    </details>
+  </div>
+</aside>
+
+<button class="floatbtn" id="openPanel">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Isochrones
+</button>
+
+<div id="busy"><div class="spin"></div><span id="busyTxt">Calcul en cours…</span></div>
+
+<!-- Barre de progression des imports -->
+<div id="prog">
+  <div class="prh"><div class="spin"></div><b id="progTitle">Calcul du lot</b><button class="btn" id="progStop">Arrêter</button></div>
+  <div class="bar"><i id="progBar"></i></div>
+  <div class="pt" id="progTxt"></div>
+</div>
+
+<!-- Fenêtre d'import -->
+<div id="imp" role="dialog" aria-label="Importer des points">
+  <div class="dh">
+    <b>Importer des points</b>
+    <button class="iconbtn" id="impClose" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="db">
+    <div class="info" id="impInfo"></div>
+    <div class="field">
+      <div class="label">Nom du lot</div>
+      <input type="text" id="impName">
+    </div>
+    <div class="field">
+      <div class="label">Champ qui donne le nom des points</div>
+      <select id="impField"></select>
+    </div>
+    <div class="field">
+      <div class="label">Organisation des résultats</div>
+      <label class="opt"><input type="radio" name="impMode" value="each"><div><b>Un calcul par point</b><small>Chaque point devient une ligne de « Mes calculs », modifiable séparément.</small></div></label>
+      <label class="opt"><input type="radio" name="impMode" value="lot" checked><div><b>Un lot unique</b><small>Toutes les zones dans un seul calcul, affichées et exportées ensemble.</small></div></label>
+      <label class="opt"><input type="radio" name="impMode" value="merge"><div><b>Un lot avec zones fusionnées</b><small>Une seule zone par valeur : la couverture de l'ensemble des points.</small></div></label>
+    </div>
+    <div class="field">
+      <div class="label">Délai entre deux requêtes</div>
+      <div class="inrow"><input type="number" id="impDelay" min="220" step="50" value="300"><span style="font-size:13px;color:var(--muted)">millisecondes</span></div>
+      <p class="hint">L'IGN accepte 5 requêtes par seconde au maximum (200 ms). Minimum retenu ici : 220 ms.</p>
+    </div>
+    <div class="summary" id="impSummary"></div>
+  </div>
+  <div class="df">
+    <button class="btn" id="impCancel">Annuler</button>
+    <button class="btn primary" id="impGo">Lancer le calcul</button>
+  </div>
+</div>
+
+<div id="res">
+  <div class="rh">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+    <b>Mes calculs<span class="count" id="resCount">0</span></b>
+    <button class="iconbtn" id="closeRes" title="Réduire" aria-label="Réduire la liste des calculs">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+  </div>
+  <div id="list"></div>
+  <div class="rf">
+    <button class="btn primary" id="exportAll">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Tout exporter en GeoJSON</button>
+    <button class="btn" id="clearAll" title="Supprimer tous les calculs">Tout effacer</button>
+  </div>
+</div>
+<button class="floatbtn" id="openRes">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>Mes calculs <span class="count" id="resCount2">0</span>
+</button>
+
+<div id="drop"><div>Déposez votre fichier GeoJSON de points</div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+<script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
+<script src="https://unpkg.com/@turf/turf@7.1.0/turf.min.js"></script>
+<script>
+"use strict";
+/* ================= Réglages ================= */
+const API_ISO = "https://data.geopf.fr/navigation/isochrone";
+const GEOCODE = "https://data.geopf.fr/geocodage";
+const GEOCODE_OLD = "https://api-adresse.data.gouv.fr";   // repli si le premier ne répond pas
+const STORE_KEY = "isochrones_ign_calculs_v1";            // clé de sauvegarde dans le navigateur
+const MAX_POINTS = 50;                                    // limite par import
+const MIN_DELAY = 220;                                    // limite IGN : 5 requêtes/s (200 ms), plus une marge
+const CENTRE = [46.6, 2.4], ZOOM = 6;
+const PRESETS = {
+  time:     { values:[5,10,15,20,30,45,60], unit:"min", min:1,   max:600, defaults:[10,20,30] },
+  distance: { values:[1,2,5,10,15,20,30,50], unit:"km", min:0.1, max:50,  defaults:[5,10,20] }
+};
+// Palettes : de la zone la plus proche à la plus lointaine
+const PALETTES = [
+  { name:"Vert → rouge", c:["#1a9850","#66bd63","#a6d96a","#fee08b","#fdae61","#f46d43","#d73027","#a50026"] },
+  { name:"Bleus",        c:["#08306b","#2171b5","#4292c6","#6baed6","#9ecae1"] },
+  { name:"Violets",      c:["#3f007d","#6a51a3","#807dba","#9e9ac8","#bcbddc"] },
+  { name:"Oranges",      c:["#7f2704","#d94801","#f16913","#fd8d3c","#fdae6b"] },
+  { name:"Roses",        c:["#67001f","#ce1256","#e7298a","#df65b0","#c994c7"] },
+  { name:"Turquoises",   c:["#00441b","#00796b","#26a69a","#4db6ac","#80cbc4"] },
+  { name:"Gris",         c:["#252525","#525252","#737373","#969696","#bdbdbd"] }
+];
+if (window.proj4) proj4.defs("EPSG:2154","+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+
+/* ================= État ================= */
+const state = {
+  point:null, label:"", labelPromise:null,
+  cost:"time", profile:"car", direction:"departure",
+  selected:{ time:new Set(PRESETS.time.defaults), distance:new Set(PRESETS.distance.defaults) },
+  custom:{ time:new Set(), distance:new Set() },
+  groups:[], activeId:null, pending:0, resClosed:false,
+  delay:300, imp:null, batchCtrl:null
+};
+
+/* ================= Carte ================= */
+const map = L.map("map", { zoomControl:false }).setView(CENTRE, ZOOM);
+const plan = L.maplibreGL({
+  style:"https://tiles.openfreemap.org/styles/positron",
+  attribution:'© <a href="https://openfreemap.org">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright">contributeurs OpenStreetMap</a>'
+}).addTo(map);
+const ortho = L.tileLayer(
+  "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image%2Fjpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+  { maxZoom:21, maxNativeZoom:19, attribution:"© IGN / Géoplateforme" });
+L.control.layers({ "Plan": plan, "Photo aérienne IGN": ortho }, null, { position:"topright" }).addTo(map);
+L.control.zoom({ position:"topright" }).addTo(map);
+L.control.scale({ imperial:false, position:"bottomleft" }).addTo(map);
+setTimeout(()=>map.invalidateSize(), 100);
+
+const isoLayer = L.layerGroup().addTo(map);
+const previewLayer = L.layerGroup().addTo(map);
+const marker = L.marker(CENTRE, {
+  draggable:true, zIndexOffset:1000,
+  icon:L.divIcon({ className:"", html:'<div class="pt-icon"></div>', iconSize:[20,20], iconAnchor:[10,10] })
+});
+marker.on("dragend", ()=>{
+  const p = marker.getLatLng();
+  setPoint(p.lat, p.lng, null, false);
+  const g = activeGroup();
+  if (g && g.kind !== "lot" && $("auto").checked) compute(g);
+});
+map.on("click", e=>{
+  // nouveau point : on quitte la sélection pour préparer un nouveau calcul
+  selectGroup(null);
+  setPoint(e.latlng.lat, e.latlng.lng, null, map.getZoom() < 11);
+});
+
+/* ================= Utilitaires ================= */
+function $(id){ return document.getElementById(id); }
+function fmt(n, d=1){ return n.toLocaleString("fr-FR", { maximumFractionDigits:d }); }
+function valueLabel(v, cost){
+  if (cost === "distance") return `${fmt(v,1)} km`;
+  if (v < 60) return `${fmt(v,1)} min`;
+  const h = Math.floor(v/60), m = Math.round(v - h*60);
+  return m ? `${h} h ${String(m).padStart(2,"0")}` : `${h} h`;
+}
+function duration(sec){
+  sec = Math.max(1, Math.round(sec));
+  if (sec < 60) return `${sec} s`;
+  const m = Math.floor(sec/60), s = sec % 60;
+  return s ? `${m} min ${String(s).padStart(2,"0")} s` : `${m} min`;
+}
+function bandColors(pal, n){
+  const c = PALETTES[pal].c;
+  if (n === 1) return [c[pal === 0 ? 2 : 1]];
+  return Array.from({length:n}, (_,i)=>c[Math.round(i*(c.length-1)/(n-1))]);
+}
+// Surface en m² (formule sphérique, identique à turf.js)
+function ringArea(c){
+  const R = 6378137, rad = Math.PI/180; let a = 0;
+  for (let i=0;i<c.length-1;i++){
+    const p1=c[i], p2=c[i+1];
+    a += (p2[0]-p1[0])*rad * (2 + Math.sin(p1[1]*rad) + Math.sin(p2[1]*rad));
+  }
+  return Math.abs(a*R*R/2);
+}
+function polyArea(rings){ return rings.reduce((s,r,i)=> i===0 ? s+ringArea(r) : s-ringArea(r), 0); }
+function geomArea(g){
+  if (!g) return 0;
+  if (g.type === "Polygon") return polyArea(g.coordinates);
+  if (g.type === "MultiPolygon") return g.coordinates.reduce((s,p)=>s+polyArea(p),0);
+  if (g.type === "GeometryCollection") return g.geometries.reduce((s,x)=>s+geomArea(x),0);
+  return 0;
+}
+function setStatus(msg, cls=""){ const s=$("status"); s.textContent=msg; s.className=cls; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function activeGroup(){ return state.groups.find(g=>g.id === state.activeId) || null; }
+function settingsText(m, values){
+  return `${m.cost==="time"?"Temps":"Distance"} · ${m.profile==="car"?"voiture":"piéton"} · ${m.direction==="departure"?"depuis":"vers"}`
+    + `${m.avoid.length?" · sans "+m.avoid.join(", "):""} · ${values.map(v=>fmt(v,1)).join(", ")} ${m.cost==="time"?"min":"km"}`;
+}
+function describe(g){
+  const t = settingsText(g.meta, g.bands.map(b=>b.value));
+  return g.kind === "lot" ? `${g.points.length} points${g.merged?" fusionnés":""} · ${t}` : t;
+}
+function autoName(m){ return m.label || `Point ${m.point.lat.toFixed(4)}, ${m.point.lon.toFixed(4)}`; }
+function abortError(){ const e = new Error("annulé"); e.name = "AbortError"; return e; }
+function sleep(ms, signal){
+  return new Promise((res, rej)=>{
+    if (signal && signal.aborted) return rej(abortError());
+    const t = setTimeout(res, ms);
+    if (signal) signal.addEventListener("abort", ()=>{ clearTimeout(t); rej(abortError()); }, { once:true });
+  });
+}
+
+/* ================= Panneaux masquables ================= */
+$("hidePanel").addEventListener("click", ()=>{ $("panel").classList.add("hidden"); $("openPanel").style.display = "flex"; });
+$("openPanel").addEventListener("click", ()=>{ $("panel").classList.remove("hidden"); $("openPanel").style.display = "none"; });
+$("closeRes").addEventListener("click", ()=>{ state.resClosed = true; renderList(); });
+$("openRes").addEventListener("click", ()=>{ state.resClosed = false; renderList(); });
+
+/* ================= Point ================= */
+function setPoint(lat, lon, label, fly){
+  state.point = { lat, lon };
+  marker.setLatLng([lat, lon]);
+  if (!map.hasLayer(marker)) marker.addTo(map);
+  $("pointInfo").style.display = "block";
+  $("pointCoords").textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+  if (fly) map.setView([lat, lon], Math.max(map.getZoom(), 13));
+  if (label){ state.label = label; $("pointLabel").textContent = label; state.labelPromise = null; }
+  else { state.label = ""; $("pointLabel").textContent = "Recherche de l'adresse…"; state.labelPromise = reverse(lat, lon); }
+}
+let revSeq = 0;
+async function reverse(lat, lon){
+  const seq = ++revSeq;
+  const urls = [
+    `${GEOCODE}/reverse?lon=${lon}&lat=${lat}&index=address&limit=1`,
+    `${GEOCODE_OLD}/reverse/?lon=${lon}&lat=${lat}&limit=1`
+  ];
+  for (const u of urls){
+    try{
+      const r = await fetch(u); if (!r.ok) continue;
+      const j = await r.json(); if (seq !== revSeq) return;
+      const f = j.features && j.features[0];
+      state.label = f ? f.properties.label : "";
+      $("pointLabel").textContent = f ? `Près de : ${f.properties.label}` : "Point sur la carte";
+      return;
+    }catch(e){}
+  }
+  if (seq === revSeq) $("pointLabel").textContent = "Point sur la carte";
+}
+
+// Recherche d'adresse avec suggestions
+let sugTimer = null, sugItems = [], sugActive = -1;
+$("addr").addEventListener("input", ()=>{
+  clearTimeout(sugTimer);
+  const q = $("addr").value.trim();
+  sugTimer = setTimeout(()=>suggest(q), 250);
+});
+$("addr").addEventListener("keydown", e=>{
+  const box = $("suggest");
+  if (box.style.display !== "block") return;
+  if (e.key === "ArrowDown"){ sugActive = Math.min(sugActive+1, sugItems.length-1); paintSug(); e.preventDefault(); }
+  else if (e.key === "ArrowUp"){ sugActive = Math.max(sugActive-1, 0); paintSug(); e.preventDefault(); }
+  else if (e.key === "Enter"){ pickSug(sugActive >= 0 ? sugActive : 0); e.preventDefault(); }
+  else if (e.key === "Escape"){ box.style.display = "none"; }
+});
+document.addEventListener("click", e=>{ if (!e.target.closest(".search")) $("suggest").style.display = "none"; });
+
+async function suggest(q){
+  const box = $("suggest");
+  sugItems = []; sugActive = -1;
+  const m = q.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[;, ]\s*(-?\d+(?:[.,]\d+)?)\s*$/);   // « lat, lon »
+  if (m){
+    const lat = parseFloat(m[1].replace(",", ".")), lon = parseFloat(m[2].replace(",", "."));
+    if (Math.abs(lat) <= 90 && Math.abs(lon) <= 180) sugItems.push({ label:`Coordonnées ${lat}, ${lon}`, sub:"latitude, longitude", lat, lon, coords:true });
+  }
+  if (q.length >= 3 && !m){
+    const c = map.getCenter();
+    const bias = map.getZoom() >= 9 ? `&lat=${c.lat}&lon=${c.lng}` : "";
+    const urls = [
+      `${GEOCODE}/search?q=${encodeURIComponent(q)}&index=address&limit=6${bias}`,
+      `${GEOCODE_OLD}/search/?q=${encodeURIComponent(q)}&limit=6${bias}`
+    ];
+    for (const u of urls){
+      try{
+        const r = await fetch(u); if (!r.ok) continue;
+        const j = await r.json();
+        if ($("addr").value.trim() !== q) return;
+        (j.features||[]).forEach(f=>{
+          const p = f.properties;
+          sugItems.push({ label:p.label, sub:p.context || "", lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0] });
+        });
+        break;
+      }catch(e){}
+    }
+  }
+  if (!sugItems.length){ box.style.display = "none"; return; }
+  paintSug(); box.style.display = "block";
+}
+function paintSug(){
+  const box = $("suggest"); box.innerHTML = "";
+  sugItems.forEach((s,i)=>{
+    const d = document.createElement("div");
+    if (i === sugActive) d.className = "active";
+    d.innerHTML = `${esc(s.label)}<br><small>${esc(s.sub)}</small>`;
+    d.addEventListener("click", ()=>pickSug(i));
+    box.appendChild(d);
+  });
+}
+function pickSug(i){
+  const s = sugItems[i]; if (!s) return;
+  $("suggest").style.display = "none";
+  $("addr").value = s.label;
+  selectGroup(null);
+  setPoint(s.lat, s.lon, s.coords ? null : s.label, true);
+}
+
+/* ================= Valeurs ================= */
+function renderChips(){
+  const P = PRESETS[state.cost];
+  const all = [...new Set([...P.values, ...state.custom[state.cost]])].sort((a,b)=>a-b);
+  const box = $("chips"); box.innerHTML = "";
+  all.forEach(v=>{
+    const preset = P.values.includes(v);
+    const b = document.createElement("button");
+    b.className = "chip" + (state.selected[state.cost].has(v) ? " on" : "") + (preset ? "" : " custom");
+    b.textContent = valueLabel(v, state.cost);
+    if (!preset) b.title = "Valeur ajoutée (double-clic pour la retirer)";
+    b.addEventListener("click", ()=>{
+      const s = state.selected[state.cost];
+      s.has(v) ? s.delete(v) : s.add(v);
+      renderChips();
+    });
+    b.addEventListener("dblclick", ()=>{
+      if (preset) return;
+      state.custom[state.cost].delete(v); state.selected[state.cost].delete(v); renderChips();
+    });
+    box.appendChild(b);
+  });
+  $("customUnit").textContent = P.unit;
+  updateImportSummary();
+}
+$("addVal").addEventListener("click", addCustom);
+$("customVal").addEventListener("keydown", e=>{ if (e.key === "Enter") addCustom(); });
+function addCustom(){
+  const P = PRESETS[state.cost];
+  const v = parseFloat(String($("customVal").value).replace(",", "."));
+  if (!(v >= P.min && v <= P.max)){ setStatus(`Saisissez une valeur entre ${P.min} et ${P.max} ${P.unit}.`, "err"); return; }
+  const r = Math.round(v*10)/10;
+  state.custom[state.cost].add(r); state.selected[state.cost].add(r);
+  $("customVal").value = ""; setStatus(""); renderChips();
+}
+function selectedValues(){ return [...state.selected[state.cost]].sort((a,b)=>a-b); }
+
+/* ================= Boutons à bascule ================= */
+function setSeg(id, value){
+  $(id).querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.v === value));
+}
+function seg(id, key, onChange){
+  $(id).querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      setSeg(id, b.dataset.v); state[key] = b.dataset.v;
+      if (onChange) onChange();
+      updateImportSummary();
+    });
+  });
+}
+seg("segCost", "cost", renderChips);
+seg("segProfile", "profile");
+seg("segDir", "direction");
+document.querySelectorAll(".avoid").forEach(c=>c.addEventListener("change", updateImportSummary));
+$("resource").addEventListener("change", updateImportSummary);
+
+/* ================= API IGN (avec respect de la limite de 5 requêtes/s) ================= */
+let nextSlot = 0;
+// Réserve un créneau d'envoi : les requêtes partent espacées d'au moins « state.delay » ms
+async function waitSlot(signal){
+  const now = Date.now(), t = Math.max(now, nextSlot);
+  nextSlot = t + Math.max(MIN_DELAY, state.delay);
+  if (t > now) await sleep(t - now, signal);
+}
+function buildUrl(m, pt, v){
+  const params = new URLSearchParams({
+    resource: m.resource,
+    point: `${pt.lon.toFixed(6)},${pt.lat.toFixed(6)}`,
+    costType: m.cost,
+    costValue: String(m.cost === "time" ? Math.round(v*60) : Math.round(v*1000)),   // secondes ou mètres
+    profile: m.profile, direction: m.direction,
+    geometryFormat: "geojson", timeUnit: "second", distanceUnit: "meter", crs: "EPSG:4326"
+  });
+  if (m.avoid.length){
+    params.set("constraints", m.avoid.map(a=>JSON.stringify({ constraintType:"banned", key:"waytype", operator:"=", value:a })).join("|"));
+  }
+  return `${API_ISO}?${params.toString()}`;
+}
+async function fetchIso(m, pt, v, signal){
+  const url = buildUrl(m, pt, v);
+  for (let attempt = 0; ; attempt++){
+    await waitSlot(signal);
+    const r = await fetch(url, { signal });
+    // limite dépassée : l'IGN bloque 5 s, on attend puis on réessaie (2 fois au plus)
+    if ((r.status === 429 || r.status === 503) && attempt < 2){ await sleep(5500, signal); continue; }
+    let j = null;
+    try { j = await r.json(); } catch(e) {}
+    if (!r.ok || !j || j.error){
+      const msg = j && j.error ? (j.error.message || JSON.stringify(j.error)) : `HTTP ${r.status}`;
+      throw new Error(msg === "No data found" ? "aucun résultat (point trop loin d'une route ?)" : msg);
+    }
+    let g = j.geometry;
+    if (typeof g === "string"){ try { g = JSON.parse(g); } catch(e) { throw new Error("géométrie illisible"); } }
+    if (!g || (!g.coordinates && !g.geometries)) throw new Error("géométrie vide");
+    return { url, geometry:g };
+  }
+}
+function toBand(v, settledItem, m, pt){
+  const s = settledItem;
+  return s.status === "fulfilled"
+    ? { value:v, ok:true, geometry:s.value.geometry, url:s.value.url, area:geomArea(s.value.geometry)/1e6, visible:true }
+    : { value:v, ok:false, url:buildUrl(m, pt, v), error: s.reason && s.reason.name === "AbortError" ? "annulé" : (s.reason ? s.reason.message : "erreur"), visible:true };
+}
+
+function currentMeta(withPoint=true){
+  return {
+    cost: state.cost, profile: state.profile, direction: state.direction,
+    resource: $("resource").value,
+    point: withPoint && state.point ? { ...state.point } : null,
+    label: withPoint ? state.label : "",
+    avoid: [...document.querySelectorAll(".avoid:checked")].map(c=>c.value),
+    date: new Date().toISOString()
+  };
+}
+const controllers = {};   // un calcul en cours par couche (pour pouvoir l'annuler)
+
+/* ================= Calcul pour un point ================= */
+// target = null → nouveau calcul ; target = calcul existant → mise à jour
+async function compute(target){
+  if (!state.point){ setStatus("Choisissez d'abord un point : adresse ou clic sur la carte.", "err"); return; }
+  const values = selectedValues();
+  if (!values.length){ setStatus("Sélectionnez au moins une valeur.", "err"); return; }
+
+  // laisse le temps à l'adresse du point d'arriver (1,5 s maximum)
+  if (state.labelPromise) await Promise.race([state.labelPromise, new Promise(r=>setTimeout(r,1500))]);
+  const meta = currentMeta();
+  const key = target ? target.id : "new" + Date.now();
+  if (controllers[key]) controllers[key].abort();
+  const ctrl = new AbortController(); controllers[key] = ctrl;
+
+  state.pending++; let done = 0;
+  const prog = ()=>{ $("busy").style.display = "flex"; $("busyTxt").textContent = `Calcul en cours… ${done} / ${values.length}`; };
+  prog(); setStatus("");
+
+  const settled = await Promise.allSettled(values.map(v=>fetchIso(meta, meta.point, v, ctrl.signal).finally(()=>{ done++; prog(); })));
+  state.pending--; if (!state.pending) $("busy").style.display = "none";
+  if (controllers[key] !== ctrl) return;          // remplacé par un calcul plus récent
+  delete controllers[key];
+  if (target && !state.groups.includes(target)) return;
+
+  const bands = values.map((v,i)=>toBand(v, settled[i], meta, meta.point));
+  const nOk = bands.filter(b=>b.ok).length;
+  if (!nOk){ setStatus("Aucune zone calculée. Vérifiez la connexion ou déplacez le point.", "err"); return; }
+
+  let g = target;
+  if (g){
+    g.meta = meta; g.bands = bands;
+    if (g.nameAuto) g.name = autoName(meta);
+  } else {
+    g = { id:newId(), kind:"single", name:autoName(meta), nameAuto:true, meta, bands, visible:true, open:true, palette:nextPalette() };
+    state.groups.forEach(x=>x.open = false);
+    state.groups.push(g);
+    state.resClosed = false;
+  }
+  applyColors(g);
+  state.activeId = g.id;
+  setStatus(nOk === values.length ? `${target ? "Calcul mis à jour" : "Calcul ajouté"} : ${nOk} zone${nOk>1?"s":""}.` : `${nOk} sur ${values.length} zones calculées. Détail dans « Mes calculs ».`, nOk === values.length ? "ok" : "err");
+  draw(); renderList(); updateButtons(); save();
+  if (!target) zoomTo(g);
+}
+$("go").addEventListener("click", ()=>compute(null));
+$("updBtn").addEventListener("click", ()=>{
+  const g = activeGroup(); if (!g) return;
+  if (g.kind === "lot") runBatch({ name:g.name, points:g.points, mode:g.merged ? "merge" : "lot" }, g);
+  else compute(g);
+});
+
+let idSeq = 0;
+function newId(){ return "c" + Date.now().toString(36) + (idSeq++).toString(36); }
+function nextPalette(){
+  const used = new Set(state.groups.map(g=>g.palette));
+  for (let i=0;i<PALETTES.length;i++) if (!used.has(i)) return i;
+  return state.groups.length % PALETTES.length;
+}
+function applyColors(g){
+  const cols = bandColors(g.palette, g.bands.length);
+  g.bands.forEach((b,i)=>b.color = cols[i]);
+}
+
+/* ================= Import d'un GeoJSON de points ================= */
+$("importBtn").addEventListener("click", ()=>$("fileIn").click());
+$("fileIn").addEventListener("change", e=>{ const f = e.target.files[0]; if (f) readFile(f); e.target.value = ""; });
+// glisser-déposer sur la page
+let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+document.addEventListener("dragenter", e=>{ if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $("drop").style.display = "flex"; });
+document.addEventListener("dragover", e=>{ if (hasFiles(e)) e.preventDefault(); });
+document.addEventListener("dragleave", e=>{ if (!hasFiles(e)) return; if (--dragDepth <= 0){ dragDepth = 0; $("drop").style.display = "none"; } });
+document.addEventListener("drop", e=>{
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; $("drop").style.display = "none";
+  const f = e.dataTransfer.files[0]; if (f) readFile(f);
+});
+
+function readFile(file){
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    let gj;
+    try { gj = JSON.parse(rd.result); }
+    catch(e){ setStatus(`« ${file.name} » n'est pas un GeoJSON lisible.`, "err"); return; }
+    openImport(file.name, gj);
+  };
+  rd.onerror = ()=>setStatus("Lecture du fichier impossible.", "err");
+  rd.readAsText(file);
+}
+
+// Système de coordonnées : WGS84 attendu ; Lambert-93 et Web Mercator convertis
+function detectCrs(gj, firstCoord){
+  const n = gj.crs && gj.crs.properties && String(gj.crs.properties.name || "");
+  if (n){
+    if (/2154/.test(n)) return { code:"EPSG:2154", guessed:false };
+    if (/3857|900913/.test(n)) return { code:"EPSG:3857", guessed:false };
+    if (/4326|CRS84/i.test(n)) return { code:"EPSG:4326", guessed:false };
+  }
+  if (!firstCoord) return { code:"EPSG:4326", guessed:false };
+  const [x, y] = firstCoord;
+  if (Math.abs(x) <= 180 && Math.abs(y) <= 90) return { code:"EPSG:4326", guessed:false };
+  if (x > 0 && x < 1.3e6 && y > 6.0e6 && y < 7.2e6) return { code:"EPSG:2154", guessed:true };
+  return { code:null, guessed:true };
+}
+function extractPoints(gj){
+  const feats = gj.type === "FeatureCollection" ? (gj.features || [])
+              : gj.type === "Feature" ? [gj]
+              : gj.type ? [{ type:"Feature", geometry:gj, properties:{} }] : [];
+  const pts = []; let skipped = 0;
+  feats.forEach(f=>{
+    const g = f && f.geometry, props = (f && f.properties) || {};
+    if (!g){ skipped++; return; }
+    if (g.type === "Point") pts.push({ c:g.coordinates, props });
+    else if (g.type === "MultiPoint") g.coordinates.forEach(c=>pts.push({ c, props }));
+    else skipped++;
+  });
+  return { pts, skipped, total:feats.length };
+}
+function guessNameField(keys, sample){
+  const pref = keys.find(k=>/^(nom|name|libel|label|lib_|intitul|design|titre|title)/i.test(k));
+  if (pref) return pref;
+  return keys.find(k=>typeof sample[k] === "string") || "";
+}
+
+function openImport(fileName, gj){
+  const { pts, skipped, total } = extractPoints(gj);
+  if (!pts.length){
+    setStatus(`Aucun point trouvé dans « ${fileName} »${total ? " (le fichier contient des lignes ou des polygones)" : ""}.`, "err");
+    return;
+  }
+  const crs = detectCrs(gj, pts[0].c);
+  if (!crs.code){ setStatus("Système de coordonnées non reconnu. Exportez le fichier en WGS84 (EPSG:4326).", "err"); return; }
+  if (crs.code !== "EPSG:4326" && !window.proj4){ setStatus("Conversion de coordonnées indisponible (bibliothèque non chargée). Exportez en WGS84.", "err"); return; }
+
+  const conv = c => crs.code === "EPSG:4326" ? c : proj4(crs.code, "EPSG:4326", [c[0], c[1]]);
+  const all = pts.map((p,i)=>{ const [lon, lat] = conv(p.c); return { lat, lon, props:p.props, idx:i }; })
+                 .filter(p=>isFinite(p.lat) && isFinite(p.lon));
+  const kept = all.slice(0, MAX_POINTS);
+  const keys = [...new Set(kept.flatMap(p=>Object.keys(p.props)))];
+
+  state.imp = { fileName, all, kept, keys, crs };
+
+  // infos
+  let info = `<b>${esc(fileName)}</b><br>${all.length} point${all.length>1?"s":""} trouvé${all.length>1?"s":""}`;
+  if (skipped) info += `, ${skipped} entité${skipped>1?"s":""} non ponctuelle${skipped>1?"s":""} ignorée${skipped>1?"s":""}`;
+  info += ".";
+  if (crs.code !== "EPSG:4326") info += `<span class="w">Coordonnées ${crs.code === "EPSG:2154" ? "en Lambert-93" : "en Web Mercator"}${crs.guessed ? " (déduit des valeurs)" : ""}, converties automatiquement.</span>`;
+  if (all.length > MAX_POINTS) info += `<span class="w">Le fichier dépasse la limite de ${MAX_POINTS} points : seuls les ${MAX_POINTS} premiers seront calculés.</span>`;
+  const out = kept.filter(p=>p.lat < 41 || p.lat > 51.5 || p.lon < -5.5 || p.lon > 10);
+  if (out.length) info += `<span class="w">${out.length} point${out.length>1?"s":""} hors de France métropolitaine : le calcul risque d'échouer pour ${out.length>1?"eux":"lui"}.</span>`;
+  $("impInfo").innerHTML = info;
+
+  $("impName").value = fileName.replace(/\.(geo)?json$/i, "");
+  const guess = guessNameField(keys, kept[0].props);
+  $("impField").innerHTML = `<option value="">(numérotation : Point 1, Point 2…)</option>` +
+    keys.map(k=>`<option value="${esc(k)}"${k===guess?" selected":""}>${esc(k)}</option>`).join("");
+  $("impDelay").value = state.delay;
+
+  // aperçu des points sur la carte
+  previewLayer.clearLayers();
+  kept.forEach(p=>L.circleMarker([p.lat, p.lon], { radius:5, color:"#fff", weight:2, fillColor:"#5b636c", fillOpacity:1 })
+    .bindTooltip(()=>esc(pointName(p)), { className:"iso-tip" }).addTo(previewLayer));
+  if (kept.length){
+    const b = L.latLngBounds(kept.map(p=>[p.lat, p.lon]));
+    map.fitBounds(b.pad(0.15), { maxZoom:13 });
+  }
+  $("imp").style.display = "flex";
+  updateImportSummary();
+}
+function pointName(p){
+  const f = $("impField").value;
+  const v = f ? p.props[f] : null;
+  return (v !== null && v !== undefined && String(v).trim()) ? String(v).trim() : `Point ${p.idx + 1}`;
+}
+function closeImport(keepPreview){ $("imp").style.display = "none"; if (!keepPreview) previewLayer.clearLayers(); state.imp = null; }
+$("impClose").addEventListener("click", ()=>closeImport());
+$("impCancel").addEventListener("click", ()=>closeImport());
+$("impDelay").addEventListener("input", ()=>{
+  const v = parseInt($("impDelay").value, 10);
+  if (v >= MIN_DELAY) state.delay = v;
+  updateImportSummary();
+});
+
+function updateImportSummary(){
+  if (!state.imp) return;
+  const n = state.imp.kept.length, values = selectedValues(), box = $("impSummary");
+  const d = parseInt($("impDelay").value, 10);
+  if (!values.length){ box.className = "summary err"; box.textContent = "Sélectionnez au moins une valeur dans le panneau de gauche."; $("impGo").disabled = true; return; }
+  if (!(d >= MIN_DELAY)){ box.className = "summary err"; box.textContent = `Le délai doit être d'au moins ${MIN_DELAY} ms.`; $("impGo").disabled = true; return; }
+  const req = n * values.length;
+  box.className = "summary";
+  box.innerHTML = `Réglages du panneau : ${esc(settingsText(currentMeta(false), values))}.<br>`
+    + `<b>${n} point${n>1?"s":""} × ${values.length} valeur${values.length>1?"s":""} = ${req} requête${req>1?"s":""}</b>, environ ${duration(req * d / 1000 + 2)}.`;
+  $("impGo").disabled = false;
+  $("impGo").textContent = `Lancer le calcul (${req} requête${req>1?"s":""})`;
+}
+$("impGo").addEventListener("click", ()=>{
+  const imp = state.imp; if (!imp) return;
+  const mode = document.querySelector("input[name=impMode]:checked").value;
+  const points = imp.kept.map(p=>({ lat:+p.lat.toFixed(6), lon:+p.lon.toFixed(6), name:pointName(p) }));
+  const name = $("impName").value.trim() || imp.fileName;
+  closeImport(true);   // les points restent visibles pendant le calcul
+  runBatch({ name, points, mode }, null);
+});
+
+/* ================= Calcul d'un lot de points ================= */
+async function runBatch(cfg, target){
+  const values = selectedValues();
+  if (!values.length){ setStatus("Sélectionnez au moins une valeur.", "err"); return; }
+  if (state.batchCtrl){ setStatus("Un import est déjà en cours. Attendez sa fin ou arrêtez-le.", "err"); return; }
+  const meta = currentMeta(false);
+  const ctrl = new AbortController(); state.batchCtrl = ctrl;
+  const tasks = [];
+  cfg.points.forEach((p,i)=>values.forEach((v,j)=>tasks.push({ i, j, p, v })));
+  const total = tasks.length, t0 = Date.now();
+  let done = 0, fails = 0;
+
+  $("prog").style.display = "block";
+  $("progTitle").textContent = `${target ? "Recalcul" : "Calcul"} de « ${cfg.name} »`;
+  const upd = ()=>{
+    const pct = Math.round(done / total * 100);
+    $("progBar").style.width = pct + "%";
+    const elapsed = (Date.now() - t0) / 1000;
+    const remain = done ? elapsed / done * (total - done) : total * state.delay / 1000;
+    $("progTxt").innerHTML = `${done} / ${total} requêtes · ${pct} %`
+      + (fails ? ` · <span class="f">${fails} échec${fails>1?"s":""}</span>` : "")
+      + (done < total ? ` · reste environ ${duration(remain)}` : "");
+  };
+  upd(); setStatus("");
+
+  const settled = await Promise.allSettled(tasks.map(t=>
+    fetchIso(meta, t.p, t.v, ctrl.signal)
+      .catch(e=>{ fails++; throw e; })
+      .finally(()=>{ done++; upd(); })
+  ));
+  const stopped = ctrl.signal.aborted;
+  state.batchCtrl = null;
+  previewLayer.clearLayers();
+
+  // regroupe les réponses : res[i][j] = point i, valeur j
+  const res = cfg.points.map(()=>[]);
+  tasks.forEach((t,k)=>{ res[t.i][t.j] = toBand(t.v, settled[k], meta, t.p); });
+  const nOk = settled.filter(s=>s.status === "fulfilled").length;
+
+  if (!nOk){
+    $("prog").style.display = "none";
+    setStatus(stopped ? "Import arrêté avant la première zone." : "Aucune zone calculée. Vérifiez la connexion.", "err");
+    return;
+  }
+
+  let created = [];
+  if (cfg.mode === "each"){
+    const pal = nextPalette();
+    cfg.points.forEach((p,i)=>{
+      const bands = res[i];
+      if (!bands.some(b=>b.ok)) return;
+      const g = { id:newId(), kind:"single", name:p.name, nameAuto:false, batch:cfg.name,
+        meta:{ ...meta, point:{ lat:p.lat, lon:p.lon }, label:p.name }, bands, visible:true, open:false, palette:pal };
+      applyColors(g); created.push(g);
+    });
+    state.groups.forEach(x=>x.open = false);
+    state.groups.push(...created);
+    state.activeId = null;
+  } else {
+    const merged = cfg.mode === "merge";
+    const bands = values.map((v,j)=>({
+      value:v, visible:true,
+      items: cfg.points.map((p,i)=>{
+        const b = res[i][j];
+        return b.ok ? { name:p.name, lat:p.lat, lon:p.lon, ok:true, geometry:b.geometry, area:b.area }
+                    : { name:p.name, lat:p.lat, lon:p.lon, ok:false, error:b.error };
+      })
+    }));
+    if (merged){
+      $("progTitle").textContent = "Fusion des zones…";
+      await sleep(30);                 // laisse l'affichage se mettre à jour
+      for (const b of bands){
+        const geoms = b.items.filter(it=>it.ok).map(it=>it.geometry);
+        b.geometry = unionAll(geoms);
+        b.area = geomArea(b.geometry) / 1e6;
+        b.ok = !!b.geometry;
+        b.items.forEach(it=>{ delete it.geometry; });   // on ne garde que la zone fusionnée
+        await sleep(0);
+      }
+    }
+    let g = target;
+    if (g){
+      g.meta = meta; g.bands = bands; g.points = cfg.points; g.merged = merged;
+    } else {
+      g = { id:newId(), kind:"lot", merged, name:cfg.name, nameAuto:false, meta, points:cfg.points, bands, visible:true, open:true, palette:nextPalette() };
+      state.groups.forEach(x=>x.open = false);
+      state.groups.push(g);
+    }
+    applyColors(g); created = [g];
+    state.activeId = g.id;
+  }
+  $("prog").style.display = "none";
+  state.resClosed = false;
+  const msg = stopped ? `Import arrêté : ${nOk} zone${nOk>1?"s":""} conservée${nOk>1?"s":""}.`
+            : fails ? `${nOk} zones calculées, ${fails} échec${fails>1?"s":""}. Détail dans « Mes calculs ».`
+            : `Import terminé : ${nOk} zone${nOk>1?"s":""} calculée${nOk>1?"s":""}.`;
+  setStatus(msg, stopped || fails ? "err" : "ok");
+  draw(); renderList(); updateButtons(); save();
+  if (created.length) zoomToMany(created);
+}
+$("progStop").addEventListener("click", ()=>{ if (state.batchCtrl) state.batchCtrl.abort(); });
+
+// Fusion de polygones (turf) ; en cas d'échec global, fusion pas à pas
+function unionAll(geoms){
+  if (!geoms.length) return null;
+  if (geoms.length === 1 || !window.turf) return geoms.length === 1 ? geoms[0] : { type:"GeometryCollection", geometries:geoms };
+  const feats = geoms.map(g=>turf.feature(g));
+  try { const u = turf.union(turf.featureCollection(feats)); if (u) return u.geometry; } catch(e){}
+  let acc = feats[0];
+  for (let k=1;k<feats.length;k++){
+    try { const u = turf.union(turf.featureCollection([acc, feats[k]])); if (u) acc = u; } catch(e){}
+  }
+  return acc.geometry;
+}
+
+/* ================= Sélection d'un calcul ================= */
+function selectGroup(id){
+  state.activeId = id;
+  const g = activeGroup();
+  if (g){
+    // on recharge ses réglages dans le panneau
+    const m = g.meta;
+    state.cost = m.cost; state.profile = m.profile; state.direction = m.direction;
+    setSeg("segCost", m.cost); setSeg("segProfile", m.profile); setSeg("segDir", m.direction);
+    $("resource").value = m.resource;
+    document.querySelectorAll(".avoid").forEach(c=>c.checked = m.avoid.includes(c.value));
+    const vals = g.bands.map(b=>b.value);
+    vals.forEach(v=>{ if (!PRESETS[m.cost].values.includes(v)) state.custom[m.cost].add(v); });
+    state.selected[m.cost] = new Set(vals);
+    renderChips();
+    if (g.kind !== "lot"){
+      setPoint(m.point.lat, m.point.lon, m.label || null, false);
+      $("addr").value = m.label || "";
+    }
+  }
+  draw(); renderList(); updateButtons();
+}
+function updateButtons(){
+  const g = activeGroup(), b = $("updBtn");
+  if (g){
+    const n = g.name.length > 22 ? g.name.slice(0,21)+"…" : g.name;
+    b.style.display = "flex";
+    b.textContent = g.kind === "lot" ? `Recalculer le lot « ${n} »` : `Mettre à jour « ${n} »`;
+  } else b.style.display = "none";
+}
+
+/* ================= Dessin ================= */
+function draw(){
+  isoLayer.clearLayers();
+  state.groups.forEach(g=>{
+    if (!g.visible) return;
+    const active = g.id === state.activeId;
+    const col0 = PALETTES[g.palette].c[0];
+    const sorted = [...g.bands].filter(b=>b.visible).sort((a,b)=>b.value-a.value);
+    if (g.kind === "lot"){
+      sorted.forEach(b=>{
+        const style = { color:b.color, weight:active?2:1.2, opacity:.9, fillColor:b.color, fillOpacity:g.merged ? .2 : .1 };
+        if (g.merged){
+          if (!b.geometry) return;
+          isoLayer.addLayer(L.geoJSON(b.geometry, { style })
+            .bindTooltip(`<b>${esc(g.name)}</b><br>≤ ${valueLabel(b.value, g.meta.cost)} · ${fmt(b.area,1)} km² (zones fusionnées)`, { sticky:true, className:"iso-tip" }));
+        } else {
+          const fc = { type:"FeatureCollection", features:b.items.filter(it=>it.ok).map(it=>({ type:"Feature", geometry:it.geometry, properties:{ name:it.name, area:it.area } })) };
+          isoLayer.addLayer(L.geoJSON(fc, { style, onEachFeature:(f,l)=>l.bindTooltip(`<b>${esc(f.properties.name)}</b> · ${esc(g.name)}<br>≤ ${valueLabel(b.value, g.meta.cost)} · ${fmt(f.properties.area,1)} km²`, { sticky:true, className:"iso-tip" }) }));
+        }
+      });
+      g.points.forEach(p=>{
+        const o = L.circleMarker([p.lat, p.lon], { radius:4.5, color:"#fff", weight:1.5, fillColor:col0, fillOpacity:1 })
+          .bindTooltip(`<b>${esc(p.name)}</b><br>${esc(g.name)}`, { className:"iso-tip" });
+        o.on("click", e=>{ L.DomEvent.stopPropagation(e); selectGroup(g.id); });
+        isoLayer.addLayer(o);
+      });
+      return;
+    }
+    sorted.filter(b=>b.ok).forEach(b=>{
+      const lyr = L.geoJSON(b.geometry, {
+        style:{ color:b.color, weight:active?2.5:1.5, opacity:.95, fillColor:b.color, fillOpacity:.2 }
+      });
+      lyr.bindTooltip(`<b>${esc(g.name)}</b><br>≤ ${valueLabel(b.value, g.meta.cost)} · ${fmt(b.area,1)} km²`, { sticky:true, className:"iso-tip" });
+      isoLayer.addLayer(lyr);
+    });
+    if (!active){
+      const o = L.circleMarker([g.meta.point.lat, g.meta.point.lon], {
+        radius:6, color:"#fff", weight:2, fillColor:col0, fillOpacity:1
+      }).bindTooltip(esc(g.name), { className:"iso-tip" });
+      o.on("click", e=>{ L.DomEvent.stopPropagation(e); selectGroup(g.id); });
+      isoLayer.addLayer(o);
+    }
+  });
+}
+function groupBounds(g){
+  const b = L.latLngBounds([]);
+  const vis = g.bands.filter(x=>x.visible);
+  if (g.kind === "lot"){
+    g.points.forEach(p=>b.extend([p.lat, p.lon]));
+    const big = vis.length ? vis.reduce((a,c)=>a.value>c.value?a:c) : null;
+    if (big){
+      if (g.merged && big.geometry) b.extend(L.geoJSON(big.geometry).getBounds());
+      else (big.items||[]).filter(it=>it.ok).forEach(it=>b.extend(L.geoJSON(it.geometry).getBounds()));
+    }
+  } else {
+    const ok = vis.filter(x=>x.ok);
+    if (ok.length) b.extend(L.geoJSON(ok.reduce((a,c)=>a.value>c.value?a:c).geometry).getBounds());
+    else b.extend([g.meta.point.lat, g.meta.point.lon]);
+  }
+  return b;
+}
+function fitPadded(bounds){
+  if (!bounds.isValid()) return;
+  const left = window.innerWidth > 700 && !$("panel").classList.contains("hidden") ? 340 : 20;
+  const right = window.innerWidth > 700 && $("res").style.display === "flex" ? 370 : 20;
+  map.fitBounds(bounds, { paddingTopLeft:[left,20], paddingBottomRight:[right,20], maxZoom:15 });
+}
+function zoomTo(g){ fitPadded(groupBounds(g)); }
+function zoomToMany(list){ const b = L.latLngBounds([]); list.forEach(g=>b.extend(groupBounds(g))); fitPadded(b); }
+
+/* ================= Liste « Mes calculs » ================= */
+const ICON = {
+  eye:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.8 9.8 0 0 0 5.4-1.6"/></svg>',
+  zoom:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  chev:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>',
+  chevUp:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 15l6-6 6 6"/></svg>'
+};
+function bandRows(g){
+  const m = g.meta;
+  if (g.kind !== "lot"){
+    return g.bands.map((b,i)=> b.ok
+      ? `<tr class="band${b.visible?"":" off"}" data-act="band" data-i="${i}" title="Cliquer pour afficher ou masquer"><td><span class="sw" style="background:${b.color}"></span>≤ ${valueLabel(b.value, m.cost)}</td><td class="n">${fmt(b.area,1)} km²</td></tr>`
+      : `<tr class="fail"><td colspan="2">${valueLabel(b.value, m.cost)} : ${esc(b.error)}</td></tr>`).join("");
+  }
+  return g.bands.map((b,i)=>{
+    const ok = b.items.filter(it=>it.ok).length, ko = b.items.filter(it=>!it.ok);
+    const right = g.merged ? `${fmt(b.area||0,1)} km²` : `${ok} zone${ok>1?"s":""}`;
+    let row = `<tr class="band${b.visible?"":" off"}" data-act="band" data-i="${i}" title="Cliquer pour afficher ou masquer"><td><span class="sw" style="background:${b.color}"></span>≤ ${valueLabel(b.value, m.cost)}</td><td class="n">${right}</td></tr>`;
+    if (ko.length){
+      const names = ko.map(it=>`${it.name} (${it.error})`);
+      row += `<tr class="fail"><td colspan="2" title="${esc(names.join("\n"))}">${ko.length} échec${ko.length>1?"s":""} : ${esc(ko.slice(0,3).map(it=>it.name).join(", "))}${ko.length>3?"…":""}</td></tr>`;
+    }
+    return row;
+  }).join("");
+}
+function renderList(){
+  const n = state.groups.length;
+  $("resCount").textContent = n; $("resCount2").textContent = n;
+  if (!n){ $("res").style.display = "none"; $("openRes").style.display = "none"; return; }
+  $("res").style.display = state.resClosed ? "none" : "flex";
+  $("openRes").style.display = state.resClosed ? "flex" : "none";
+
+  $("list").innerHTML = [...state.groups].reverse().map(g=>{
+    const ramp = g.bands.map(b=>`<i style="background:${b.color}"></i>`).join("");
+    const tag = g.kind === "lot" ? `<span class="tag">${g.merged ? "Fusion" : "Lot"}</span>` : (g.batch ? `<span class="tag" title="Importé depuis « ${esc(g.batch)} »">Import</span>` : "");
+    let body = "";
+    if (g.open){
+      body = `<div class="gb"><table>${bandRows(g)}</table>
+        <div class="gact">
+          <select data-act="palette" title="Couleurs">${PALETTES.map((p,i)=>`<option value="${i}"${i===g.palette?" selected":""}>${p.name}</option>`).join("")}</select>
+          <button class="btn" data-act="rename">Renommer</button>
+          <button class="btn" data-act="export">Exporter</button>
+          <button class="iconbtn danger" data-act="delete" title="Supprimer ce calcul" aria-label="Supprimer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+        </div>
+        ${g.kind !== "lot" ? `<details><summary>Requêtes envoyées à l'IGN</summary>${g.bands.map(b=>`<a href="${b.url}" target="_blank" rel="noopener">${esc(b.url)}</a>`).join("")}</details>` : ""}
+      </div>`;
+    }
+    return `<div class="grp${g.id===state.activeId?" active":""}${g.visible?"":" off"}" data-id="${g.id}">
+      <div class="gh">
+        <button class="iconbtn eye${g.visible?"":" off"}" data-act="vis" title="${g.visible?"Masquer":"Afficher"}">${g.visible?ICON.eye:ICON.eyeOff}</button>
+        <span class="ramp">${ramp}</span>
+        <div class="gt" data-act="select" title="Sélectionner ce calcul"><b>${tag}${esc(g.name)}</b><small>${esc(describe(g))}</small></div>
+        <button class="iconbtn" data-act="zoom" title="Centrer la carte">${ICON.zoom}</button>
+        <button class="iconbtn" data-act="open" title="${g.open?"Replier":"Détails et export"}">${g.open?ICON.chevUp:ICON.chev}</button>
+      </div>${body}</div>`;
+  }).join("");
+}
+$("list").addEventListener("click", e=>{
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const g = state.groups.find(x=>x.id === el.closest(".grp").dataset.id); if (!g) return;
+  const act = el.dataset.act;
+  if (act === "vis"){ g.visible = !g.visible; draw(); renderList(); save(); }
+  else if (act === "select"){ selectGroup(g.id === state.activeId ? null : g.id); }
+  else if (act === "zoom"){ if (!g.visible){ g.visible = true; draw(); renderList(); } zoomTo(g); }
+  else if (act === "open"){ g.open = !g.open; renderList(); }
+  else if (act === "band"){ const b = g.bands[+el.dataset.i]; b.visible = !b.visible; draw(); renderList(); save(); }
+  else if (act === "rename"){
+    const n = prompt("Nom du calcul :", g.name);
+    if (n && n.trim()){ g.name = n.trim(); g.nameAuto = false; draw(); renderList(); updateButtons(); save(); }
+  }
+  else if (act === "export"){ exportGroups([g]); }
+  else if (act === "delete"){
+    if (!confirm(`Supprimer le calcul « ${g.name} » ?`)) return;
+    state.groups = state.groups.filter(x=>x !== g);
+    if (state.activeId === g.id) state.activeId = null;
+    draw(); renderList(); updateButtons(); save();
+  }
+});
+$("list").addEventListener("change", e=>{
+  if (e.target.dataset.act !== "palette") return;
+  const g = state.groups.find(x=>x.id === e.target.closest(".grp").dataset.id); if (!g) return;
+  g.palette = +e.target.value; applyColors(g); draw(); renderList(); save();
+});
+
+/* ================= Export ================= */
+function commonProps(g, b){
+  const m = g.meta;
+  return {
+    calcul: g.name, calcul_id: g.id,
+    type: m.cost === "time" ? "isochrone" : "isodistance",
+    valeur: b.value, unite: m.cost === "time" ? "min" : "km", libelle: valueLabel(b.value, m.cost),
+    profil: m.profile === "car" ? "voiture" : "piéton",
+    sens: m.direction === "departure" ? "depuis le point" : "vers le point",
+    evite: m.avoid.join(", "), moteur: m.resource
+  };
+}
+const SRC = { calcule_le:null, source:"API Géoplateforme IGN – BD TOPO®" };
+function exportGroups(list){
+  const features = [];
+  list.forEach(g=>{
+    const m = g.meta;
+    g.bands.forEach(b=>{
+      if (g.kind === "lot" && g.merged){
+        if (!b.geometry) return;
+        features.push({ type:"Feature", geometry:b.geometry, properties:{ ...commonProps(g,b), mode:"zones fusionnées",
+          nb_points: b.items.filter(it=>it.ok).length, surface_km2: Math.round(b.area*100)/100, couleur:b.color, ...SRC, calcule_le:m.date } });
+      } else if (g.kind === "lot"){
+        b.items.filter(it=>it.ok).forEach(it=>features.push({ type:"Feature", geometry:it.geometry, properties:{ ...commonProps(g,b), mode:"lot",
+          point_nom:it.name, point_lat:it.lat, point_lon:it.lon, surface_km2: Math.round(it.area*100)/100, couleur:b.color, ...SRC, calcule_le:m.date } }));
+      } else if (b.ok){
+        features.push({ type:"Feature", geometry:b.geometry, properties:{ ...commonProps(g,b), mode:"point", lot:g.batch || "",
+          point_nom: m.label || "", point_lat:+m.point.lat.toFixed(6), point_lon:+m.point.lon.toFixed(6),
+          surface_km2: Math.round(b.area*100)/100, couleur:b.color, ...SRC, calcule_le:m.date } });
+      }
+    });
+  });
+  if (!features.length){ setStatus("Rien à exporter.", "err"); return; }
+  const day = new Date().toISOString().slice(0,10);
+  const base = list.length === 1
+    ? list[0].name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\w-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,50)
+    : `isochrones_${list.length}_calculs`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ type:"FeatureCollection", features })], { type:"application/geo+json" }));
+  a.download = `${base || "isochrones"}_${day}.geojson`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+$("exportAll").addEventListener("click", ()=>exportGroups(state.groups));
+$("clearAll").addEventListener("click", ()=>{
+  if (!confirm(`Supprimer les ${state.groups.length} calculs ?`)) return;
+  Object.values(controllers).forEach(c=>c.abort());
+  if (state.batchCtrl) state.batchCtrl.abort();
+  state.groups = []; state.activeId = null;
+  draw(); renderList(); updateButtons(); save(); setStatus("");
+});
+
+/* ================= Sauvegarde dans le navigateur ================= */
+function save(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(state.groups.map(g=>{ const { open, ...rest } = g; return rest; })));
+  }catch(e){
+    setStatus("Mémoire du navigateur pleine : exportez puis supprimez d'anciens calculs.", "err");
+  }
+}
+function load(){
+  try{
+    const arr = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+    if (!Array.isArray(arr) || !arr.length) return;
+    state.groups = arr.map(g=>({ kind:"single", ...g, open:false }));
+    draw(); renderList();
+    const b = L.latLngBounds([]); state.groups.forEach(g=>b.extend(groupBounds(g)));
+    if (b.isValid()) map.fitBounds(b, { padding:[40,40] });
+  }catch(e){}
+}
+
+renderChips();
+load();
+</script>
+</body>
+</html>
