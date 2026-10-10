@@ -162,6 +162,15 @@ const OUTILS = [
     tags: ["Voiture · vélo · marche", "4 couches", "Fichier de travail partageable"]
   },
   {
+    theme: "mobilite",
+    titre: "Isochrones et isodistances",
+    fichier: "outils/isochrones_ign.html",
+    apercu: "couverture",
+    description: "Zones atteignables en un temps ou une distance donnés depuis une adresse ou un point de la carte, en voiture ou à pied, calculées sur le réseau routier de l'IGN. Import possible de 50 points, avec fusion de leurs zones.",
+    interet: "Produire en quelques clics une zone de chalandise ou un périmètre d'accessibilité, directement réutilisable dans un SIG.",
+    tags: ["Temps ou distance", "API IGN Géoplateforme", "Import · export GeoJSON"]
+  },
+  {
     theme: "eau",
     titre: "Veille crues et submersion",
     fichier: "outils/veille-hydro-ncpa.html",
@@ -222,6 +231,20 @@ const APERCUS = {
         <circle cx="330" cy="98" r="16" opacity=".1"/><circle cx="330" cy="98" r="5"/>
       </g>
       <circle cx="160" cy="44" r="7" class="marq"/>
+    </svg>`,
+  couverture: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="currentColor">
+        <path d="M48 66 C46 30 92 12 136 16 C182 20 214 38 212 70 C210 104 172 122 126 120 C80 118 50 100 48 66Z" opacity=".08"/>
+        <path d="M170 60 C170 24 214 8 254 12 C298 16 324 36 322 66 C320 100 290 120 248 118 C206 116 172 98 170 60Z" opacity=".08"/>
+        <path d="M80 68 C80 44 104 34 132 36 C162 38 182 50 180 70 C178 92 156 102 130 100 C102 98 80 90 80 68Z" opacity=".12"/>
+        <path d="M200 62 C200 40 222 32 248 34 C276 36 294 48 292 66 C290 88 270 98 246 96 C220 94 200 84 200 62Z" opacity=".12"/>
+        <path d="M106 68 C106 56 118 50 132 52 C146 54 156 60 154 70 C152 82 142 86 128 85 C114 84 106 80 106 68Z" opacity=".2"/>
+        <path d="M226 62 C226 50 236 46 248 47 C262 48 270 56 268 64 C266 76 256 80 244 79 C232 78 226 72 226 62Z" opacity=".2"/>
+      </g>
+      <path d="M48 66 C46 30 92 12 136 16 C162 18 182 24 194 34 C212 18 232 11 254 12 C298 16 324 36 322 66 C320 100 290 120 248 118 C228 117 210 112 196 102 C182 114 156 121 126 120 C80 118 50 100 48 66Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".55"/>
+      <circle cx="248" cy="63" r="6" class="vide" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="130" cy="68" r="7" class="marq"/>
     </svg>`,
   hydro: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
