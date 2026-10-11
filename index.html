@@ -139,7 +139,8 @@ const THEMES = [
   { id: "dechets",   nom: "Déchets",                  couleur: "#8cbf8f", accroche: "Collecte, déchèteries et prévention" },
   { id: "mobilite",  nom: "Mobilité & accessibilité", couleur: "#8fb0d8", accroche: "Temps de parcours et accès aux services" },
   { id: "eau",       nom: "Cycle de l'eau",           couleur: "#6cc3cf", accroche: "Rivières, crues, submersion et nappes" },
-  { id: "tourisme",  nom: "Tourisme & cadre de vie",  couleur: "#cfc089", accroche: "Valoriser le territoire auprès des habitants et visiteurs" }
+  { id: "tourisme",  nom: "Tourisme & cadre de vie",  couleur: "#cfc089", accroche: "Valoriser le territoire auprès des habitants et visiteurs" },
+  { id: "economie",  nom: "Économie & emploi",        couleur: "#b79fd9", accroche: "Emploi, employeurs et recrutements" }
 ];
 
 const OUTILS = [
@@ -199,6 +200,17 @@ const OUTILS = [
     description: "Catalogue de circuits de balade : tracé sur la carte, profil altimétrique interactif, durée estimée selon le dénivelé et téléchargement de la trace.",
     interet: "Proposer une vitrine simple et moderne des itinéraires du territoire, sans plateforme à acheter.",
     tags: ["Profil altimétrique", "Export GPX"]
+  },
+  {
+    theme: "economie",
+    titre: "Observatoire de l'emploi",
+    fichier: "outils/observatoire-emploi-ncpa.html",
+    apercu: "emploi",
+    badge: "Application Windows",
+    action: "Découvrir l'outil",
+    description: "Application qui dresse le portrait de l'emploi salarié privé, des salaires, des employeurs et des recrutements, commune par commune, en croisant une dizaine de sources publiques. La page présente l'outil en captures.",
+    interet: "Situer NCPA parmi des intercommunalités comparables et disposer de chiffres sourcés pour un diagnostic, un conseil ou une rencontre d'entreprises.",
+    tags: ["Urssaf · Insee · France Travail", "Comparaison aux EPCI", "Excel · synthèse · carte"]
   }
 ];
 
@@ -273,6 +285,22 @@ const APERCUS = {
       <path d="M0 104 L34 96 L62 84 L90 88 L122 64 L154 56 L182 70 L214 42 L246 50 L278 76 L310 70 L360 92" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
       <line x1="214" y1="42" x2="214" y2="132" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4" opacity=".6"/>
       <circle cx="214" cy="42" r="6" class="marq"/>
+    </svg>`,
+  emploi: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect x="30" y="16" width="300" height="130" rx="8" fill="currentColor" opacity=".06" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5"/>
+      <line x1="30" y1="34" x2="330" y2="34" stroke="currentColor" stroke-width="1.5" opacity=".3"/>
+      <g fill="currentColor" opacity=".45"><circle cx="42" cy="25" r="3"/><circle cx="52" cy="25" r="3"/><circle cx="62" cy="25" r="3"/></g>
+      <g fill="currentColor" opacity=".3">
+        <rect x="60" y="100" width="16" height="32" rx="2"/><rect x="86" y="96" width="16" height="36" rx="2"/>
+        <rect x="112" y="98" width="16" height="34" rx="2"/><rect x="138" y="90" width="16" height="42" rx="2"/>
+        <rect x="164" y="86" width="16" height="46" rx="2"/><rect x="190" y="88" width="16" height="44" rx="2"/>
+        <rect x="216" y="78" width="16" height="54" rx="2"/><rect x="242" y="72" width="16" height="60" rx="2"/>
+        <rect x="268" y="66" width="16" height="66" rx="2"/>
+      </g>
+      <line x1="48" y1="84" x2="312" y2="84" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".6"/>
+      <path d="M68 92 L94 88 L120 90 L146 80 L172 74 L198 76 L224 64 L250 56 L276 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+      <circle cx="276" cy="48" r="6" class="marq"/>
     </svg>`
 };
 
@@ -290,7 +318,7 @@ function carte(o, t) {
         <p class="interet"><b>Intérêt</b>${esc(o.interet)}</p>
         ${o.limites ? `<p class="limites"><b>Limites</b>${esc(o.limites)}</p>` : ""}
         <ul class="tags">${(o.tags || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>
-        <div class="ouvrir"><span>Ouvrir l'outil</span><span aria-hidden="true">→</span></div>
+        <div class="ouvrir"><span>${esc(o.action || "Ouvrir l'outil")}</span><span aria-hidden="true">→</span></div>
       </div>
     </a>`;
 }
