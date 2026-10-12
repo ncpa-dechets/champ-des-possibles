@@ -172,6 +172,17 @@ const OUTILS = [
     tags: ["Temps ou distance", "API IGN Géoplateforme", "Import · export GeoJSON"]
   },
   {
+    theme: "mobilite",
+    titre: "Observatoire de la mobilité",
+    fichier: "outils/observatoire-mobilite-ncpa.html",
+    apercu: "mobilite",
+    badge: "Application Windows",
+    action: "Découvrir l'outil",
+    description: "Application qui dresse le portrait de la mobilité, commune par commune : déplacements domicile-travail, motorisation des ménages, offre alternative à la voiture (cars, trains, vélo, covoiturage, recharge), accidentologie et saisonnalité. La page présente l'outil en captures.",
+    interet: "Disposer d'un diagnostic sourcé et transposable pour un plan de mobilité, une réflexion sur les transports ou un échange avec les partenaires.",
+    tags: ["14 jeux de données publics", "38 indicateurs", "Transposable à tout EPCI"]
+  },
+  {
     theme: "eau",
     titre: "Veille crues et submersion",
     fichier: "outils/veille-hydro-ncpa.html",
@@ -285,6 +296,21 @@ const APERCUS = {
       <path d="M0 104 L34 96 L62 84 L90 88 L122 64 L154 56 L182 70 L214 42 L246 50 L278 76 L310 70 L360 92" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
       <line x1="214" y1="42" x2="214" y2="132" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4" opacity=".6"/>
       <circle cx="214" cy="42" r="6" class="marq"/>
+    </svg>`,
+  mobilite: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect x="30" y="16" width="300" height="130" rx="8" fill="currentColor" opacity=".06" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5"/>
+      <line x1="30" y1="34" x2="330" y2="34" stroke="currentColor" stroke-width="1.5" opacity=".3"/>
+      <g fill="currentColor" opacity=".45"><circle cx="42" cy="25" r="3"/><circle cx="52" cy="25" r="3"/><circle cx="62" cy="25" r="3"/></g>
+      <g fill="none" stroke="currentColor" stroke-width="2" opacity=".5" stroke-linecap="round">
+        <path d="M80 100 C120 60 160 110 200 70"/>
+        <path d="M80 100 C130 90 190 100 270 56" stroke-dasharray="5 4"/>
+        <path d="M120 112 C170 104 230 84 290 98"/>
+      </g>
+      <g fill="currentColor" opacity=".3">
+        <circle cx="80" cy="100" r="9"/><circle cx="200" cy="70" r="7"/><circle cx="120" cy="112" r="6"/><circle cx="290" cy="98" r="8"/>
+      </g>
+      <circle cx="270" cy="56" r="6" class="marq"/>
     </svg>`,
   emploi: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
