@@ -202,6 +202,15 @@ const OUTILS = [
     tags: ["Profil altimétrique", "Export GPX"]
   },
   {
+    theme: "tourisme",
+    titre: "Hébergements touristiques",
+    fichier: "outils/carte_hebergements_ncpa.html",
+    apercu: "hebergements",
+    description: "Carte des hébergements touristiques déclarés sur le territoire : filtres par type, classement, capacité et commune, indicateurs de lits pour 100 habitants et analyse commune par commune.",
+    interet: "Mesurer et localiser l'offre d'hébergement pour éclairer la stratégie touristique, la taxe de séjour ou l'accueil de nouveaux projets.",
+    tags: ["Carte filtrable", "Analyse par commune", "Export Excel · CSV · GeoJSON"]
+  },
+  {
     theme: "economie",
     titre: "Observatoire de l'emploi",
     fichier: "outils/observatoire-emploi-ncpa.html",
@@ -285,6 +294,22 @@ const APERCUS = {
       <path d="M0 104 L34 96 L62 84 L90 88 L122 64 L154 56 L182 70 L214 42 L246 50 L278 76 L310 70 L360 92" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
       <line x1="214" y1="42" x2="214" y2="132" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4" opacity=".6"/>
       <circle cx="214" cy="42" r="6" class="marq"/>
+    </svg>`,
+  hebergements: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="none" stroke="currentColor" opacity=".18" stroke-width="1.5">
+        <path d="M0 100 C70 90 130 108 210 88 S310 66 360 72"/>
+        <path d="M0 40 C90 50 180 30 360 28"/>
+        <path d="M120 0 C130 44 120 90 140 132"/>
+      </g>
+      <g fill="currentColor">
+        <circle cx="96" cy="64" r="30" opacity=".12"/><circle cx="96" cy="64" r="6"/>
+        <circle cx="204" cy="82" r="20" opacity=".12"/><circle cx="204" cy="82" r="5"/>
+        <circle cx="270" cy="44" r="36" opacity=".12"/><circle cx="270" cy="44" r="6"/>
+        <circle cx="318" cy="98" r="12" opacity=".12"/><circle cx="318" cy="98" r="4"/>
+        <circle cx="40" cy="98" r="12" opacity=".12"/><circle cx="40" cy="98" r="4"/>
+      </g>
+      <circle cx="170" cy="40" r="7" class="marq"/>
     </svg>`,
   emploi: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
