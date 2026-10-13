@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lancer un outil Python · Champs des possibles · NCPA</title>
+<meta name="description" content="Installer Python sur un poste Windows et lancer un script depuis l'invite de commandes, en quelques commandes à copier-coller.">
+<style>
+:root{
+  color-scheme:dark;
+  --rouge:#B91E27; --accent:#e0767a;
+  --fond:#121b1e; --fond-haut:#0e1618;
+  --carte:#18242a; --carte-haut:#1d2b31;
+  --encre:#e3eae7; --gris:#a2b1ad; --gris2:#6f817d;
+  --trait:rgba(214,232,226,.09); --trait-fort:rgba(214,232,226,.16);
+  --ombre:0 1px 2px rgba(0,0,0,.25), 0 8px 24px rgba(0,0,0,.18);
+  --c:#9fd0c8;            /* couleur de la page : prise en main */
+  --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+  font-family: Calibri, "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--fond);color:var(--encre);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--c)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.page{max-width:1080px;margin:0 auto;padding:0 24px}
+code{font-family:var(--mono);font-size:.92em;background:rgba(255,255,255,.06);border:1px solid var(--trait);border-radius:5px;padding:0 5px;color:var(--encre)}
+
+/* ---------- En-tête ---------- */
+header{position:relative;overflow:hidden;border-top:3px solid var(--rouge);border-bottom:1px solid var(--trait);
+  background:radial-gradient(900px 420px at 85% 10%, rgba(159,208,200,.11), transparent 70%),
+             radial-gradient(700px 380px at 0% 100%, rgba(140,191,143,.06), transparent 70%),
+             var(--fond-haut)}
+header svg.topo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;color:#9fd0c8;opacity:.10}
+header .page{position:relative;padding-top:28px;padding-bottom:48px}
+.retour{display:inline-block;margin:0 0 34px;font-size:14px;color:var(--gris);text-decoration:none}
+.retour:hover{color:var(--encre);text-decoration:underline}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(32px,4.8vw,50px);line-height:1.08;margin:12px 0 18px;font-weight:700;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--c)}
+.intro{max-width:700px;color:var(--gris);font-size:18px;margin:0}
+.principes{display:flex;flex-wrap:wrap;gap:10px;margin:30px 0 0;padding:0;list-style:none;font-size:14px}
+.principes li{display:flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--trait-fort);border-radius:999px;background:rgba(255,255,255,.025)}
+.principes li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* ---------- Sections ---------- */
+main .page{padding-top:8px;padding-bottom:72px}
+section{padding-top:48px}
+.titre{display:flex;flex-direction:column;gap:2px;margin-bottom:26px;padding-bottom:12px;border-bottom:1px solid var(--trait)}
+.titre h2{margin:0;font-size:24px;display:flex;align-items:center;gap:10px}
+.titre h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 60%,transparent)}
+.titre p{margin:0;color:var(--gris);font-size:15px}
+h3{font-size:19px;line-height:1.25;margin:0 0 6px}
+p{margin:0 0 10px}
+.gris{color:var(--gris)}
+
+/* ---------- Étapes ---------- */
+.etapes{counter-reset:n;list-style:none;margin:0;padding:0}
+.etape{counter-increment:n;display:grid;grid-template-columns:38px minmax(0,1fr) minmax(0,1.15fr);gap:6px 22px;align-items:start;padding:0 0 30px;margin:0 0 30px;border-bottom:1px dashed var(--trait-fort)}
+.etape:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.etape::before{content:counter(n);display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;
+  background:color-mix(in srgb,var(--c) 22%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);color:var(--encre);font-weight:700}
+.etape .texte p{color:var(--gris);font-size:15.5px}
+.etape .texte b{color:var(--encre)}
+.etape .visuel{min-width:0}
+.astuce{margin:12px 0 0;padding:9px 14px;background:color-mix(in srgb,var(--c) 8%,transparent);border-left:2px solid var(--c);border-radius:0 8px 8px 0;font-size:14.5px;color:var(--encre)}
+.astuce b{color:var(--c)}
+
+/* Bouton lien */
+.bouton{display:inline-flex;align-items:center;gap:10px;margin:4px 0 0;padding:10px 18px;border-radius:10px;background:var(--carte-haut);
+  border:1px solid color-mix(in srgb,var(--c) 50%,transparent);color:var(--encre);text-decoration:none;font-weight:700}
+.bouton:hover{background:color-mix(in srgb,var(--c) 14%,var(--carte))}
+.bouton small{font-weight:400;color:var(--gris)}
+
+/* ---------- Fenêtre d'invite de commandes ---------- */
+.term{background:#0b1113;border:1px solid var(--trait-fort);border-radius:10px;overflow:hidden;box-shadow:var(--ombre)}
+.term + .term{margin-top:12px}
+.term-barre{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px 6px 14px;background:var(--carte-haut);border-bottom:1px solid var(--trait);font-size:13px;color:var(--gris)}
+.copier{font:inherit;font-size:13px;font-weight:700;color:var(--encre);background:color-mix(in srgb,var(--c) 18%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
+  border-radius:999px;padding:3px 12px;cursor:pointer}
+.copier:hover{background:color-mix(in srgb,var(--c) 30%,transparent)}
+.copier.ok{background:rgba(140,191,143,.25);border-color:#8cbf8f}
+.term pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:#e8efec}
+.term .inv{color:var(--gris2)}
+.term .rep{color:#a9d6ab}
+.term .com{color:var(--gris2);font-style:italic}
+
+/* ---------- Maquette de l'installateur ---------- */
+.fenetre{background:#f3f3f3;color:#1b1b1b;border-radius:8px;overflow:hidden;box-shadow:var(--ombre);border:1px solid #c9c9c9;font-family:"Segoe UI",system-ui,sans-serif;font-size:13px}
+.fenetre .barre{background:#fff;border-bottom:1px solid #ddd;padding:6px 12px;font-size:12px;color:#444}
+.inst{display:grid;grid-template-columns:70px 1fr}
+.inst .bande{background:linear-gradient(180deg,#3d6fa3,#2b557f)}
+.inst .contenu{padding:14px 16px 12px}
+.inst .gros{font-size:17px;margin:0 0 10px;color:#1b1b1b}
+.inst .choix{padding:6px 8px;margin:0 0 4px;color:#1f5aa6}
+.inst .choix b{display:block;font-size:14px}
+.inst .choix span{font-size:11.5px;color:#555}
+.inst .cases{margin-top:10px;padding-top:8px;border-top:1px solid #ddd}
+.case{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;position:relative}
+.case i{width:14px;height:14px;border:1.5px solid #555;border-radius:2px;flex:0 0 auto;background:#fff;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;line-height:1;color:#fff}
+.case.coche i{background:#1f5aa6;border-color:#1f5aa6}
+.case.vise{outline:3px solid var(--accent);outline-offset:1px;background:#fff}
+.case .bulle{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--rouge);color:#fff;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.legende{font-size:13.5px;color:var(--gris);margin-top:8px}
+
+/* ---------- Maquette de l'explorateur ---------- */
+.adresse{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border-bottom:1px solid #ddd}
+.adresse .champ{flex:1;border:2px solid #1f5aa6;border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:14px;outline:3px solid var(--accent);outline-offset:2px}
+.adresse .champ::after{content:"";display:inline-block;width:1px;height:15px;background:#1b1b1b;margin-left:1px;vertical-align:-2px;animation:clign 1s steps(1) infinite}
+@keyframes clign{50%{opacity:0}}
+.adresse .touche{font-size:12px;font-weight:700;background:#e9e9e9;border:1px solid #bbb;border-bottom-width:3px;border-radius:5px;padding:2px 8px;color:#333}
+.fichiers{padding:8px 12px 10px;background:#fbfbfb}
+.fichiers div{display:flex;align-items:center;gap:8px;padding:3px 0;color:#333;font-size:13px}
+.fichiers .ico{width:14px;height:16px;border:1.5px solid #6b7c88;border-radius:2px;background:#fff;flex:0 0 auto}
+.fichiers.zone{position:relative;min-height:290px}
+.menu{position:absolute;left:34%;top:70px;margin:0;padding:5px;list-style:none;width:230px;background:#fff;border:1px solid #cfcfcf;border-radius:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:13px;color:#1b1b1b}
+.menu li{padding:5px 10px;border-radius:4px}
+.menu li.sep{border-top:1px solid #e3e3e3;margin-top:3px;padding-top:7px;border-radius:0}
+.menu li.vise{background:#e5eef9;outline:3px solid var(--accent);outline-offset:1px;font-weight:700}
+.clic{position:absolute;left:calc(34% - 6px);top:60px;transform:translateX(-100%);font-size:11.5px;font-weight:700;color:#fff;background:var(--rouge);border-radius:999px;padding:2px 9px;white-space:nowrap}
+
+/* ---------- Dépannage ---------- */
+.limites{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:14px}
+.limites div{padding:12px 16px;background:rgba(224,118,122,.07);border-left:2px solid var(--accent);border-radius:0 8px 8px 0;font-size:15px;color:var(--gris)}
+.limites b{display:block;font-size:14.5px;color:var(--encre);margin-bottom:3px}
+
+footer{border-top:1px solid var(--trait);background:var(--fond-haut)}
+footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;font-size:14px;color:var(--gris2)}
+footer a{color:var(--gris)}
+
+@media (max-width:860px){
+  .etape{grid-template-columns:38px minmax(0,1fr)}
+  .etape .visuel{grid-column:2}
+}
+@media (max-width:600px){
+  .page{padding:0 16px}
+  .intro{font-size:16px}
+  .case .bulle{position:static;transform:none;margin-left:auto}
+  .inst{grid-template-columns:22px 1fr}
+  .menu{left:auto;right:10px;width:200px}
+  .clic{left:12px;transform:none}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.adresse .champ::after{animation:none}}
+@media print{body{background:#fff;color:#000}.copier{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="topo" id="topo" aria-hidden="true"></svg>
+  <div class="page">
+    <a class="retour" href="../index.html" title="Retour à l'accueil Champs des possibles">← Tous les outils</a>
+    <div class="eyebrow">NCPA · Champs des possibles · Prise en main</div>
+    <h1>Lancer un outil<br><em>écrit en Python</em></h1>
+    <p class="intro">Plusieurs outils du catalogue sont des scripts Python (fichiers <code>.py</code>). On installe Python une seule fois sur le poste, puis deux commandes suffisent pour lancer chaque outil.</p>
+    <ul class="principes">
+      <li>Une dizaine de minutes la première fois</li>
+      <li>Sans droits d'administrateur</li>
+      <li>Commandes à copier-coller</li>
+    </ul>
+  </div>
+</header>
+
+<main>
+<div class="page">
+
+<!-- ================================================================== -->
+<section id="installer">
+  <div class="titre"><h2>Installer Python</h2><p>Une seule fois par poste</p></div>
+  <ol class="etapes">
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Télécharger l'installateur</h3>
+        <p>Sur le site officiel, sous la dernière version <b>Stable Release</b>, cliquer sur <b>Windows installer (64-bit)</b>.</p>
+      </div>
+      <div class="visuel">
+        <a class="bouton" href="https://www.python.org/downloads/windows/" target="_blank" rel="noopener">python.org/downloads/windows <small>nouvel onglet</small></a>
+      </div>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Cocher la bonne case</h3>
+        <p>En bas de la première fenêtre, cocher <b>Add python.exe to PATH</b>. C'est l'étape qui compte : sans elle, la commande <code>python</code> ne sera pas reconnue.</p>
+        <p>Sans droits d'administrateur, décocher <b>Use admin privileges…</b>, puis cliquer sur <b>Install Now</b>.</p>
+      </div>
+      <figure class="visuel" style="margin:0">
+        <div class="fenetre" role="img" aria-label="Première fenêtre de l'installateur Python, case Add python.exe to PATH cochée">
+          <div class="barre">Python 3.x (64-bit) Setup</div>
+          <div class="inst">
+            <div class="bande"></div>
+            <div class="contenu">
+              <p class="gros">Install Python 3.x (64-bit)</p>
+              <div class="choix"><b>→ Install Now</b><span>C:\Users\…\AppData\Local\Programs\Python</span></div>
+              <div class="choix"><b>→ Customize installation</b><span>Choose location and features</span></div>
+              <div class="cases">
+                <div class="case"><i></i>Use admin privileges when installing py.exe</div>
+                <div class="case coche vise"><i>✓</i>Add python.exe to PATH<span class="bulle">À cocher</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </figure>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Vérifier l'installation</h3>
+        <p>Ouvrir l'invite de commandes : touches <b>Windows + R</b>, taper <code>cmd</code>, puis <b>Entrée</b>. Coller la commande ci-contre et valider.</p>
+        <p>Un numéro de version s'affiche : Python est prêt.</p>
+      </div>
+      <div class="visuel">
+        <div class="term">
+          <div class="term-barre"><span>Invite de commandes</span><button class="copier" data-cmd="python --version">Copier</button></div>
+          <pre><span class="inv">C:\Users\vous&gt;</span>python --version
+<span class="rep">Python 3.14.0</span></pre>
+        </div>
+      </div>
+    </li>
+
+  </ol>
+</section>
+
+<!-- ================================================================== -->
+<section id="lancer">
+  <div class="titre"><h2>Lancer un script</h2><p>Pour chaque nouvel outil récupéré</p></div>
+  <ol class="etapes">
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Ouvrir l'invite de commandes dans le dossier du script</h3>
+        <p>Ranger le fichier <code>.py</code> dans un dossier, par exemple <b>Documents\Outils</b>, et l'ouvrir dans l'explorateur.</p>
+        <p><b>Clic droit dans une zone vide</b> du dossier, puis <b>Ouvrir dans le Terminal</b>. La fenêtre s'ouvre directement au bon endroit et accepte les mêmes commandes.</p>
+        <p>Sous Windows 10 : <b>Maj + clic droit</b>, puis <b>Ouvrir la fenêtre PowerShell ici</b>.</p>
+        <p class="astuce"><b>Autre méthode :</b> cliquer dans la barre d'adresse du dossier, taper <code>cmd</code>, puis <b>Entrée</b>.</p>
+      </div>
+      <figure class="visuel" style="margin:0">
+        <div class="fenetre" role="img" aria-label="Explorateur Windows : clic droit dans le dossier Outils, option Ouvrir dans le Terminal">
+          <div class="barre">Outils</div>
+          <div class="fichiers zone">
+            <div><span class="ico"></span>comparateur_rh_ofgl.py</div>
+            <ul class="menu">
+              <li>Affichage</li>
+              <li>Trier par</li>
+              <li>Nouveau</li>
+              <li class="sep">Propriétés</li>
+              <li class="vise">Ouvrir dans le Terminal</li>
+              <li class="sep">Afficher plus d'options</li>
+            </ul>
+            <span class="clic">clic droit ici</span>
+          </div>
+        </div>
+      </figure>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Installer les bibliothèques</h3>
+        <p>Une seule fois par outil. La liste figure en tête du script, à la ligne <b>Dépendances</b> (exemple ci-contre : le comparateur des frais de personnel).</p>
+        <p class="astuce"><b>Fichier requirements.txt fourni ?</b> Utiliser plutôt la seconde commande.</p>
+      </div>
+      <div class="visuel">
+        <div class="term">
+          <div class="term-barre"><span>Liste indiquée dans le script</span><button class="copier" data-cmd="python -m pip install requests pandas openpyxl matplotlib">Copier</button></div>
+          <pre><span class="inv">…\Documents\Outils&gt;</span>python -m pip install requests pandas openpyxl matplotlib</pre>
+        </div>
+        <div class="term">
+          <div class="term-barre"><span>Avec un fichier requirements.txt</span><button class="copier" data-cmd="python -m pip install -r requirements.txt">Copier</button></div>
+          <pre><span class="inv">…\Documents\Outils&gt;</span>python -m pip install -r requirements.txt</pre>
+        </div>
+      </div>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Lancer l'outil</h3>
+        <p>Taper <code>python</code> suivi du nom du fichier. Les fois suivantes, seule cette commande est nécessaire.</p>
+        <p class="astuce"><b>Plus rapide :</b> taper <code>python</code> et une espace, puis glisser le fichier <code>.py</code> dans la fenêtre : son chemin s'écrit tout seul.</p>
+      </div>
+      <div class="visuel">
+        <div class="term">
+          <div class="term-barre"><span>Remplacer par le nom du script</span><button class="copier" data-cmd="python comparateur_rh_ofgl.py">Copier</button></div>
+          <pre><span class="inv">…\Documents\Outils&gt;</span>python comparateur_rh_ofgl.py</pre>
+        </div>
+      </div>
+    </li>
+
+  </ol>
+</section>
+
+<!-- ================================================================== -->
+<section id="depannage">
+  <div class="titre"><h2>En cas de souci</h2><p>Les messages les plus fréquents</p></div>
+  <div class="limites">
+    <div><b>« python n'est pas reconnu… » ou le Microsoft Store s'ouvre</b>La case <i>Add python.exe to PATH</i> n'a pas été cochée. Relancer l'installateur, la cocher, puis rouvrir l'invite de commandes. En attendant, <code>py</code> remplace souvent <code>python</code>.</div>
+    <div><b>« ModuleNotFoundError: No module named… »</b>Une bibliothèque manque : refaire l'étape d'installation des bibliothèques, ou installer celle dont le nom est cité.</div>
+    <div><b>Erreur de connexion pendant l'installation des bibliothèques</b>Le réseau de la collectivité bloque probablement le téléchargement : contacter le service informatique.</div>
+    <div><b>La fenêtre se ferme aussitôt</b>Lancer l'outil depuis l'invite de commandes plutôt qu'en double-cliquant : le message d'erreur reste alors affiché.</div>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer>
+  <div class="page">
+    <span>Normandie Cabourg Pays d'Auge · <a href="../index.html">Champs des possibles</a></span>
+    <span>Guide de prise en main · Windows 10 et 11</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ---------- Boutons « Copier » ---------- */
+document.querySelectorAll(".copier").forEach(b => b.addEventListener("click", async () => {
+  const t = b.dataset.cmd;
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) {
+    const z = document.createElement("textarea");
+    z.value = t; document.body.appendChild(z); z.select();
+    document.execCommand("copy"); z.remove();
+  }
+  b.textContent = "Copié ✓"; b.classList.add("ok");
+  setTimeout(() => { b.textContent = "Copier"; b.classList.remove("ok"); }, 1600);
+}));
+
+/* ---------- Courbes de niveau décoratives (en-tête) ---------- */
+(function () {
+  const svg = document.getElementById("topo");
+  const W = 1600, H = 600, cx = 1180, cy = 140;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", "xMaxYMin slice");
+  let d = "";
+  for (let k = 1; k <= 16; k++) {
+    const r = 34 * k, pts = [];
+    for (let i = 0; i <= 96; i++) {
+      const a = i / 96 * Math.PI * 2;
+      const n = 1 + 0.16 * Math.sin(3 * a + k * 0.35) + 0.08 * Math.sin(5 * a - k * 0.2) + 0.05 * Math.cos(7 * a + k * 0.5);
+      pts.push(`${(cx + Math.cos(a) * r * n * 1.35).toFixed(1)},${(cy + Math.sin(a) * r * n * 0.85).toFixed(1)}`);
+    }
+    d += `<path d="M${pts.join("L")}Z" fill="none" stroke="currentColor" stroke-width="${k % 4 === 0 ? 1.6 : 0.9}"/>`;
+  }
+  svg.innerHTML = d;
+})();
+</script>
+</body>
+</html>

@@ -85,6 +85,22 @@ a.carte:hover{transform:translateY(-3px);background:var(--carte-haut);border-col
 .ouvrir span:last-child{color:var(--c);transition:transform .2s}
 a.carte:hover .ouvrir span:last-child{transform:translateX(4px)}
 
+
+/* ---------- Guides pratiques ---------- */
+.guides{margin-top:64px;padding-top:36px;border-top:1px solid var(--trait)}
+.guides-tete{display:flex;flex-direction:column;gap:2px;margin-bottom:18px}
+.guides-tete h2{margin:0;font-size:21px;font-weight:700}
+.guides-tete p{margin:0;color:var(--gris);font-size:14.5px}
+.guides-liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+a.guide{display:flex;gap:16px;align-items:flex-start;text-decoration:none;padding:18px 20px;background:var(--carte);border:1px solid var(--trait);border-radius:14px;transition:transform .2s,background .2s,border-color .2s}
+a.guide:hover{transform:translateY(-2px);background:var(--carte-haut);border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+a.guide .pic{flex:0 0 auto;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c);font-family:Consolas,"Cascadia Mono",monospace;font-weight:700;font-size:15px}
+a.guide h3{margin:0 0 4px;font-size:17px;line-height:1.3}
+a.guide p{margin:0;color:var(--gris);font-size:14.5px}
+a.guide .duree{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--gris2)}
+.aide-py{display:inline-block;margin:18px 0 0;font-size:14px;color:var(--gris);text-decoration:none}
+.aide-py:hover{color:var(--encre);text-decoration:underline}
+
 /* ---------- Pied ---------- */
 footer{border-top:1px solid var(--trait);background:var(--fond-haut)}
 footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;font-size:14px;color:var(--gris2)}
@@ -111,6 +127,7 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
       <li>Données ouvertes et à jour</li>
       <li>Adaptables à d'autres usages</li>
     </ul>
+    <a class="aide-py" href="#guides">Un script Python reçu d'un collègue ? Voir le guide pour le lancer ↓</a>
   </div>
 </header>
 
@@ -119,7 +136,13 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
 </nav>
 
 <main>
-  <div class="page" id="catalogue"></div>
+  <div class="page">
+    <div id="catalogue"></div>
+    <section class="guides" id="guides" aria-labelledby="h-guides">
+      <div class="guides-tete"><h2 id="h-guides">Guides pratiques</h2><p>Pour utiliser les outils qui ne s'ouvrent pas dans un navigateur</p></div>
+      <div class="guides-liste" id="guides-liste"></div>
+    </section>
+  </div>
 </main>
 
 <footer>
@@ -172,6 +195,17 @@ const OUTILS = [
     tags: ["Temps ou distance", "API IGN Géoplateforme", "Import · export GeoJSON"]
   },
   {
+    theme: "mobilite",
+    titre: "Observatoire de la mobilité",
+    fichier: "outils/observatoire-mobilite-ncpa.html",
+    apercu: "mobilite",
+    badge: "Application Windows",
+    action: "Découvrir l'outil",
+    description: "Application qui dresse le portrait de la mobilité, commune par commune : déplacements domicile-travail, motorisation des ménages, offre alternative à la voiture (cars, trains, vélo, covoiturage, recharge), accidentologie et saisonnalité. La page présente l'outil en captures.",
+    interet: "Disposer d'un diagnostic sourcé et transposable pour un plan de mobilité, une réflexion sur les transports ou un échange avec les partenaires.",
+    tags: ["14 jeux de données publics", "38 indicateurs", "Transposable à tout EPCI"]
+  },
+  {
     theme: "eau",
     titre: "Veille crues et submersion",
     fichier: "outils/veille-hydro-ncpa.html",
@@ -220,6 +254,17 @@ const OUTILS = [
     description: "Application qui dresse le portrait de l'emploi salarié privé, des salaires, des employeurs et des recrutements, commune par commune, en croisant une dizaine de sources publiques. La page présente l'outil en captures.",
     interet: "Situer NCPA parmi des intercommunalités comparables et disposer de chiffres sourcés pour un diagnostic, un conseil ou une rencontre d'entreprises.",
     tags: ["Urssaf · Insee · France Travail", "Comparaison aux EPCI", "Excel · synthèse · carte"]
+  }
+];
+
+const GUIDES = [
+  {
+    titre: "Lancer un outil écrit en Python",
+    fichier: "outils/lancer-un-script-python.html",
+    picto: ".py",
+    couleur: "#9fd0c8",
+    description: "Installer Python sur un poste Windows, puis lancer un script reçu d'un collègue depuis l'invite de commandes, en commandes à copier-coller.",
+    duree: "Environ 10 minutes la première fois · sans droits d'administrateur"
   }
 ];
 
@@ -311,6 +356,21 @@ const APERCUS = {
       </g>
       <circle cx="170" cy="40" r="7" class="marq"/>
     </svg>`,
+  mobilite: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect x="30" y="16" width="300" height="130" rx="8" fill="currentColor" opacity=".06" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5"/>
+      <line x1="30" y1="34" x2="330" y2="34" stroke="currentColor" stroke-width="1.5" opacity=".3"/>
+      <g fill="currentColor" opacity=".45"><circle cx="42" cy="25" r="3"/><circle cx="52" cy="25" r="3"/><circle cx="62" cy="25" r="3"/></g>
+      <g fill="none" stroke="currentColor" stroke-width="2" opacity=".5" stroke-linecap="round">
+        <path d="M80 100 C120 60 160 110 200 70"/>
+        <path d="M80 100 C130 90 190 100 270 56" stroke-dasharray="5 4"/>
+        <path d="M120 112 C170 104 230 84 290 98"/>
+      </g>
+      <g fill="currentColor" opacity=".3">
+        <circle cx="80" cy="100" r="9"/><circle cx="200" cy="70" r="7"/><circle cx="120" cy="112" r="6"/><circle cx="290" cy="98" r="8"/>
+      </g>
+      <circle cx="270" cy="56" r="6" class="marq"/>
+    </svg>`,
   emploi: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <rect x="30" y="16" width="300" height="130" rx="8" fill="currentColor" opacity=".06" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5"/>
@@ -353,6 +413,12 @@ document.getElementById("catalogue").innerHTML = themesActifs.map(t => `
     <div class="theme-tete"><h2 id="h-${t.id}">${esc(t.nom)}</h2><p>${esc(t.accroche)}</p></div>
     <div class="grille">${OUTILS.filter(o => o.theme === t.id).map(o => carte(o, t)).join("")}</div>
   </section>`).join("");
+
+document.getElementById("guides-liste").innerHTML = GUIDES.map(g => `
+  <a class="guide" href="${esc(g.fichier)}" style="--c:${g.couleur}">
+    <span class="pic" aria-hidden="true">${esc(g.picto)}</span>
+    <div><h3>${esc(g.titre)}</h3><p>${esc(g.description)}</p><span class="duree">${esc(g.duree)}</span></div>
+  </a>`).join("");
 
 const filtres = document.getElementById("filtres");
 filtres.innerHTML =
