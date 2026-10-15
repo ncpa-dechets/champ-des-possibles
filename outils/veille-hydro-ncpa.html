@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -20,6 +21,8 @@
     --calme: #3F8F5A;
     --vigilance: #D9822B;
     --alerte: #C2362B;
+    --jaune: #D8B02E;
+    --jaune-encre: #8A6D0B;
     --neutre: #7B8C97;
   }
   * { box-sizing: border-box; }
@@ -84,6 +87,7 @@
   table { width: 100%; border-collapse: collapse; font-size: 0.97rem; }
   th { text-align: left; font-weight: 600; color: var(--encre-douce); font-size: 0.88rem; padding: 6px 10px; border-bottom: 2px solid var(--trait); white-space: nowrap; }
   td { padding: 9px 10px; border-bottom: 1px solid var(--trait); vertical-align: middle; }
+  th.num { text-align: right; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr.separateur td { padding: 14px 10px 4px; border-bottom: none; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; color: var(--eau); }
   .nom-station { font-weight: 600; }
@@ -112,14 +116,51 @@
   .bascule { display: flex; gap: 8px; margin-bottom: 12px; }
   #debiclic-widget { min-height: 640px; }
 
+  /* Niveau de risque */
+  #m-risque { border-top: 6px solid var(--eau); }
+  .risques { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .risque { display: grid; grid-template-columns: 112px 1fr; gap: 18px; padding: 14px 16px 12px; border: 1px solid var(--trait); border-radius: 8px; }
+  .risque h3 { font-size: 1.25rem; font-weight: 600; }
+  .risque .niveau { font-family: "Barlow Semi Condensed", sans-serif; font-size: 2.3rem; font-weight: 700; line-height: 1.05; margin-top: 6px; }
+  .risque .points { font-size: 0.88rem; color: var(--encre-douce); }
+  .risque .resume { margin: 6px 0 0; font-size: 0.95rem; }
+  .risque.n0 .niveau { color: var(--calme); } .risque.n1 .niveau { color: var(--jaune-encre); }
+  .risque.n2 .niveau { color: var(--vigilance); } .risque.n3 .niveau { color: var(--alerte); }
+  /* Échelle façon échelle limnimétrique : l'eau monte jusqu'au niveau atteint */
+  .echelle { display: flex; flex-direction: column-reverse; gap: 4px; min-height: 210px; padding-left: 10px;
+    background: repeating-linear-gradient(to bottom, var(--trait) 0 1px, transparent 1px 10px) left top / 6px 100% no-repeat; }
+  .echelle div { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--encre-douce); }
+  .echelle .seg { width: 24px; align-self: stretch; border-radius: 3px; background: #E4EAED; }
+  .echelle .on.n0 { background: var(--calme); } .echelle .on.n1 { background: var(--jaune); }
+  .echelle .on.n2 { background: var(--vigilance); } .echelle .on.n3 { background: var(--alerte); }
+  .echelle div.actuel { color: var(--encre); font-weight: 600; }
+  .facteurs { list-style: none; padding: 0; margin: 10px 0 0; }
+  .facteurs li { display: grid; grid-template-columns: 34px 1fr; gap: 1px 10px; padding: 6px 0; border-top: 1px solid var(--trait); font-size: 0.95rem; }
+  .facteurs .val { grid-column: 2; color: var(--encre-douce); font-size: 0.88rem; }
+  .pts { grid-row: span 2; align-self: start; text-align: center; border-radius: 4px; padding: 1px 0; background: #E4EAED;
+    font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; }
+  .pts.p1 { background: var(--jaune); color: var(--encre); } .pts.p2 { background: var(--vigilance); color: #fff; }
+  .pts.info { background: #DDEFF4; color: var(--eau); }
+  .pastille.n0 { background: #DCEDE1; color: var(--calme); } .pastille.n1 { background: var(--jaune); color: var(--encre); }
+  .pastille.n2 { background: var(--vigilance); color: #fff; } .pastille.n3 { background: var(--alerte); color: #fff; }
+  #m-risque .graph { height: 280px; margin-top: 18px; }
+  #m-risque h3.sous-titre { font-size: 1.1rem; font-weight: 600; margin-top: 16px; }
+
+  /* Encart des données manquantes */
+  .manques { background: var(--carte); border-left: 5px solid var(--vigilance); border-radius: 6px; padding: 12px 18px 6px; margin: 0 0 14px; box-shadow: 0 1px 3px rgba(19,41,61,.06); }
+  .manques h2 { font-size: 1.15rem; font-weight: 600; color: var(--encre); }
+  .manques p { margin: 4px 0 6px; }
+  .manques ul { margin: 0 0 8px; padding-left: 20px; }
+  .manques li { margin-bottom: 3px; }
+
   footer { color: var(--encre-douce); font-size: 0.88rem; padding-top: 8px; max-width: 90ch; }
   footer a, .module a { color: var(--eau); }
 
   @media (max-width: 1000px) {
     .synthese { grid-template-columns: repeat(2, 1fr); }
-    .deux-col, .nappes { grid-template-columns: 1fr; }
+    .deux-col, .nappes, .risques { grid-template-columns: 1fr; }
   }
-  @media (max-width: 520px) { .synthese { grid-template-columns: 1fr; } header h1 { font-size: 1.7rem; } }
+  @media (max-width: 520px) { .synthese { grid-template-columns: 1fr; } .risque { grid-template-columns: 1fr; } .echelle { min-height: 150px; } header h1 { font-size: 1.7rem; } }
 </style>
 </head>
 <body>
@@ -150,6 +191,20 @@
       <button id="btn-actualiser" type="button">Actualiser</button>
     </div>
   </header>
+
+  <!-- Module 0 : niveau de risque combiné -->
+  <section class="module" id="m-risque">
+    <h2>Niveau de risque sur les 72 prochaines heures</h2>
+    <p class="chapo">Indicateur maison qui croise pluie, état des sols et des nappes, rivières, marée, pression, vent et houle. Ses seuils sont provisoires (voir en bas de page) : il aide à repérer les situations à surveiller mais ne remplace pas les vigilances officielles de <a href="https://www.vigicrues.gouv.fr" target="_blank" rel="noopener">Vigicrues</a> et <a href="https://vigilance.meteofrance.fr" target="_blank" rel="noopener">Météo-France</a>.</p>
+    <div class="risques" aria-live="polite">
+      <div id="r-crue"><p class="msg">Calcul en cours…</p></div>
+      <div id="r-submersion"><p class="msg">Calcul en cours…</p></div>
+    </div>
+    <div class="graph"><canvas id="g-risque"></canvas></div>
+    <h3 class="sous-titre">Pleines mers des 3 prochains jours</h3>
+    <p class="chapo">Chaque pleine mer est évaluée avec les conditions prévues dans les 3 heures qui l'entourent. La pluie autour de la pleine mer signale les moments où la Dives aura du mal à s'évacuer.</p>
+    <div class="defile"><div id="tableau-pm" class="msg">Calcul en cours…</div></div>
+  </section>
 
   <!-- Synthèse : un coup d'œil sur les 4 indicateurs -->
   <div class="synthese" aria-live="polite">
@@ -203,7 +258,18 @@
   </section>
 
   <footer>
-    <p>Sources : Hub'Eau (hydrométrie et piézométrie, BRGM / Vigicrues), Open-Meteo (prévisions de pluie et modèle de marée). Les seuils de couleur sont des réglages de départ, à ajuster dans la partie CONFIGURATION du fichier. La marée affichée est une estimation de modèle : pour les horaires et coefficients officiels, voir <a href="https://maree.shom.fr" target="_blank" rel="noopener">maree.shom.fr</a> ; pour les vigilances officielles, <a href="https://www.vigicrues.gouv.fr" target="_blank" rel="noopener">Vigicrues</a> et <a href="https://vigilance.meteofrance.fr" target="_blank" rel="noopener">Météo-France</a>.</p>
+    <div class="manques">
+      <h2>Données manquantes pour fiabiliser le niveau de risque</h2>
+      <p>Les seuils du niveau de risque sont des valeurs de départ : ils n'ont pas encore été comparés à des événements réels sur NCPA. Pour les caler, il faudrait :</p>
+      <ul>
+        <li>les cotes (en m NGF) des digues, quais et ouvrages à clapets de l'estuaire de la Dives, et les points bas des secteurs habités ;</li>
+        <li>les hauteurs d'eau atteintes lors d'inondations et de submersions passées (station de Cabourg, laisses de mer, repères de crue), avec les secteurs touchés ;</li>
+        <li>les cotes de référence des plans de prévention des risques (submersion et inondation) applicables au territoire ;</li>
+        <li>les coefficients de marée officiels du SHOM, qui remplaceraient le coefficient estimé ici à partir du modèle ;</li>
+        <li>un accès automatique aux vigilances officielles Vigicrues et Météo-France, pour les intégrer au calcul.</li>
+      </ul>
+    </div>
+    <p>Sources : Hub'Eau (hydrométrie et piézométrie, BRGM / Vigicrues), Open-Meteo (prévisions de pluie, pression, vent, houle et modèle de marée). Les seuils de couleur sont des réglages de départ, à ajuster dans la partie CONFIGURATION du fichier. La marée affichée est une estimation de modèle : pour les horaires et coefficients officiels, voir <a href="https://maree.shom.fr" target="_blank" rel="noopener">maree.shom.fr</a> ; pour les vigilances officielles, <a href="https://www.vigicrues.gouv.fr" target="_blank" rel="noopener">Vigicrues</a> et <a href="https://vigilance.meteofrance.fr" target="_blank" rel="noopener">Météo-France</a>.</p>
   </footer>
 </div>
 
@@ -247,7 +313,24 @@ const CONFIG = {
   ],
 
   // Actualisation automatique (en minutes, 0 pour désactiver)
-  actualisationAuto: 30
+  actualisationAuto: 30,
+
+  // Niveau de risque : SEUILS PROVISOIRES, à caler sur des événements réels.
+  // Chaque facteur rapporte 0, 1 ou 2 points selon qu'il dépasse le 1er ou le 2e seuil.
+  // (La pluie sur 72 h reprend seuilPluie72h et seuilPluie72hFort ci-dessus.)
+  risque: {
+    pluie6h: [15, 30],        // mm tombant en 6 h (pluie intense, ruissellement)
+    pluie7j: [30, 60],        // mm tombés ces 7 derniers jours (sols déjà gorgés d'eau)
+    nappes: [67, 90],         // nappe plus haute que X % des relevés historiques à la même période
+    coef: [95, 105],          // coefficient de marée estimé
+    marnageCoef100: 7.0,      // marnage du modèle (m) correspondant à un coefficient 100 : à ajuster avec maree.shom.fr
+    pression: [1000, 985],    // hPa : plus la pression est basse, plus la mer monte (≈ 1 cm par hPa sous 1013)
+    ventMer: [50, 75],        // km/h de vent moyen venant de la mer
+    secteurMer: [260, 60],    // directions (en degrés) d'où le vent souffle de la mer : d'ouest à nord-est en passant par le nord
+    houle: [2, 3],            // m de hauteur de vagues au large
+    fenetrePM: 3,             // heures avant et après chaque pleine mer prises en compte
+    niveaux: [2, 4, 6]        // points à partir desquels le niveau passe à Modéré / Élevé / Très élevé
+  }
 };
 
 /* =====================================================================
@@ -257,6 +340,7 @@ const HEURE = 3600e3, JOUR = 24 * HEURE;
 const HUBEAU = "https://hubeau.eaufrance.fr/api";
 const graphiques = {};          // garde les graphiques pour pouvoir les redessiner
 let serieCabourg = [];          // partagée entre le module rivières et le module marée
+const ETAT = { rivieres: null, nappes: null, maree: null, meteo: null }; // résultats réutilisés par le niveau de risque
 
 async function lireJSON(url) {
   const r = await fetch(url);
@@ -379,8 +463,10 @@ async function analyserStation(st) {
 const LIBELLES = { forte: "Montée forte", montee: "En montée", baisse: "En baisse", stable: "Stable", maree: "Sous marée", indispo: "Pas de données" };
 
 async function chargerRivieres() {
+  ETAT.rivieres = null;
   const zone = document.getElementById("tableau-rivieres");
   const resultats = await Promise.all(CONFIG.stations.map(st => analyserStation(st).catch(() => ({ st, etat: "indispo" }))));
+  ETAT.rivieres = resultats;
 
   let html = `<table><thead><tr><th>Station</th><th>Tendance</th><th class="num">Hauteur</th><th class="num">Variation 24 h</th><th class="num">Débit</th><th class="num">Max 30 j</th><th>48 dernières heures</th></tr></thead><tbody>`;
   let secteur = null;
@@ -476,8 +562,9 @@ async function chargerPluie() {
    MODULE 3 — MARÉE
    ===================================================================== */
 async function chargerMaree() {
+  ETAT.maree = null;
   const p = CONFIG.pointMaree;
-  const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${p.lat}&longitude=${p.lon}&hourly=sea_level_height_msl&past_days=2&forecast_days=4&timezone=GMT`;
+  const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${p.lat}&longitude=${p.lon}&hourly=sea_level_height_msl,wave_height&past_days=2&forecast_days=4&timezone=GMT`;
   const d = await lireJSON(url);
   const serie = d.hourly.time.map((t, i) => ({ t: Date.parse(t + "Z"), v: d.hourly.sea_level_height_msl[i] })).filter(x => x.v != null);
   const maintenant = Date.now();
@@ -490,6 +577,9 @@ async function chargerMaree() {
   const futures = hautes.filter(h => h.t > maintenant && h.t < maintenant + 3 * JOUR);
   const marnFuturs = futures.map(marnage).filter(v => v != null);
   const moy = a => a.reduce((s, v) => s + v, 0) / (a.length || 1);
+  const vagues = d.hourly.wave_height || [];
+  ETAT.maree = { serie, hautes, basses,
+    houle: d.hourly.time.map((t, i) => ({ t: Date.parse(t + "Z"), v: vagues[i] })).filter(x => x.v != null) };
 
   const obs = serieCabourg.filter(x => x.t >= maintenant - 2 * JOUR).map(x => ({ x: x.t, y: x.v / 1000 }));
   dessiner("g-maree", {
@@ -522,8 +612,8 @@ async function chargerMaree() {
       <div>Plus haute pleine mer (3 j)<strong>${plusHaute ? nb(plusHaute.v) + " m" : "–"}</strong>${plusHaute ? dateHeure(plusHaute.t) : ""}</div>
       <div>Marnage moyen à venir<strong>${nb(moy(marnFuturs), 1)} m</strong>tendance ${sens}</div>
     </div>
-    <table class="pm"><thead><tr><th>Prochaines pleines mers</th><th class="num">Hauteur (modèle)</th></tr></thead><tbody>
-      ${prochaines.map(h => `<tr><td>${dateHeure(h.t)}</td><td class="num">${nb(h.v)} m</td></tr>`).join("")}
+    <table class="pm"><thead><tr><th>Prochaines pleines mers</th><th class="num">Hauteur (modèle)</th><th class="num" title="Estimé à partir du marnage du modèle ; valeur officielle sur maree.shom.fr">Coef. estimé</th></tr></thead><tbody>
+      ${prochaines.map(h => { const c = coefEstime(h, basses); return `<tr><td>${dateHeure(h.t)}</td><td class="num">${nb(h.v)} m</td><td class="num">${c == null ? "–" : "≈ " + c}</td></tr>`; }).join("")}
     </tbody></table>`;
 
   // Synthèse : on croise la tendance de marée et la dernière pleine mer observée à Cabourg
@@ -595,6 +685,7 @@ async function analyserPiezo(pz, index) {
 }
 
 async function chargerNappes() {
+  ETAT.nappes = null;
   const zone = document.getElementById("nappes");
   zone.innerHTML = "";
   const res = [];
@@ -602,11 +693,260 @@ async function chargerNappes() {
     try { res.push(await analyserPiezo(pz, i)); }
     catch { zone.insertAdjacentHTML("beforeend", `<div class="nappe"><h3>${pz.nom}</h3><p class="erreur">Données indisponibles.</p></div>`); }
   }
+  ETAT.nappes = res;
   const hautes = res.filter(r => r.pct != null && r.pct >= 67);
   if (res.some(r => r.pct != null && r.pct >= 90)) tuile("t-nappes", "alerte", "Très hautes", hautes.map(r => r.pz.nom).join(", ") + " au-dessus des normales");
   else if (hautes.length) tuile("t-nappes", "vigilance", "Hautes", hautes.map(r => r.pz.nom).join(", ") + " au-dessus des normales");
   else if (res.length) tuile("t-nappes", "calme", "Normales ou basses", "Pas de nappe au-dessus de la normale saisonnière");
   else tuile("t-nappes", "", "Indisponible", "Hub'Eau ne répond pas");
+}
+
+/* =====================================================================
+   MODULE 0 — NIVEAU DE RISQUE (indicateur maison, seuils provisoires)
+   Croise les données des autres modules + pluie horaire, pression et vent.
+   ===================================================================== */
+const NIVEAUX = ["Faible", "Modéré", "Élevé", "Très élevé"];
+const DIRECTIONS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"];
+const rose = d => DIRECTIONS[Math.round(d / 22.5) % 16];
+const zoneCourte = nom => nom.split(" (")[0].toLowerCase();
+
+// Pluie horaire (3 zones), pression et vent sur le littoral
+async function chargerMeteoRisque() {
+  ETAT.meteo = null;
+  const lieux = [...CONFIG.zonesPluie, CONFIG.pointMaree];
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lieux.map(a => a.lat).join(",")}&longitude=${lieux.map(a => a.lon).join(",")}&hourly=precipitation,pressure_msl,wind_speed_10m,wind_direction_10m&past_days=7&forecast_days=4&timezone=GMT`;
+  let d = await lireJSON(url);
+  if (!Array.isArray(d)) d = [d];
+  const serie = (h, cle) => h.time.map((t, i) => ({ t: Date.parse(t + "Z"), v: h[cle][i] })).filter(x => x.v != null);
+  const littoral = d[d.length - 1].hourly;
+  ETAT.meteo = {
+    pluies: CONFIG.zonesPluie.map((z, k) => ({ nom: z.nom, serie: serie(d[k].hourly, "precipitation") })),
+    pression: serie(littoral, "pressure_msl"),
+    vent: littoral.time.map((t, i) => ({ t: Date.parse(t + "Z"), v: littoral.wind_speed_10m[i], dir: littoral.wind_direction_10m[i] }))
+      .filter(x => x.v != null && x.dir != null)
+  };
+}
+
+// 0, 1 ou 2 points selon les deux seuils (inverse : plus la valeur est basse, plus c'est grave)
+function note(v, seuils, inverse = false) {
+  if (v == null || isNaN(v)) return null;
+  if (inverse) return v <= seuils[1] ? 2 : v <= seuils[0] ? 1 : 0;
+  return v >= seuils[1] ? 2 : v >= seuils[0] ? 1 : 0;
+}
+const niveauDe = total => CONFIG.risque.niveaux.filter(s => total >= s).length; // 0 à 3
+const entre = (serie, t0, t1) => serie.filter(p => p.t > t0 && p.t <= t1);
+const cumul = (serie, t0, t1) => entre(serie, t0, t1).reduce((s, p) => s + p.v, 0);
+const plusGrand = (liste, cle) => liste.reduce((a, b) => (b[cle] > a[cle] ? b : a));
+function ventDeMer(dir) {
+  const [a, b] = CONFIG.risque.secteurMer;
+  return a <= b ? dir >= a && dir <= b : dir >= a || dir <= b;
+}
+
+// Coefficient estimé : marnage moyen autour de la pleine mer, rapporté au marnage d'un coefficient 100
+function coefEstime(pm, basses) {
+  const avant = basses.filter(b => b.t < pm.t).pop();
+  const apres = basses.find(b => b.t > pm.t);
+  const marnages = [avant, apres].filter(Boolean).map(b => pm.v - b.v);
+  if (!marnages.length) return null;
+  const m = marnages.reduce((s, v) => s + v, 0) / marnages.length;
+  return Math.round(m / CONFIG.risque.marnageCoef100 * 100);
+}
+
+// --- Évaluation de chaque pleine mer à venir (submersion) ---------------
+function evaluerPleinesMers(maintenant) {
+  const M = ETAT.maree, m = ETAT.meteo, R = CONFIG.risque;
+  if (!M) return [];
+  const w = R.fenetrePM * HEURE;
+  return M.hautes.filter(h => h.t > maintenant && h.t <= maintenant + 72 * HEURE).map(pm => {
+    const coef = coefEstime(pm, M.basses);
+    const autour = s => s.filter(p => Math.abs(p.t - pm.t) <= w);
+    let pression = null, vent = null, ventTous = null, houle = null, pluie = null;
+    if (m) {
+      const pr = autour(m.pression);
+      pression = pr.length ? Math.min(...pr.map(p => p.v)) : null;
+      const vents = autour(m.vent);
+      if (vents.length) {
+        ventTous = plusGrand(vents, "v");
+        const deMer = vents.filter(v => ventDeMer(v.dir));
+        vent = deMer.length ? plusGrand(deMer, "v") : { v: 0, dir: null };
+      }
+      pluie = Math.max(...m.pluies.map(z => cumul(z.serie, pm.t - 6 * HEURE, pm.t + 6 * HEURE)));
+    }
+    const vagues = autour(M.houle);
+    houle = vagues.length ? Math.max(...vagues.map(p => p.v)) : null;
+    const pts = { coef: note(coef, R.coef), pression: note(pression, R.pression, true),
+                  vent: note(vent ? vent.v : null, R.ventMer), houle: note(houle, R.houle) };
+    const total = Object.values(pts).reduce((s, v) => s + (v || 0), 0);
+    let niveau = niveauDe(total);
+    if (!pts.coef && niveau > 2) niveau = 2; // sans forte marée, on plafonne à « Élevé »
+    return { pm, coef, pression, vent, ventTous, houle, pluie, pts, total, niveau };
+  });
+}
+
+// --- Indice « crue et débordement » -------------------------------------
+function risqueCrue(maintenant, pms) {
+  const R = CONFIG.risque, m = ETAT.meteo, f = [];
+  let pPluie = null, pTerrain = null, pRiv = null, pMar = null, pic = null, sols = null;
+
+  // 1. Pluie à venir
+  if (m) {
+    const zones = m.pluies.map(z => {
+      const fut = entre(z.serie, maintenant, maintenant + 72 * HEURE);
+      let max6 = 0, t6 = null;
+      for (let i = 0; i < fut.length; i++) {
+        const s = fut.slice(i, i + 6).reduce((a, p) => a + p.v, 0);
+        if (s > max6) { max6 = s; t6 = fut[i].t; }
+      }
+      return { nom: z.nom, c72: fut.reduce((a, p) => a + p.v, 0), max6, t6, c7j: cumul(z.serie, maintenant - 7 * JOUR, maintenant) };
+    });
+    const z72 = plusGrand(zones, "c72"), z6 = plusGrand(zones, "max6"), z7 = plusGrand(zones, "c7j");
+    pPluie = Math.max(note(z72.c72, [CONFIG.seuilPluie72h, CONFIG.seuilPluie72hFort]), note(z6.max6, R.pluie6h));
+    if (z6.max6 >= 1) pic = z6.t6;
+    f.push({ nom: "Pluie à venir", pts: pPluie,
+      val: `${nb(z72.c72, 0)} mm en 72 h (${zoneCourte(z72.nom)}) · jusqu'à ${nb(z6.max6, 0)} mm en 6 h${pic ? ", à partir de " + dateHeure(pic) : ""}` });
+    sols = { pts: note(z7.c7j, R.pluie7j), val: `${nb(z7.c7j, 0)} mm tombés en 7 jours (${zoneCourte(z7.nom)})` };
+  } else f.push({ nom: "Pluie à venir", pts: null, val: "Prévisions horaires indisponibles (Open-Meteo)" });
+
+  // 2. Rivières
+  if (ETAT.rivieres) {
+    const fluv = ETAT.rivieres.filter(r => !r.st.maree);
+    const fortes = fluv.filter(r => r.etat === "forte"), montees = fluv.filter(r => r.etat === "montee");
+    pRiv = fortes.length ? 2 : montees.length ? 1 : 0;
+    const noms = [...fortes, ...montees].map(r => r.st.nom.replace(/^(La|Le|Les) /, "")).join(", ");
+    f.push({ nom: "Rivières", pts: pRiv, val: noms ? `En hausse sur 24 h : ${noms}` : "Pas de hausse notable sur 24 h" });
+  } else f.push({ nom: "Rivières", pts: null, val: "Mesures indisponibles (Hub'Eau)" });
+
+  const declencheur = (pPluie || 0) + (pRiv || 0) > 0;
+  const condition = declencheur ? "" : " · compte seulement s'il pleut ou si les rivières montent";
+
+  // 3. Sols et nappes (aggravant)
+  const nappes = (ETAT.nappes || []).filter(r => r.pct != null);
+  const nHaute = nappes.length ? plusGrand(nappes, "pct") : null;
+  const pNappe = nHaute ? note(nHaute.pct, R.nappes) : null;
+  const morceaux = [];
+  if (sols) morceaux.push(sols.val);
+  if (nHaute) morceaux.push(`nappe de ${nHaute.pz.nom} plus haute que ${Math.round(nHaute.pct)} % des relevés à cette période`);
+  const notesTerrain = [sols ? sols.pts : null, pNappe].filter(v => v != null);
+  pTerrain = notesTerrain.length ? Math.max(...notesTerrain) : null;
+  f.push({ nom: "Sols et nappes", pts: pTerrain, compte: declencheur,
+    val: morceaux.length ? morceaux.join(" · ") + condition : "Données indisponibles" });
+
+  // 4. Marée (aggravant : la mer haute freine l'écoulement de la Dives)
+  const avecCoef = pms.filter(x => x.coef != null);
+  if (avecCoef.length) {
+    const fort = plusGrand(avecCoef, "coef");
+    pMar = note(fort.coef, R.coef);
+    f.push({ nom: "Marée à l'embouchure", pts: pMar, compte: declencheur,
+      val: `Coef. estimé jusqu'à ≈ ${fort.coef} (${dateHeure(fort.pm.t)}) : une mer haute freine l'écoulement de la Dives${condition}` });
+  } else f.push({ nom: "Marée à l'embouchure", pts: null, val: "Modèle de marée indisponible" });
+
+  const total = (pPluie || 0) + (pRiv || 0) + (declencheur ? (pTerrain || 0) + (pMar || 0) : 0);
+  const manque = f.filter(x => x.pts == null).length;
+  return { niveau: niveauDe(total), total, max: 8, facteurs: f, manque,
+    resume: pic && pPluie ? `Moment le plus sensible : pluie la plus intense à partir de ${dateHeure(pic)}.` : "" };
+}
+
+// --- Indice « submersion marine » ---------------------------------------
+function risqueSubmersion(pms) {
+  if (!pms.length) return { indispo: "Le modèle de marée ne répond pas : niveau non calculable." };
+  const pire = pms.reduce((a, b) => (b.niveau > a.niveau || (b.niveau === a.niveau && b.total > a.total) ? b : a));
+  const f = [];
+  f.push({ nom: "Marée", pts: pire.pts.coef,
+    val: pire.coef != null ? `Pleine mer ${dateHeure(pire.pm.t)} · coef. estimé ≈ ${pire.coef}` : "Coefficient non calculable" });
+  f.push({ nom: "Pression atmosphérique", pts: pire.pts.pression,
+    val: pire.pression != null ? `${nb(pire.pression, 0)} hPa autour de la pleine mer (≈ ${signe(Math.max(0, 1013 - pire.pression), 0)} cm de mer en plus)` : "Prévision indisponible" });
+  let txtVent = "Prévision indisponible";
+  if (pire.vent) txtVent = pire.vent.v > 0
+    ? `${nb(pire.vent.v, 0)} km/h de ${rose(pire.vent.dir)}, venant de la mer`
+    : `Pas de vent de mer (max ${nb(pire.ventTous.v, 0)} km/h de ${rose(pire.ventTous.dir)})`;
+  f.push({ nom: "Vent", pts: pire.pts.vent, val: txtVent });
+  f.push({ nom: "Houle", pts: pire.pts.houle, val: pire.houle != null ? `${nb(pire.houle, 1)} m de vagues au large` : "Prévision indisponible pour ce point" });
+  const cabourg = (ETAT.rivieres || []).find(r => r.st.maree && r.recordPM);
+  if (cabourg) f.push({ nom: "Observé à Cabourg", pts: "i", val: `Dernière pleine mer mesurée (${dateHeure(cabourg.pleineMer.t)}) : la plus haute des 30 jours` });
+  return { niveau: pire.niveau, total: pire.total, max: 8, facteurs: f, manque: f.filter(x => x.pts == null).length,
+    resume: `Pleine mer la plus sensible : ${dateHeure(pire.pm.t)}.` };
+}
+
+// --- Affichage ----------------------------------------------------------
+function echelle(niveau) {
+  return `<div class="echelle" role="img" aria-label="Niveau ${NIVEAUX[niveau]}">` +
+    NIVEAUX.map((n, i) => `<div class="${i === niveau ? "actuel" : ""}"><span class="seg ${i <= niveau ? "on n" + i : ""}"></span>${n}</div>`).join("") +
+    `</div>`;
+}
+function carteRisque(titre, sous, r) {
+  if (r.indispo) return `<article class="risque"><div></div><div><h3>${titre}</h3><span class="sous">${sous}</span><p class="erreur">${r.indispo}</p></div></article>`;
+  const ligne = x => {
+    const compte = x.compte !== false;
+    const classe = x.pts === "i" ? "info" : x.pts == null ? "" : compte ? "p" + x.pts : "";
+    const txt = x.pts === "i" ? "i" : x.pts == null ? "–" : compte ? (x.pts ? "+" + x.pts : "0") : "0";
+    return `<li><span class="pts ${classe}">${txt}</span><span>${x.nom}</span><span class="val">${x.val}</span></li>`;
+  };
+  return `<article class="risque n${r.niveau}">
+    ${echelle(r.niveau)}
+    <div>
+      <h3>${titre}</h3><span class="sous">${sous}</span>
+      <div class="niveau">${NIVEAUX[r.niveau]}</div>
+      <div class="points">${r.total} point(s) sur ${r.max}${r.manque ? ` · ${r.manque} donnée(s) manquante(s) : niveau peut-être sous-estimé` : ""}</div>
+      ${r.resume ? `<p class="resume">${r.resume}</p>` : ""}
+      <ul class="facteurs">${r.facteurs.map(ligne).join("")}</ul>
+    </div>
+  </article>`;
+}
+
+function rendreRisque() {
+  const maintenant = Date.now();
+  const pms = evaluerPleinesMers(maintenant);
+  document.getElementById("r-crue").innerHTML = carteRisque("Crue et débordement", "Rivières et marais de la Dives", risqueCrue(maintenant, pms));
+  document.getElementById("r-submersion").innerHTML = carteRisque("Submersion marine", "Littoral, de Merville-Franceville à Houlgate", risqueSubmersion(pms));
+
+  // Tableau des pleines mers
+  const tab = document.getElementById("tableau-pm");
+  if (!pms.length) { tab.className = "msg"; tab.textContent = "Modèle de marée indisponible."; }
+  else {
+    tab.className = "";
+    tab.innerHTML = `<table><thead><tr><th>Pleine mer</th><th class="num">Coef. estimé</th><th class="num">Pression</th><th class="num">Vent de mer</th><th class="num">Houle</th><th class="num">Pluie ± 6 h</th><th>Niveau submersion</th></tr></thead><tbody>` +
+      pms.map(x => `<tr>
+        <td>${dateHeure(x.pm.t)}</td>
+        <td class="num">${x.coef == null ? "–" : "≈ " + x.coef}</td>
+        <td class="num">${x.pression == null ? "–" : nb(x.pression, 0) + " hPa"}</td>
+        <td class="num">${x.vent == null ? "–" : x.vent.v ? nb(x.vent.v, 0) + " km/h " + rose(x.vent.dir) : "aucun"}</td>
+        <td class="num">${x.houle == null ? "–" : nb(x.houle, 1) + " m"}</td>
+        <td class="num">${x.pluie == null ? "–" : nb(x.pluie, 0) + " mm"}</td>
+        <td><span class="pastille n${x.niveau}">${NIVEAUX[x.niveau]}</span></td>
+      </tr>`).join("") + `</tbody></table>`;
+  }
+
+  // Frise : pluie horaire, marée et niveau de chaque pleine mer
+  const debut = maintenant - 12 * HEURE, fin = maintenant + 72 * HEURE;
+  const pluieH = {};
+  if (ETAT.meteo) for (const z of ETAT.meteo.pluies)
+    for (const p of entre(z.serie, debut, fin)) pluieH[p.t] = Math.max(pluieH[p.t] || 0, p.v);
+  const couleurs = ["#3F8F5A", "#D8B02E", "#D9822B", "#C2362B"];
+  dessiner("g-risque", {
+    type: "bar",
+    data: { datasets: [
+      { type: "bar", label: "Pluie (mm/h, zone la plus arrosée)", data: Object.entries(pluieH).map(([t, v]) => ({ x: +t, y: v })),
+        backgroundColor: "#13293D99", barPercentage: 1, categoryPercentage: 1, yAxisID: "y", order: 3 },
+      { type: "line", label: "Marée prévue (modèle, m)", data: ETAT.maree ? entre(ETAT.maree.serie, debut, fin).map(p => ({ x: p.t, y: p.v })) : [],
+        borderColor: "#1B6F8A", backgroundColor: "#1B6F8A18", fill: "start", pointRadius: 0, borderWidth: 2, tension: 0.3, yAxisID: "y2", order: 2 },
+      { type: "scatter", label: "Pleines mers (couleur = niveau de submersion)", data: pms.map(x => ({ x: x.pm.t, y: x.pm.v, info: x })),
+        pointBackgroundColor: pms.map(x => couleurs[x.niveau]), pointBorderColor: "#fff", pointBorderWidth: 2, pointRadius: 7, yAxisID: "y2", order: 1 }
+    ] },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: "nearest", axis: "x", intersect: false },
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } },
+        tooltip: { callbacks: { title: c => dateHeure(c[0].parsed.x),
+          label: c => c.raw.info ? `Pleine mer : coef. ≈ ${c.raw.info.coef ?? "–"} · niveau ${NIVEAUX[c.raw.info.niveau]}`
+            : `${c.dataset.label} : ${nb(c.parsed.y, 1)}` } } },
+      scales: {
+        x: { type: "linear", min: debut, max: fin,
+             ticks: { stepSize: JOUR / 2, callback: v => new Date(v).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" }) + (new Date(v).getHours() >= 12 ? " ap-m" : "") } },
+        y: { beginAtZero: true, suggestedMax: 5, position: "left", title: { display: true, text: "pluie (mm/h)" } },
+        y2: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "marée (m)" } }
+      }
+    },
+    plugins: [pluginMaintenant]
+  });
 }
 
 /* =====================================================================
@@ -645,8 +985,11 @@ async function toutCharger() {
     chargerRivieres().catch(erreur("m-rivieres", "t-rivieres", "Hub'Eau"))
       .then(() => chargerMaree().catch(erreur("m-maree", "t-maree", "Open-Meteo"))),
     chargerPluie().catch(erreur("m-pluie", "t-pluie", "Open-Meteo")),
-    chargerNappes()
+    chargerNappes(),
+    chargerMeteoRisque().catch(() => { ETAT.meteo = null; })
   ]);
+  try { rendreRisque(); }
+  catch (e) { document.getElementById("r-crue").innerHTML = `<p class="erreur">Le niveau de risque n'a pas pu être calculé (${e.message}).</p>`; }
   document.getElementById("heure-maj").textContent = "Mis à jour à " + heure(Date.now());
   btn.disabled = false; btn.textContent = "Actualiser";
 }
