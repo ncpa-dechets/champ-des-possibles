@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relief à vélo : itinéraire et dénivelé</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eef2ef; --panel:#ffffff; --soft:#f4f7f5; --ink:#1c2621; --muted:#5b6861; --line:#d3dbd5;
+  --accent:#0f5c5a; --accent-ink:#ffffff; --danger:#b42318;
+  --shade:rgba(28,38,33,.06); --shade-strong:rgba(15,92,90,.16);
+  --s-down:#9fb0c3; --s-flat:#57b26f; --s-1:#e4b51f; --s-2:#ef8424; --s-3:#d43a2f; --s-4:#74172a;
+  --sans:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --cond:'Barlow Semi Condensed','Barlow','Arial Narrow',system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font:15px/1.45 var(--sans);color:var(--ink);background:var(--paper);
+  display:grid;grid-template-columns:310px minmax(0,1fr);grid-template-rows:minmax(0,1fr) 300px;
+  grid-template-areas:"side map" "side prof";height:100vh;overflow:hidden;
+}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- panneau latéral ---------- */
+#side{grid-area:side;position:relative;overflow-y:auto;background:var(--panel);border-right:1px solid var(--line)}
+.brand{padding:22px 22px 16px;border-bottom:1px solid var(--line);position:relative}
+.brand h1{font:700 30px/1.05 var(--cond);margin:0 0 6px;letter-spacing:-.01em}
+.brand p{margin:0;color:var(--muted);max-width:32ch}
+.brand svg{position:absolute;right:18px;top:18px;width:74px;height:40px;opacity:.9}
+.block{padding:16px 22px;border-bottom:1px solid var(--line)}
+.block h2{font:600 18px/1.2 var(--cond);margin:0 0 10px}
+.block h3{font:600 16px/1.2 var(--cond);margin:18px 0 8px}
+.note{color:var(--muted);font-size:13.5px;margin:6px 0 0}
+
+/* points de passage */
+.wp-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.wp-badge{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--cond)}
+.wp-badge.start{background:var(--panel);color:var(--ink);border:2px solid var(--ink)}
+.wp-badge.end{background:var(--ink);color:var(--panel)}
+.wp-badge.via{background:var(--accent);color:var(--accent-ink)}
+.ac{position:relative;flex:1;min-width:0}
+.ac input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--soft)}
+.ac input:focus{background:var(--panel);border-color:var(--accent);outline:none}
+.ac-list{position:absolute;z-index:1200;left:0;right:0;top:calc(100% + 2px);margin:0;padding:4px 0;list-style:none;background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 24px rgba(20,30,25,.14);max-height:260px;overflow:auto}
+.ac-list li{padding:7px 10px;cursor:pointer;font-size:14px}
+.ac-list li.active,.ac-list li:hover{background:var(--soft)}
+.icon-btn{flex:none;width:28px;height:28px;border:1px solid var(--line);background:transparent;border-radius:6px;cursor:pointer;font-size:17px;line-height:1;color:var(--muted)}
+.icon-btn:hover{color:var(--danger);border-color:var(--danger)}
+.row-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.ghost{border:1px solid var(--line);background:transparent;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px}
+.ghost:hover{border-color:var(--ink)}
+.primary{border:0;background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:600;font-size:14px}
+.primary:hover{filter:brightness(1.1)}
+
+/* profils */
+.prof-opt{display:grid;grid-template-columns:auto 26px 1fr;gap:10px;align-items:start;padding:6px 0;cursor:pointer}
+.prof-opt input{margin:3px 0 0;accent-color:var(--accent);width:16px;height:16px}
+.sw-line{height:5px;border-radius:3px;background:var(--c);margin-top:9px}
+.prof-opt b{display:block;font-weight:600}
+.prof-opt small{display:block;color:var(--muted);font-size:13px;line-height:1.3}
+
+/* statut (dans la carte flottante) */
+#status{font-size:13px;white-space:pre-line}
+#status:not(:empty){padding:8px 12px;border-top:1px solid var(--line)}
+#status.error{color:var(--danger);background:#fdf3f2;border-radius:0 0 10px 10px}
+#status.busy::before{content:"";display:inline-block;width:11px;height:11px;margin-right:8px;vertical-align:-1px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+
+/* montées */
+.climbs{list-style:none;margin:0;padding:0}
+.climbs li+li{margin-top:6px}
+.climb{width:100%;display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:start;text-align:left;
+  border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:9px 10px;cursor:pointer}
+.climb:hover{border-color:var(--ink)}
+.climb.on{border-color:var(--accent);background:var(--soft)}
+.c-num{width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--panel);display:grid;place-items:center;font:700 13px var(--cond)}
+.c-body strong{display:block;font-weight:600}
+.c-body span{display:block;color:var(--muted);font-size:13px;line-height:1.35}
+.c-lvl{font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;color:#fff}
+.lvl0{background:var(--s-flat)} .lvl1{background:#c9970f} .lvl2{background:var(--s-3)} .lvl3{background:var(--s-4)}
+.empty{color:var(--muted);font-size:14px;margin:0}
+
+.file-btn{display:inline-block;margin-top:10px;position:relative}
+.file-btn input{position:absolute;width:1px;height:1px;opacity:0}
+.file-btn span{display:inline-block}
+.file-btn:focus-within span{outline:2px solid var(--accent);outline-offset:2px}
+
+details.about summary{cursor:pointer;font:600 16px var(--cond)}
+details.about p{font-size:13.5px;color:var(--muted);margin:8px 0 0}
+
+/* ---------- carte ---------- */
+#mapWrap{grid-area:map;position:relative;min-height:0}
+#map{position:absolute;inset:0;background:#e9ece9}
+#mapHint{position:absolute;z-index:800;bottom:30px;left:50%;transform:translateX(-50%);background:var(--panel);
+  padding:7px 14px;border-radius:20px;box-shadow:0 2px 10px rgba(20,30,25,.18);font-size:14px;pointer-events:none;white-space:nowrap;max-width:calc(100% - 120px);overflow:hidden;text-overflow:ellipsis}
+.wp-pin{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--cond);
+  box-shadow:0 1px 5px rgba(0,0,0,.4);cursor:grab}
+.wp-pin.start{background:#fff;color:#1c2621;border:3px solid #1c2621}
+.wp-pin.end{background:#1c2621;color:#fff;border:3px solid #fff}
+.wp-pin.via{background:#0f5c5a;color:#fff;border:3px solid #fff}
+/* carte flottante des itinéraires */
+.route-card{position:absolute;z-index:850;left:12px;top:12px;width:300px;max-width:calc(100% - 70px);background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 18px rgba(20,30,25,.16)}
+.rc-head{display:flex;align-items:center;justify-content:space-between;padding:9px 10px 6px 14px}
+.rc-head h2{font:600 18px/1.2 var(--cond);margin:0}
+.rc-toggle{border:0;background:none;cursor:pointer;width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--muted)}
+.rc-toggle:hover{background:var(--soft);color:var(--ink)}
+.rc-toggle svg{transition:transform .15s}
+.route-card.collapsed .rc-toggle svg{transform:rotate(180deg)}
+.route-card.collapsed #rcBody{display:none}
+#rcList{padding:0 6px 6px;max-height:48vh;overflow-y:auto}
+.rc-row{display:grid;grid-template-columns:18px 12px minmax(0,1fr) auto;gap:8px;align-items:start;padding:7px 6px;border-radius:6px;cursor:pointer}
+.rc-row:hover{background:var(--soft)}
+.rc-row.on{background:var(--soft);box-shadow:inset 3px 0 0 var(--c);border-radius:0 6px 6px 0}
+.rc-row.off{color:var(--muted)}
+.rc-row input{margin:2px 0 0;accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
+.rc-sw{width:12px;height:12px;border-radius:3px;background:var(--c);margin-top:4px}
+.rc-row.off .rc-sw{background:transparent;border:2px solid var(--c)}
+.rc-name{min-width:0}
+.rc-name b{display:block;font-weight:600;line-height:1.25}
+.rc-name small{display:block;color:var(--muted);font-size:12.5px;line-height:1.3}
+.rc-err{color:var(--danger)}
+.rc-val{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;line-height:1.25;white-space:nowrap}
+.rc-val small{display:block;color:var(--muted);font-size:12.5px}
+.rc-val .best{font-weight:700}
+.rc-rm{border:0;background:none;color:var(--muted);cursor:pointer;font-size:17px;line-height:1;padding:0;width:18px}
+.rc-rm:hover{color:var(--danger)}
+/* bulles posées sur les tracés */
+.bubble{position:absolute;transform:translate(-50%,-50%);background:#fff;color:#1c2621;border:2px solid var(--c);border-radius:14px;
+  padding:2px 9px;font:600 12.5px/1.4 var(--sans);white-space:nowrap;box-shadow:0 1px 5px rgba(0,0,0,.28);cursor:pointer;font-variant-numeric:tabular-nums}
+.bubble.on{background:var(--c);color:#fff;font-size:13.5px;padding:3px 11px}
+.hov-dot{width:16px;height:16px;border-radius:50%;background:#1c2621;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)}
+.peak-tag{position:absolute;transform:translate(-50%,-140%);background:#1c2621;color:#fff;padding:3px 8px;border-radius:4px;font:600 12.5px var(--sans);white-space:nowrap;box-shadow:0 1px 5px rgba(0,0,0,.3)}
+
+/* ---------- profil ---------- */
+#prof{grid-area:prof;background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.prof-head{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;padding:10px 16px 0;flex-wrap:wrap}
+.sum{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 18px;min-width:0}
+.sum-title{display:inline-flex;align-items:center;gap:8px;font:600 19px/1.2 var(--cond)}
+.sum-title i{width:12px;height:12px;border-radius:3px;background:var(--c)}
+.sum-item{font-variant-numeric:tabular-nums;font-size:15px;font-weight:600}
+.sum-item span{color:var(--muted);font-size:12.5px;font-weight:500;margin-right:5px}
+.sum-empty{color:var(--muted)}
+.prof-actions{display:flex;gap:6px}
+.prof-sub{display:flex;align-items:center;justify-content:space-between;gap:4px 14px;padding:6px 16px 0;flex-wrap:wrap}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:10px;border-radius:2px;display:inline-block}
+.prof-tip{font-size:12.5px;color:var(--muted)}
+.cv-wrap{flex:1;min-height:0;position:relative}
+#profCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;cursor:crosshair}
+
+@media (max-width:860px){
+  body{display:block;height:auto;overflow:visible}
+  #mapWrap{height:56vh}
+  #prof{height:310px}
+  .route-card{width:270px}
+  #side{border-right:0;overflow:visible}
+  .brand svg{display:none}
+}
+@media (prefers-reduced-motion:reduce){#status.busy::before{animation:none}}
+</style>
+</head>
+<body>
+
+<aside id="side">
+  <header class="brand">
+    <h1>Relief à vélo</h1>
+    <p>Tracez un itinéraire et repérez les montées avant de partir.</p>
+    <svg viewBox="0 0 74 40" aria-hidden="true"><path d="M2 36 L14 30 L22 31 L32 18 L40 22 L50 8 L58 14 L72 10" fill="none" stroke="#1c2621" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><path d="M32 18 L40 22 L50 8" fill="none" stroke="#d43a2f" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+  </header>
+
+  <section class="block">
+    <h2>Trajet</h2>
+    <div id="wpList"></div>
+    <div class="row-btns">
+      <button type="button" class="ghost" id="addVia">Ajouter une étape</button>
+      <button type="button" class="ghost" id="swap">Inverser le sens</button>
+      <button type="button" class="ghost" id="clearAll">Tout effacer</button>
+    </div>
+    <p class="note">Saisissez une adresse ou cliquez sur la carte. Les repères se déplacent à la souris ; clic droit sur une étape pour la retirer.</p>
+  </section>
+
+  <section class="block" id="detailBlock" hidden>
+    <h2>Montées</h2>
+    <p class="note" id="detTitle" style="margin:-4px 0 10px"></p>
+    <ol class="climbs" id="climbs"></ol>
+    <p class="note" id="srcNote"></p>
+  </section>
+
+  <section class="block">
+    <h2>Trace GPX existante</h2>
+    <p class="note">Analysez une trace déjà enregistrée : elle s'ajoute à la comparaison.</p>
+    <label class="file-btn"><input type="file" id="gpxIn" accept=".gpx,application/gpx+xml" multiple><span class="ghost">Importer un GPX</span></label>
+  </section>
+
+  <details class="block about">
+    <summary>Sources et méthode</summary>
+    <p><b>Itinéraires</b> : service BRouter (brouter.de), calculé à partir des données OpenStreetMap.</p>
+    <p><b>Altitude</b> : IGN, modèle RGE ALTI (précision métrique). Si le service ne répond pas, l'altitude fournie par BRouter est utilisée, moins précise.</p>
+    <p><b>Adresses</b> : Géoplateforme IGN.</p>
+    <p><b>Difficulté d'une montée</b> : combine dénivelé, longueur et pente la plus forte mesurée sur 100 m. Une pointe à 10 % ou plus suffit à classer la montée « difficile ».</p>
+    <p><b>Limites</b> : l'altitude est celle du sol ; un pont ou un viaduc peut créer un faux creux sur le profil. La durée est celle estimée par BRouter ; pour un GPX importé, base de 16 km/h plus 10 min par 100 m de montée.</p>
+  </details>
+</aside>
+
+<div id="mapWrap">
+  <div id="map"></div>
+  <div id="mapHint"></div>
+  <div id="routeCard" class="route-card">
+    <div class="rc-head">
+      <h2>Itinéraires</h2>
+      <button type="button" id="rcToggle" class="rc-toggle" aria-expanded="true" aria-controls="rcBody" aria-label="Replier la liste" title="Replier la liste">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9 L7 5 L11 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div id="rcBody">
+      <div id="rcList"></div>
+      <div id="status" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<section id="prof" aria-label="Profil altimétrique">
+  <div class="prof-head">
+    <div class="sum" id="sum"></div>
+    <div class="prof-actions">
+      <button type="button" class="ghost" id="resetView" hidden>Profil entier</button>
+      <button type="button" class="primary" id="exportGpx" hidden>Exporter en GPX</button>
+    </div>
+  </div>
+  <div class="prof-sub"><div class="legend" id="legend"></div><span class="prof-tip">Glissez sur le profil pour zoomer</span></div>
+  <div class="cv-wrap"><canvas id="profCanvas"></canvas></div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+<script>
+"use strict";
+/* =========================================================
+   Paramètres
+   ========================================================= */
+const PROFILES = [
+  {id:'trekking', label:'Polyvalent',    desc:'Pistes cyclables et petites routes, évite les fortes pentes', color:'#2563eb', def:true},
+  {id:'fastbike', label:'Vélo de route', desc:'Routes goudronnées, trajet plus direct',                     color:'#7c3aed', def:true},
+  {id:'safety',   label:'Sécurité',      desc:'Évite la circulation, quitte à rallonger',                   color:'#0891b2', def:true},
+  {id:'shortest', label:'Le plus court', desc:'Distance minimale, sans tenir compte du relief',             color:'#6b7280', def:false},
+];
+const GPX_COLORS = ['#db2777','#a16207','#4d7c0f','#be123c'];
+const SLOPES = [
+  {max:-3,       v:'--s-down', label:'Descente'},
+  {max:3,        v:'--s-flat', label:'Moins de 3 %'},
+  {max:6,        v:'--s-1',    label:'3 à 6 %'},
+  {max:9,        v:'--s-2',    label:'6 à 9 %'},
+  {max:12,       v:'--s-3',    label:'9 à 12 %'},
+  {max:Infinity, v:'--s-4',    label:'Plus de 12 %'},
+];
+const LVL = ['Facile','Modérée','Difficile','Très difficile'];
+const IGN_ALTI = 'https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json';
+
+/* =========================================================
+   Outils
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const nf1 = new Intl.NumberFormat('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const nf0 = new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0});
+const fmtKm  = m => nf1.format(m/1000)+' km';
+const fmtLen = m => m < 1000 ? nf0.format(Math.round(m/10)*10)+' m' : fmtKm(m);
+const fmtM   = m => nf0.format(Math.round(m))+' m';
+const fmtPct = p => (p>0.05?'+':'')+nf1.format(p)+' %';
+const fmtPctAbs = p => nf1.format(Math.abs(p))+' %';
+const kmShort = m => { const k=m/1000; return (k<10 && k%1 ? nf1.format(k) : nf0.format(k))+' km'; };
+const fmtTime = s => { const tm=Math.round(s/60), h=Math.floor(tm/60), mn=tm%60; return h ? `${h} h ${String(mn).padStart(2,'0')}` : `${mn} min`; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function hav(a,b,c,d){
+  const R=6371000, t=Math.PI/180, dLat=(c-a)*t, dLon=(d-b)*t;
+  const x=Math.sin(dLat/2)**2 + Math.cos(a*t)*Math.cos(c*t)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));
+}
+function fetchT(url, opt={}, ms=45000){
+  const c=new AbortController(); const t=setTimeout(()=>c.abort(), ms);
+  return fetch(url, {...opt, signal:c.signal}).finally(()=>clearTimeout(t));
+}
+function slopeClass(g){ for(let i=0;i<SLOPES.length;i++) if(g<SLOPES[i].max) return i; return SLOPES.length-1; }
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let SLOPE_COLORS = [], TH = {};
+function readTheme(){
+  SLOPE_COLORS = SLOPES.map(s=>css(s.v));
+  TH = {ink:css('--ink'), muted:css('--muted'), line:css('--line'), panel:css('--panel'),
+        shade:css('--shade'), shadeStrong:css('--shade-strong'), accent:css('--accent')};
+}
+readTheme();
+
+/* =========================================================
+   État
+   ========================================================= */
+const blank = () => ({lat:null, lon:null, label:''});
+let wps = [blank(), blank()];
+const active = new Set(PROFILES.filter(p=>p.def).map(p=>p.id));
+let routes = [];            // itinéraires affichés
+let selSid = null;          // itinéraire sélectionné
+let selClimb = null;        // montée sélectionnée
+const cache = new Map();    // itinéraires déjà calculés
+let gen = 0, computeTimer = null, gpxCount = 0, busy = false;
+let profErr = {};          // erreurs de calcul par profil
+const P = {view:null, hover:null, drag:null, geom:null};
+
+/* =========================================================
+   Carte
+   ========================================================= */
+const map = L.map('map', {preferCanvas:true, zoomControl:false}).setView([46.6, 2.4], 6);
+const ign = (layer, fmt, opts={}) => L.tileLayer(
+  `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&TILEMATRIXSET=PM&FORMAT=${encodeURIComponent(fmt)}&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}`,
+  {maxZoom:20, attribution:'© IGN / Géoplateforme', ...opts});
+const bases = {};
+if (window.L && L.maplibreGL && window.maplibregl) {
+  bases['Plan clair'] = L.maplibreGL({style:'https://tiles.openfreemap.org/styles/positron',
+    attribution:'© <a href="https://openfreemap.org">OpenFreeMap</a> © contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'});
+}
+bases['Plan IGN'] = ign('GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2','image/png',{maxNativeZoom:19});
+bases['Carte vélo (CyclOSM)'] = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+  {maxZoom:20, attribution:'© CyclOSM, © contributeurs OpenStreetMap'});
+bases['Photo aérienne'] = ign('ORTHOIMAGERY.ORTHOPHOTOS','image/jpeg',{maxNativeZoom:19});
+Object.values(bases)[0].addTo(map);
+L.control.layers(bases, null, {position:'topright'}).addTo(map);
+L.control.zoom({position:'topright'}).addTo(map);
+L.control.scale({imperial:false}).addTo(map);
+setTimeout(()=>map.invalidateSize(), 50);
+
+const routesLayer = L.layerGroup().addTo(map);
+const selLayer    = L.layerGroup().addTo(map);
+const climbLayer  = L.layerGroup().addTo(map);
+const wpLayer     = L.layerGroup().addTo(map);
+const bubbleLayer = L.layerGroup().addTo(map);
+const hoverMk = L.marker([0,0], {interactive:false, keyboard:false, zIndexOffset:1000,
+  icon:L.divIcon({className:'', html:'<div class="hov-dot"></div>', iconSize:[16,16], iconAnchor:[8,8]})});
+
+function wpIcon(txt, kind){
+  return L.divIcon({className:'', html:`<div class="wp-pin ${kind}">${txt}</div>`, iconSize:[28,28], iconAnchor:[14,14]});
+}
+
+/* =========================================================
+   Géocodage (IGN)
+   ========================================================= */
+async function geocode(q){
+  try{
+    const r = await fetchT(`https://data.geopf.fr/geocodage/completion/?text=${encodeURIComponent(q)}&maximumResponses=6`, {}, 8000);
+    const j = await r.json();
+    if (j.results && j.results.length)
+      return j.results.filter(x=>isFinite(x.x)&&isFinite(x.y)).map(x=>({label:x.fulltext, lat:+x.y, lon:+x.x}));
+  }catch(e){}
+  try{
+    const r = await fetchT(`https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&limit=6`, {}, 8000);
+    const j = await r.json();
+    return (j.features||[]).map(f=>({label:f.properties.label, lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0]}));
+  }catch(e){ return []; }
+}
+async function reverse(lat, lon){
+  try{
+    const r = await fetchT(`https://data.geopf.fr/geocodage/reverse?lon=${lon}&lat=${lat}&limit=1`, {}, 8000);
+    const j = await r.json();
+    const f = j.features && j.features[0];
+    if (f && f.properties && f.properties.label) return f.properties.label;
+  }catch(e){}
+  return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+}
+
+/* =========================================================
+   Points de passage (panneau + carte)
+   ========================================================= */
+function renderWaypoints(){
+  const box = $('#wpList'); box.innerHTML = '';
+  const last = wps.length-1;
+  wps.forEach((w,i)=>{
+    const kind = i===0 ? 'start' : i===last ? 'end' : 'via';
+    const txt  = i===0 ? 'A' : i===last ? 'B' : String(i);
+    const ph   = i===0 ? 'Départ' : i===last ? 'Arrivée' : `Étape ${i}`;
+    const row = document.createElement('div'); row.className='wp-row';
+    row.innerHTML = `<span class="wp-badge ${kind}" aria-hidden="true">${txt}</span>
+      <div class="ac"><input type="text" autocomplete="off" spellcheck="false" aria-autocomplete="list" aria-label="${ph}" placeholder="${ph}" data-idx="${i}"><ul class="ac-list" role="listbox" hidden></ul></div>
+      ${kind==='via' ? '<button type="button" class="icon-btn" aria-label="Retirer cette étape" title="Retirer cette étape">×</button>' : ''}`;
+    const inp = row.querySelector('input'); inp.value = w.label || '';
+    attachAC(inp, row.querySelector('.ac-list'), i);
+    if (kind==='via') row.querySelector('.icon-btn').onclick = () => { wps.splice(i,1); refreshPoints(); };
+    box.appendChild(row);
+  });
+  updateHint();
+}
+function renderMarkers(){
+  wpLayer.clearLayers();
+  const last = wps.length-1;
+  wps.forEach((w,i)=>{
+    if (w.lat==null) return;
+    const kind = i===0 ? 'start' : i===last ? 'end' : 'via';
+    const txt  = i===0 ? 'A' : i===last ? 'B' : String(i);
+    const m = L.marker([w.lat,w.lon], {icon:wpIcon(txt,kind), draggable:true, keyboard:false,
+      title: kind==='via' ? 'Étape : glisser pour déplacer, clic droit pour retirer' : 'Glisser pour déplacer'});
+    m.on('dragend', ()=>{ const ll=m.getLatLng(); const j=wps.indexOf(w); if (j>=0) setPoint(j, ll.lat, ll.lng); });
+    if (kind==='via') m.on('contextmenu', e=>{ L.DomEvent.preventDefault(e.originalEvent); const j=wps.indexOf(w); if(j>0){ wps.splice(j,1); refreshPoints(); } });
+    m.addTo(wpLayer);
+  });
+}
+function updateHint(){
+  const h = $('#mapHint');
+  const a = wps[0].lat!=null, b = wps[wps.length-1].lat!=null;
+  const empty = wps.findIndex(w=>w.lat==null);
+  if (!a) h.textContent = 'Cliquez sur la carte pour placer le départ';
+  else if (!b && empty===wps.length-1) h.textContent = "Cliquez pour placer l'arrivée";
+  else if (empty>=0) h.textContent = `Cliquez pour placer l'étape ${empty}`;
+  else h.textContent = "Un clic ajoute une étape pour modifier le tracé";
+}
+function refreshPoints(){ renderWaypoints(); renderMarkers(); scheduleCompute(); }
+
+function setPoint(i, lat, lon, label){
+  const w = {lat, lon, label: label || `${lat.toFixed(5)}, ${lon.toFixed(5)}`};
+  wps[i] = w; refreshPoints();
+  if (!label) reverse(lat, lon).then(l=>{
+    const j = wps.indexOf(w); if (j<0) return;
+    w.label = l;
+    const inp = document.querySelector(`#wpList input[data-idx="${j}"]`);
+    if (inp && document.activeElement!==inp) inp.value = l;
+  });
+}
+function bestInsert(lat, lon){
+  let best=1, bc=Infinity;
+  for (let i=0;i<wps.length-1;i++){
+    const a=wps[i], b=wps[i+1];
+    const c = hav(a.lat,a.lon,lat,lon)+hav(lat,lon,b.lat,b.lon)-hav(a.lat,a.lon,b.lat,b.lon);
+    if (c<bc){ bc=c; best=i+1; }
+  }
+  return best;
+}
+map.on('click', e=>{
+  const {lat, lng} = e.latlng;
+  let idx = wps.findIndex(w=>w.lat==null);
+  if (idx<0){ idx = bestInsert(lat, lng); wps.splice(idx, 0, blank()); }
+  setPoint(idx, lat, lng);
+});
+
+function attachAC(input, list, idx){
+  let timer=null, items=[], act=-1, req=0;
+  const close = () => { list.hidden = true; };
+  const draw = () => {
+    list.innerHTML = '';
+    if (!items.length){ close(); return; }
+    items.forEach((it,k)=>{
+      const li = document.createElement('li'); li.setAttribute('role','option');
+      li.textContent = it.label; if (k===act) li.className='active';
+      li.addEventListener('mousedown', ev=>{ ev.preventDefault(); pick(it); });
+      list.appendChild(li);
+    });
+    list.hidden = false;
+  };
+  const pick = it => {
+    close();
+    setPoint(idx, it.lat, it.lon, it.label);
+    const set = wps.filter(w=>w.lat!=null);
+    if (set.length===1) map.setView([it.lat,it.lon], 13);
+  };
+  input.addEventListener('input', ()=>{
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length<3){ items=[]; close(); return; }
+    timer = setTimeout(async ()=>{
+      const my = ++req; const res = await geocode(q);
+      if (my!==req) return; items = res; act=-1; draw();
+    }, 250);
+  });
+  input.addEventListener('keydown', e=>{
+    if (e.key==='Enter' && items.length && !list.hidden){ pick(items[act>=0?act:0]); e.preventDefault(); return; }
+    if (list.hidden || !items.length) return;
+    if (e.key==='ArrowDown'){ act=(act+1)%items.length; draw(); e.preventDefault(); }
+    else if (e.key==='ArrowUp'){ act=(act-1+items.length)%items.length; draw(); e.preventDefault(); }
+    else if (e.key==='Escape'){ close(); }
+  });
+  input.addEventListener('blur', ()=>setTimeout(close, 150));
+  input.addEventListener('change', ()=>{
+    if (!input.value.trim() && wps[idx] && wps[idx].lat!=null){ wps[idx]=blank(); refreshPoints(); }
+  });
+}
+
+$('#addVia').onclick = () => {
+  wps.splice(wps.length-1, 0, blank()); renderWaypoints(); renderMarkers();
+  const inp = document.querySelector(`#wpList input[data-idx="${wps.length-2}"]`); if (inp) inp.focus();
+};
+$('#swap').onclick = () => { wps.reverse(); refreshPoints(); };
+$('#clearAll').onclick = () => { wps=[blank(),blank()]; refreshPoints(); };
+
+/* =========================================================
+   Profils vélo
+   ========================================================= */
+$('#rcToggle').onclick = () => {
+  const c = $('#routeCard').classList.toggle('collapsed');
+  const b = $('#rcToggle'); b.setAttribute('aria-expanded', String(!c));
+  b.title = c ? 'Déplier la liste' : 'Replier la liste'; b.setAttribute('aria-label', b.title);
+};
+
+/* =========================================================
+   Calcul d'itinéraire (BRouter)
+   ========================================================= */
+function brouterErr(txt){
+  const t = (txt||'').toLowerCase();
+  if (t.includes('not mapped') || t.includes('position not') || t.includes('not found')) return "Un point est trop loin d'une route ou d'un chemin";
+  if (t.includes('datafile')) return 'Zone non couverte par le service';
+  if (t.includes('timeout') || t.includes('killed')) return 'Calcul trop long, essayez un trajet plus court';
+  return (txt||'erreur inconnue').slice(0,140);
+}
+async function fetchBrouter(p, lonlats, key){
+  const url = `https://brouter.de/brouter?lonlats=${lonlats}&profile=${p.id}&alternativeidx=0&format=geojson`;
+  const r = await fetchT(url, {}, 90000);
+  const txt = await r.text();
+  let j; try { j = JSON.parse(txt); } catch(e){ throw new Error(brouterErr(txt)); }
+  const f = j.features && j.features[0];
+  if (!f || !f.geometry) throw new Error('Aucun itinéraire trouvé');
+  const coords = f.geometry.coordinates.map(c=>[c[1], c[0], c.length>2 ? c[2] : null]);
+  const t = parseFloat(f.properties && f.properties['total-time']);
+  return makeRoute({key, sid:p.id, label:p.label, color:p.color, kind:'brouter', coords, time: isFinite(t)&&t>0 ? t : null});
+}
+function brouterRoute(p, lonlats){
+  const key = p.id+'|'+lonlats;
+  if (!cache.has(key)){
+    const pr = fetchBrouter(p, lonlats, key);
+    cache.set(key, pr); pr.catch(()=>cache.delete(key));
+  }
+  return cache.get(key);
+}
+function scheduleCompute(){ clearTimeout(computeTimer); computeTimer = setTimeout(computeAll, 350); }
+
+async function computeAll(){
+  const my = ++gen;
+  const a = wps[0], b = wps[wps.length-1];
+  const prof = PROFILES.filter(p=>active.has(p.id));
+  const keepGpx = () => routes.filter(r=>r.kind==='gpx');
+  profErr = {};
+  if (a.lat==null || b.lat==null){ busy=false; routes = keepGpx(); afterRoutes(false); setStatus(''); return; }
+  if (!prof.length){ busy=false; routes = keepGpx(); afterRoutes(false); setStatus('Cochez au moins un profil pour calculer un itinéraire.','error'); return; }
+  const lonlats = wps.filter(w=>w.lat!=null).map(w=>`${w.lon.toFixed(6)},${w.lat.toFixed(6)}`).join('|');
+  setStatus('Calcul des itinéraires et du relief…','busy');
+  busy = true; renderCard();
+  const res = await Promise.all(prof.map(p => brouterRoute(p, lonlats).then(r=>({r}), err=>({err, p}))));
+  if (my!==gen) return;
+  busy = false;
+  const ok = res.filter(x=>x.r).map(x=>x.r);
+  res.filter(x=>x.err).forEach(x=>{ profErr[x.p.id] = x.err.name==='AbortError' ? 'Le service ne répond pas, réessayez' : (x.err.message||'erreur'); });
+  routes = ok.concat(keepGpx());
+  afterRoutes(true);
+  if (!ok.length && res.length) setStatus("Aucun itinéraire n'a pu être calculé.", 'error');
+  else if (ok.some(r=>r.elevSource!=='ign')) setStatus("Altitude IGN indisponible sur une partie du trajet : les valeurs BRouter, moins précises, ont été utilisées.", '');
+  else setStatus('');
+}
+function afterRoutes(fit){
+  if (!routes.find(r=>r.sid===selSid)) selSid = routes.length ? routes[0].sid : null;
+  selClimb = null; P.view = null; P.hover = null; $('#resetView').hidden = true;
+  renderAll();
+  if (fit){
+    const br = routes.filter(r=>r.kind==='brouter');
+    if (br.length){
+      const bb = L.latLngBounds(br[0].bounds.getSouthWest(), br[0].bounds.getNorthEast());
+      br.forEach(r=>bb.extend(r.bounds));
+      if (!map.getBounds().contains(bb)) map.fitBounds(bb, {padding:[40,40]});
+    }
+  }
+}
+function setStatus(msg, kind){ const s=$('#status'); s.textContent=msg; s.className = msg ? (kind||'') : ''; }
+
+/* =========================================================
+   Altimétrie IGN
+   ========================================================= */
+let ignPost = true;
+const parseElev = j => (j && j.elevations || []).map(v => typeof v==='number' ? v : (v && typeof v.z==='number' ? v.z : null));
+async function ignChunk(sl){
+  if (ignPost){
+    try{
+      const r = await fetchT(IGN_ALTI, {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({lon:sl.map(p=>p.lon.toFixed(6)).join('|'), lat:sl.map(p=>p.lat.toFixed(6)).join('|'),
+          resource:'ign_rge_alti_wld', delimiter:'|', indent:'false', measures:'false', zonly:'true'})}, 30000);
+      if (r.ok){ const v = parseElev(await r.json()); if (v.length===sl.length) return v; }
+    }catch(e){}
+    ignPost = false;   // repli sur des requêtes GET plus petites
+  }
+  const out = [];
+  for (let i=0;i<sl.length;i+=100){
+    const s2 = sl.slice(i,i+100);
+    const q = `?lon=${encodeURIComponent(s2.map(p=>p.lon.toFixed(6)).join('|'))}&lat=${encodeURIComponent(s2.map(p=>p.lat.toFixed(6)).join('|'))}&resource=ign_rge_alti_wld&delimiter=${encodeURIComponent('|')}&indent=false&measures=false&zonly=true`;
+    try{
+      const r = await fetchT(IGN_ALTI+q, {}, 30000);
+      if (!r.ok) throw 0;
+      const v = parseElev(await r.json()); if (v.length!==s2.length) throw 0;
+      out.push(...v);
+    }catch(e){ out.push(...s2.map(()=>null)); }
+  }
+  return out;
+}
+async function fetchIGN(pts){
+  const out = new Array(pts.length).fill(null);
+  const size = ignPost ? 1000 : 100;
+  const starts = []; for (let i=0;i<pts.length;i+=size) starts.push(i);
+  let next = 0;
+  const worker = async () => {
+    while (next < starts.length){
+      const s = starts[next++];
+      const v = await ignChunk(pts.slice(s, s+size));
+      v.forEach((x,k)=>{ out[s+k]=x; });
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  return out;
+}
+async function addElevation(pts){
+  let ignV = null;
+  try { ignV = await fetchIGN(pts); } catch(e){ ignV = null; }
+  let ok = 0;
+  pts.forEach((p,i)=>{
+    const v = ignV ? ignV[i] : null;
+    if (v!=null && isFinite(v) && v>-500){ p.e = v; ok++; } else p.e = p.eB;
+  });
+  // comblement des trous par interpolation
+  let known = pts.map((p,i)=>p.e!=null && isFinite(p.e) ? i : -1).filter(i=>i>=0);
+  if (!known.length){ pts.forEach(p=>p.e=0); return 'none'; }
+  for (let i=0;i<pts.length;i++){
+    if (pts[i].e!=null && isFinite(pts[i].e)) continue;
+    let a=i-1; while (a>=0 && !(pts[a].e!=null && isFinite(pts[a].e))) a--;
+    let b=i+1; while (b<pts.length && !(pts[b].e!=null && isFinite(pts[b].e))) b++;
+    if (a<0) pts[i].e = pts[b].e; else if (b>=pts.length) pts[i].e = pts[a].e;
+    else pts[i].e = pts[a].e + (pts[b].e-pts[a].e)*(pts[i].d-pts[a].d)/((pts[b].d-pts[a].d)||1);
+  }
+  return ok > pts.length*0.9 ? 'ign' : ok>0 ? 'mixte' : 'autre';
+}
+
+/* =========================================================
+   Construction d'un itinéraire analysé
+   ========================================================= */
+function densify(coords){
+  let total = 0; const d = [0];
+  for (let i=1;i<coords.length;i++){ total += hav(coords[i-1][0],coords[i-1][1],coords[i][0],coords[i][1]); d.push(total); }
+  const step = Math.max(20, total/4000);
+  const pts = [];
+  for (let i=0;i<coords.length;i++){
+    const c = coords[i];
+    pts.push({lat:c[0], lon:c[1], eB: (c[2]!=null && isFinite(c[2])) ? c[2] : null, d:d[i]});
+    if (i<coords.length-1 && coords.length < 6000){
+      const n = coords[i+1], seg = d[i+1]-d[i];
+      if (seg > step){
+        const k = Math.floor(seg/step);
+        for (let j=1;j<=k;j++){
+          const t = j/(k+1);
+          const eB = (c[2]!=null && n[2]!=null) ? c[2]+(n[2]-c[2])*t : null;
+          pts.push({lat:c[0]+(n[0]-c[0])*t, lon:c[1]+(n[1]-c[1])*t, eB, d:d[i]+seg*t});
+        }
+      }
+    }
+  }
+  return pts;
+}
+function buildProfile(pts){
+  const total = pts[pts.length-1].d;
+  const step = Math.max(10, total/2500);
+  const n = Math.max(2, Math.floor(total/step)+1);
+  const dist=new Float64Array(n), raw=new Float64Array(n), lat=new Float64Array(n), lon=new Float64Array(n);
+  let j = 0;
+  for (let i=0;i<n;i++){
+    const d = i===n-1 ? total : i*step;
+    while (j < pts.length-2 && pts[j+1].d < d) j++;
+    const a = pts[j], b = pts[Math.min(j+1, pts.length-1)];
+    const t = b.d>a.d ? Math.max(0,Math.min(1,(d-a.d)/(b.d-a.d))) : 0;
+    dist[i]=d; raw[i]=a.e+(b.e-a.e)*t; lat[i]=a.lat+(b.lat-a.lat)*t; lon[i]=a.lon+(b.lon-a.lon)*t;
+  }
+  // lissage : médiane glissante (5 valeurs) puis moyenne glissante (~±40 m)
+  const med = new Float64Array(n), w=[];
+  for (let i=0;i<n;i++){
+    w.length=0; for (let k=Math.max(0,i-2);k<=Math.min(n-1,i+2);k++) w.push(raw[k]);
+    w.sort((x,y)=>x-y); med[i]=w[w.length>>1];
+  }
+  const r = Math.max(1, Math.round(40/step)), ele = new Float64Array(n), pre = new Float64Array(n+1);
+  for (let i=0;i<n;i++) pre[i+1]=pre[i]+med[i];
+  for (let i=0;i<n;i++){ const a=Math.max(0,i-r), b=Math.min(n-1,i+r); ele[i]=(pre[b+1]-pre[a])/(b-a+1); }
+  // pente mesurée sur ~100 m
+  const g = Math.max(1, Math.round(50/step)), grade = new Float64Array(n);
+  for (let i=0;i<n;i++){
+    const a=Math.max(0,i-g), b=Math.min(n-1,i+g);
+    grade[i] = dist[b]>dist[a] ? (ele[b]-ele[a])/(dist[b]-dist[a])*100 : 0;
+  }
+  return {step, dist, ele, grade, lat, lon};
+}
+function computeStats(pr){
+  const {ele, grade, dist} = pr; let up=0, down=0, ref=ele[0], mn=Infinity, mx=-Infinity, mg=-Infinity;
+  for (let i=0;i<ele.length;i++){
+    const v = ele[i];
+    if (v-ref>=3){ up+=v-ref; ref=v; } else if (ref-v>=3){ down+=ref-v; ref=v; }
+    if (v<mn) mn=v; if (v>mx) mx=v; if (grade[i]>mg) mg=grade[i];
+  }
+  return {dist:dist[dist.length-1], up, down, min:mn, max:mx, maxG:mg};
+}
+function findClimbs(pr){
+  const {ele, dist, grade} = pr, n = ele.length, out = [];
+  const push = (i0,i1) => {
+    // on retire le replat d'approche et le replat sommital
+    while (i0 < i1 && ele[i0+1] <= ele[i0] + 0.3) i0++;
+    let s1 = i0; while (s1 < i1 && ele[s1] < ele[i1] - 1) s1++; i1 = s1;
+    const gain = ele[i1]-ele[i0], len = dist[i1]-dist[i0];
+    if (len<=0) return;
+    let mg = -Infinity; for (let k=i0;k<=i1;k++) if (grade[k]>mg) mg=grade[k];
+    const avg = gain/len*100;
+    if (!((gain>=15 && avg>=2.5) || (gain>=8 && mg>=8))) return;
+    const fiets = gain*gain/(len*10);
+    let lvl = fiets<0.5 ? 0 : fiets<1.5 ? 1 : fiets<3.5 ? 2 : 3;
+    if (mg>=10) lvl = Math.max(lvl,2); else if (mg>=7) lvl = Math.max(lvl,1);
+    out.push({i0, i1, d0:dist[i0], d1:dist[i1], gain, len, avg, maxG:mg, lvl});
+  };
+  // tronçons où la pente dépasse 2 %, regroupés s'ils sont séparés par un court replat
+  const segs = [];
+  for (let k=0;k<n;k++){
+    if (grade[k] < 2) continue;
+    let m = k; while (m+1<n && grade[m+1] >= 2) m++;
+    const prev = segs[segs.length-1];
+    if (prev && dist[k]-dist[prev[1]] <= 400 && ele[prev[1]]-Math.min(...ele.slice(prev[1],k+1)) < 10) prev[1] = m;
+    else segs.push([k, m]);
+    k = m;
+  }
+  segs.forEach(([a,b])=>{
+    // sommet = point le plus haut du tronçon
+    let hi = a; for (let k=a;k<=b;k++) if (ele[k] > ele[hi]) hi = k;
+    const a0 = Math.max(0, a - Math.round(60/pr.step));
+    let lo = a0; for (let k=a0;k<=hi;k++) if (ele[k] < ele[lo]) lo = k;
+    if (hi > lo) push(lo, hi);
+  });
+  return out;
+}
+async function makeRoute(o){
+  if (o.coords.length<2) throw new Error('trace trop courte');
+  const pts = densify(o.coords);
+  if (pts[pts.length-1].d < 20) throw new Error('trajet trop court');
+  const elevSource = await addElevation(pts);
+  const prof = buildProfile(pts);
+  const stats = computeStats(prof);
+  const climbs = findClimbs(prof);
+  stats.hard = climbs.filter(c=>c.lvl>=2).length;
+  stats.time = o.time || (stats.dist/1000/16*3600 + stats.up/100*600);
+  const bounds = L.latLngBounds(o.coords.map(c=>[c[0],c[1]]));
+  return {...o, pts, prof, stats, climbs, elevSource, bounds};
+}
+const selected = () => routes.find(r=>r.sid===selSid) || null;
+function select(sid){ selSid = sid; selClimb = null; P.view = null; P.hover = null; $('#resetView').hidden = true; renderAll(); }
+
+/* =========================================================
+   Affichage
+   ========================================================= */
+function renderAll(){ drawRoutes(); renderCard(); renderDetails(); renderSummary(); hoverMk.remove(); scheduleDraw(); }
+
+function drawRoutes(){
+  routesLayer.clearLayers(); selLayer.clearLayers(); climbLayer.clearLayers();
+  const s = selected();
+  drawBubbles(s);
+  routes.forEach(r=>{
+    if (r===s) return;
+    L.polyline(r.pts.map(p=>[p.lat,p.lon]), {color:r.color, weight:4, opacity:.7, lineCap:'round'})
+      .bindTooltip(`${r.label} : ${fmtKm(r.stats.dist)}, ${fmtM(r.stats.up)} de montée`, {sticky:true})
+      .on('click', e=>{ L.DomEvent.stopPropagation(e); select(r.sid); })
+      .addTo(routesLayer);
+  });
+  if (!s) return;
+  const ll = s.pts.map(p=>[p.lat,p.lon]);
+  L.polyline(ll, {color:'#ffffff', weight:11, opacity:.95, interactive:false, lineCap:'round', lineJoin:'round'}).addTo(selLayer);
+  // tronçons colorés selon la pente
+  const pr = s.prof, n = pr.grade.length;
+  const clsAt = d => slopeClass(pr.grade[Math.min(n-1, Math.max(0, Math.round(d/pr.step)))]);
+  let run = [ll[0]], cur = clsAt((s.pts[0].d+s.pts[Math.min(1,s.pts.length-1)].d)/2);
+  for (let i=1;i<s.pts.length;i++){
+    const c = clsAt((s.pts[i-1].d+s.pts[i].d)/2);
+    if (c!==cur){
+      L.polyline(run, {color:SLOPE_COLORS[cur], weight:6, opacity:1, interactive:false, lineCap:'round', lineJoin:'round'}).addTo(selLayer);
+      run = [ll[i-1]]; cur = c;
+    }
+    run.push(ll[i]);
+  }
+  L.polyline(run, {color:SLOPE_COLORS[cur], weight:6, opacity:1, interactive:false, lineCap:'round', lineJoin:'round'}).addTo(selLayer);
+  // ligne invisible pour le survol synchronisé avec le profil
+  L.polyline(ll, {color:'#000', weight:22, opacity:0.001})
+    .on('mousemove', e=>{
+      const {lat, lng} = e.latlng, cs = Math.cos(lat*Math.PI/180);
+      let bi=0, bd=Infinity;
+      for (let i=0;i<pr.lat.length;i++){ const a=pr.lat[i]-lat, b=(pr.lon[i]-lng)*cs, dd=a*a+b*b; if (dd<bd){ bd=dd; bi=i; } }
+      setHover(bi);
+    })
+    .on('mouseout', ()=>setHover(null))
+    .on('click', e=>L.DomEvent.stopPropagation(e))
+    .addTo(selLayer);
+  if (selClimb!=null) drawClimbOnMap(s, s.climbs[selClimb], false);
+}
+
+const hardText = st => st.hard ? `${st.hard} montée${st.hard>1?'s':''} difficile${st.hard>1?'s':''}` : 'Aucune montée difficile';
+function renderCard(){
+  const list = $('#rcList');
+  const multi = routes.length>1;
+  const minD = Math.min(...routes.map(r=>r.stats.dist)), minU = Math.min(...routes.map(r=>r.stats.up));
+  const vals = r => {
+    const st = r.stats;
+    return `<div class="rc-val"><span class="${multi&&st.dist===minD?'best':''}">${fmtKm(st.dist)}</span>, <span class="${multi&&st.up===minU?'best':''}">+${fmtM(st.up)}</span>
+      <small>${fmtTime(st.time)}, max ${fmtPctAbs(Math.max(0,st.maxG))}</small></div>`;
+  };
+  const rows = PROFILES.map(p=>{
+    const r = routes.find(x=>x.sid===p.id), on = active.has(p.id), err = profErr[p.id];
+    const sub = r ? hardText(r.stats)
+      : err ? `<span class="rc-err">${esc(err)}</span>`
+      : (on && busy) ? 'Calcul en cours…' : esc(p.desc);
+    return `<div class="rc-row ${r&&r.sid===selSid?'on':''} ${on?'':'off'}" data-sid="${p.id}" style="--c:${p.color}" title="${esc(p.desc)}">
+      <input type="checkbox" ${on?'checked':''} data-prof="${p.id}" aria-label="Calculer le profil ${esc(p.label)}">
+      <span class="rc-sw"></span>
+      <div class="rc-name"><b>${esc(p.label)}</b><small>${sub}</small></div>
+      ${r ? vals(r) : '<div></div>'}</div>`;
+  });
+  routes.filter(r=>r.kind==='gpx').forEach(r=>{
+    rows.push(`<div class="rc-row ${r.sid===selSid?'on':''}" data-sid="${esc(r.sid)}" style="--c:${r.color}">
+      <button type="button" class="rc-rm" data-rm="${esc(r.sid)}" aria-label="Retirer cette trace" title="Retirer cette trace">×</button>
+      <span class="rc-sw"></span>
+      <div class="rc-name"><b>${esc(r.label)}</b><small>Trace importée, ${hardText(r.stats).toLowerCase()}</small></div>
+      ${vals(r)}</div>`);
+  });
+  list.innerHTML = rows.join('');
+  list.querySelectorAll('.rc-row').forEach(row=>{
+    row.onclick = e => {
+      if (e.target.closest('input')) return;
+      const rm = e.target.closest('[data-rm]');
+      if (rm){ routes = routes.filter(r=>r.sid!==rm.dataset.rm); afterRoutes(false); return; }
+      if (routes.find(r=>r.sid===row.dataset.sid)) select(row.dataset.sid);
+    };
+  });
+  list.querySelectorAll('input[data-prof]').forEach(cb=>{
+    cb.onchange = () => { cb.checked ? active.add(cb.dataset.prof) : active.delete(cb.dataset.prof); renderCard(); scheduleCompute(); };
+  });
+}
+
+// Bulles : posées là où chaque tracé s'écarte le plus des autres
+function drawBubbles(s){
+  bubbleLayer.clearLayers();
+  if (!routes.length) return;
+  const samples = routes.map(r=>{ const st=Math.max(1,Math.floor(r.pts.length/300)), a=[]; for (let i=0;i<r.pts.length;i+=st) a.push(r.pts[i]); return a; });
+  const placed = [];
+  routes.forEach((r,ri)=>{
+    const pr = r.prof, n = pr.lat.length; let best = null, bs = -1;
+    for (let c=0;c<=30;c++){
+      const i = Math.min(n-1, Math.round((n-1)*(0.2+0.6*c/30)));
+      const lat = pr.lat[i], lon = pr.lon[i], cs = Math.cos(lat*Math.PI/180);
+      let md = Infinity;
+      samples.forEach((sm,oi)=>{ if (oi===ri) return; for (const q of sm){ const a=q.lat-lat, b=(q.lon-lon)*cs, d=a*a+b*b; if (d<md) md=d; } });
+      placed.forEach(q=>{ const a=q[0]-lat, b=(q[1]-lon)*cs, d=(a*a+b*b)/2; if (d<md) md=d; });
+      if (!isFinite(md)) md = 1;
+      const score = md*(1-0.3*Math.abs(c/30-0.5)*2);
+      if (score>bs){ bs=score; best=[lat,lon]; }
+    }
+    placed.push(best);
+    const on = r===s;
+    L.marker(best, {keyboard:false, zIndexOffset: on ? 600 : 400, title:`${r.label} : afficher ce profil`,
+      icon:L.divIcon({className:'', iconSize:[0,0], html:`<div class="bubble ${on?'on':''}" style="--c:${r.color}">${fmtKm(r.stats.dist)}, +${fmtM(r.stats.up)}</div>`})})
+      .on('click', ()=>select(r.sid))
+      .addTo(bubbleLayer);
+  });
+}
+
+function renderSummary(){
+  const s = selected(), box = $('#sum');
+  $('#exportGpx').hidden = !s;
+  if (!s){ box.innerHTML = '<span class="sum-empty">Les chiffres du trajet sélectionné s\'afficheront ici.</span>'; return; }
+  const st = s.stats;
+  box.innerHTML = `<span class="sum-title" style="--c:${s.color}"><i></i>${esc(s.label)}</span>` + [
+    ['Distance', fmtKm(st.dist)], ['Montée', fmtM(st.up)], ['Descente', fmtM(st.down)],
+    ['Pente max', fmtPctAbs(Math.max(0,st.maxG))], ['Durée', fmtTime(st.time)], ['Altitude', `${nf0.format(Math.round(st.min))} à ${fmtM(st.max)}`],
+  ].map(([k,v])=>`<span class="sum-item"><span>${k}</span>${v}</span>`).join('');
+}
+function renderDetails(){
+  const blk = $('#detailBlock'), s = selected();
+  if (!s){ blk.hidden = true; return; }
+  blk.hidden = false;
+  $('#detTitle').textContent = `Sur l'itinéraire « ${s.label} », dans l'ordre du trajet.`;
+  const src = {ign:'Altitude IGN (RGE ALTI).', mixte:'Altitude IGN, complétée par BRouter là où elle manquait.',
+               autre:'Altitude approximative (BRouter ou fichier) : le service IGN n\'a pas répondu.', none:'Altitude indisponible.'}[s.elevSource];
+  $('#srcNote').textContent = `${src} Pente max mesurée sur 100 m.`;
+  const ol = $('#climbs'); ol.innerHTML = '';
+  if (!s.climbs.length){ ol.innerHTML = '<li class="empty">Aucune montée notable sur ce trajet.</li>'; return; }
+  s.climbs.forEach((c,k)=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<button type="button" class="climb ${k===selClimb?'on':''}" aria-pressed="${k===selClimb}">
+      <span class="c-num">${k+1}</span>
+      <span class="c-body"><strong>${fmtLen(c.len)} à ${fmtPctAbs(c.avg)} de moyenne</strong>
+      <span>Du km ${nf1.format(c.d0/1000)} au km ${nf1.format(c.d1/1000)}, +${nf0.format(Math.round(c.gain))} m, pointe à ${fmtPctAbs(c.maxG)}</span></span>
+      <span class="c-lvl lvl${c.lvl}">${LVL[c.lvl]}</span></button>`;
+    li.firstElementChild.onclick = () => focusClimb(k);
+    ol.appendChild(li);
+  });
+}
+
+function drawClimbOnMap(s, c, fit){
+  climbLayer.clearLayers();
+  const seg = s.pts.filter(p=>p.d>=c.d0 && p.d<=c.d1).map(p=>[p.lat,p.lon]);
+  if (seg.length>1){
+    L.polyline(seg, {color:'#1c2621', weight:18, opacity:.2, interactive:false, lineCap:'round'}).addTo(climbLayer);
+    if (fit) map.fitBounds(L.latLngBounds(seg), {padding:[70,70], maxZoom:16});
+  }
+  const pr = s.prof;
+  L.marker([pr.lat[c.i1], pr.lon[c.i1]], {interactive:false, keyboard:false,
+    icon:L.divIcon({className:'', html:`<div class="peak-tag">Sommet de la montée ${s.climbs.indexOf(c)+1} : ${fmtM(pr.ele[c.i1])}</div>`, iconSize:[0,0]})}).addTo(climbLayer);
+}
+function focusClimb(k){
+  const s = selected(); if (!s) return;
+  const c = s.climbs[k]; selClimb = k;
+  const total = s.prof.dist[s.prof.dist.length-1];
+  const pad = Math.max(300, (c.d1-c.d0)*0.3);
+  P.view = [Math.max(0,c.d0-pad), Math.min(total,c.d1+pad)];
+  $('#resetView').hidden = false;
+  drawClimbOnMap(s, c, true);
+  renderDetails(); scheduleDraw();
+}
+$('#resetView').onclick = () => { P.view = null; $('#resetView').hidden = true; scheduleDraw(); };
+
+function setHover(i){
+  P.hover = i; const s = selected();
+  if (i==null || !s) hoverMk.remove();
+  else { hoverMk.setLatLng([s.prof.lat[i], s.prof.lon[i]]); if (!map.hasLayer(hoverMk)) hoverMk.addTo(map); }
+  scheduleDraw();
+}
+
+/* =========================================================
+   Profil altimétrique (canvas)
+   ========================================================= */
+const cv = $('#profCanvas'), ctx = cv.getContext('2d');
+let rafId = null;
+function scheduleDraw(){ if (rafId) return; rafId = requestAnimationFrame(()=>{ rafId=null; drawProfile(); }); }
+function niceStep(range, target){
+  const raw = range/Math.max(1,target), p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw/p;
+  return (f<1.5 ? 1 : f<3 ? 2 : f<7 ? 5 : 10)*p;
+}
+function drawProfile(){
+  const rc = cv.getBoundingClientRect(), w = rc.width, h = rc.height;
+  if (!w || !h) return;
+  const dpr = window.devicePixelRatio||1;
+  if (cv.width!==Math.round(w*dpr) || cv.height!==Math.round(h*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); }
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  const s = selected();
+  if (!s){
+    P.geom = null;
+    ctx.fillStyle = TH.muted; ctx.font = "500 15px Barlow, system-ui, sans-serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText("Le profil du relief s'affichera ici dès qu'un itinéraire sera calculé.", w/2, h/2);
+    return;
+  }
+  const pr = s.prof, n = pr.dist.length, total = pr.dist[n-1];
+  let [d0, d1] = P.view || [0, total]; if (d1-d0 < 50){ d1 = Math.min(total, d0+50); d0 = Math.max(0, d1-50); }
+  const M = {l:58, r:16, t:16, b:28}, pw = Math.max(10, w-M.l-M.r), ph = Math.max(10, h-M.t-M.b);
+  const i0 = Math.max(0, Math.floor(d0/pr.step)-1), i1 = Math.min(n-1, Math.ceil(d1/pr.step)+1);
+  let emin=Infinity, emax=-Infinity;
+  for (let i=i0;i<=i1;i++){ if (pr.ele[i]<emin) emin=pr.ele[i]; if (pr.ele[i]>emax) emax=pr.ele[i]; }
+  const span = Math.max(30, emax-emin), ys = niceStep(span, 4);
+  const lo = Math.floor((emin-span*0.06)/ys)*ys, hi = Math.ceil((emax+span*0.14)/ys)*ys;
+  const X = d => M.l + (d-d0)/(d1-d0)*pw, Y = e => M.t + (hi-e)/(hi-lo)*ph;
+  P.geom = {M, pw, ph, d0, d1};
+
+  // grille et axes
+  ctx.strokeStyle = TH.line; ctx.lineWidth = 1; ctx.fillStyle = TH.muted;
+  ctx.font = "500 12px Barlow, system-ui, sans-serif"; ctx.textAlign='right'; ctx.textBaseline='middle';
+  for (let e=lo; e<=hi+1e-6; e+=ys){ const y=Math.round(Y(e))+.5; ctx.beginPath(); ctx.moveTo(M.l,y); ctx.lineTo(M.l+pw,y); ctx.stroke(); ctx.fillText(`${nf0.format(Math.round(e))} m`, M.l-8, y); }
+  const xs = niceStep(d1-d0, Math.max(3, Math.floor(pw/95)));
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  for (let d=Math.ceil(d0/xs)*xs; d<=d1+1e-6; d+=xs){ const x=Math.round(X(d))+.5; ctx.beginPath(); ctx.moveTo(x,M.t+ph); ctx.lineTo(x,M.t+ph+4); ctx.stroke(); ctx.fillText(xs<1000 ? `${nf1.format(d/1000)} km` : kmShort(d), x, M.t+ph+7); }
+
+  ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, pw, ph); ctx.clip();
+  // zones de montée
+  s.climbs.forEach((c,k)=>{ if (c.d1<d0 || c.d0>d1) return; ctx.fillStyle = k===selClimb ? TH.shadeStrong : TH.shade; ctx.fillRect(X(c.d0), M.t, X(c.d1)-X(c.d0), ph); });
+  // aire colorée par pente
+  let k = i0;
+  while (k < i1){
+    const cls = slopeClass(pr.grade[k]); let m = k+1;
+    while (m < i1 && slopeClass(pr.grade[m])===cls) m++;
+    ctx.beginPath(); ctx.moveTo(X(pr.dist[k]), Y(lo));
+    for (let j=k;j<=m;j++) ctx.lineTo(X(pr.dist[j]), Y(pr.ele[j]));
+    ctx.lineTo(X(pr.dist[m]), Y(lo)); ctx.closePath();
+    ctx.fillStyle = SLOPE_COLORS[cls]; ctx.fill();
+    k = m;
+  }
+  ctx.beginPath();
+  for (let j=i0;j<=i1;j++){ const x=X(pr.dist[j]), y=Y(pr.ele[j]); j===i0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); }
+  ctx.strokeStyle = TH.ink; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
+  // numéros des montées
+  ctx.font = "700 12px 'Barlow Semi Condensed', Barlow, sans-serif"; ctx.textAlign='center'; ctx.textBaseline='top';
+  s.climbs.forEach((c,k)=>{
+    if (c.d1<d0 || c.d0>d1) return;
+    const xa = X(Math.max(c.d0,d0)), xb = X(Math.min(c.d1,d1)); if (xb-xa < 16) return;
+    const xm = (xa+xb)/2; ctx.fillStyle = TH.ink; ctx.beginPath(); ctx.arc(xm, M.t+10, 9, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = TH.panel; ctx.fillText(String(k+1), xm, M.t+4);
+  });
+  // sélection en cours (zoom)
+  if (P.drag && Math.abs(P.drag.x1-P.drag.x0) > 3){
+    ctx.globalAlpha = .15; ctx.fillStyle = TH.accent;
+    ctx.fillRect(Math.min(P.drag.x0,P.drag.x1), M.t, Math.abs(P.drag.x1-P.drag.x0), ph); ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+
+  // curseur de survol
+  const i = P.hover;
+  if (i!=null && i<n && pr.dist[i]>=d0 && pr.dist[i]<=d1){
+    const x = X(pr.dist[i]), y = Y(pr.ele[i]);
+    ctx.strokeStyle = TH.ink; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(x, M.t); ctx.lineTo(x, M.t+ph); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fillStyle = TH.ink; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = TH.panel; ctx.stroke();
+    const lines = [`Km ${nf1.format(pr.dist[i]/1000)}`, `Altitude ${fmtM(pr.ele[i])}`, `Pente ${fmtPct(pr.grade[i])}`];
+    ctx.font = "600 13px Barlow, system-ui, sans-serif";
+    const tw = Math.max(...lines.map(l=>ctx.measureText(l).width)) + 20, th = lines.length*18 + 10;
+    let bx = x+14; if (bx+tw > M.l+pw) bx = x-14-tw;
+    const by = M.t + 6;
+    ctx.fillStyle = TH.panel; ctx.strokeStyle = TH.line; ctx.lineWidth = 1;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, tw, th, 6); else ctx.rect(bx, by, tw, th); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = SLOPE_COLORS[slopeClass(pr.grade[i])]; ctx.fillRect(bx, by+6, 3, th-12);
+    ctx.fillStyle = TH.ink; ctx.textAlign='left'; ctx.textBaseline='top';
+    lines.forEach((l,k)=>ctx.fillText(l, bx+12, by+7+k*18));
+  }
+}
+function xToD(x){
+  const g = P.geom; const t = Math.max(0, Math.min(1, (x-g.M.l)/g.pw));
+  return g.d0 + t*(g.d1-g.d0);
+}
+function onMove(e){
+  const s = selected(); if (!s || !P.geom) return;
+  if (P.drag) P.drag.x1 = e.offsetX;
+  const i = Math.max(0, Math.min(s.prof.dist.length-1, Math.round(xToD(e.offsetX)/s.prof.step)));
+  setHover(i);
+}
+cv.addEventListener('pointerdown', e=>{
+  if (!P.geom) return;
+  if (e.pointerType==='mouse') P.drag = {x0:e.offsetX, x1:e.offsetX};
+  try { cv.setPointerCapture(e.pointerId); } catch(_){}
+  onMove(e);
+});
+cv.addEventListener('pointermove', onMove);
+cv.addEventListener('pointerup', e=>{
+  if (!P.geom) return;
+  const d = P.drag; P.drag = null;
+  const s = selected();
+  if (d && Math.abs(d.x1-d.x0) > 8){
+    P.view = [xToD(Math.min(d.x0,d.x1)), xToD(Math.max(d.x0,d.x1))];
+    $('#resetView').hidden = false; scheduleDraw();
+  } else if (s && P.hover!=null && e.pointerType==='mouse'){
+    map.panTo([s.prof.lat[P.hover], s.prof.lon[P.hover]]);
+  }
+});
+cv.addEventListener('pointerleave', ()=>{ if (!P.drag) setHover(null); });
+cv.addEventListener('pointercancel', ()=>{ P.drag = null; setHover(null); });
+new ResizeObserver(()=>scheduleDraw()).observe(cv.parentElement);
+
+$('#legend').innerHTML = SLOPES.map((s,i)=>`<span><i style="background:${SLOPE_COLORS[i]}"></i>${s.label}</span>`).join('');
+
+/* =========================================================
+   GPX : export et import
+   ========================================================= */
+function download(name, text, type){
+  const b = new Blob([text], {type}); const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+$('#exportGpx').onclick = () => {
+  const s = selected(); if (!s) return;
+  const pts = s.pts.map(p=>`      <trkpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><ele>${p.e.toFixed(1)}</ele></trkpt>`).join('\n');
+  const name = esc(s.label);
+  const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Relief à vélo" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>${name}</name></metadata>
+  <trk>
+    <name>${name}</name>
+    <trkseg>
+${pts}
+    </trkseg>
+  </trk>
+</gpx>`;
+  const slug = s.label.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() || 'trace';
+  download(`itineraire-${slug}-${new Date().toISOString().slice(0,10)}.gpx`, gpx, 'application/gpx+xml');
+};
+function parseGPX(text){
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error('fichier GPX illisible');
+  let nodes = [...doc.getElementsByTagName('trkpt')];
+  if (!nodes.length) nodes = [...doc.getElementsByTagName('rtept')];
+  const coords = nodes.map(nd=>{
+    const el = nd.getElementsByTagName('ele')[0];
+    return [parseFloat(nd.getAttribute('lat')), parseFloat(nd.getAttribute('lon')), el ? parseFloat(el.textContent) : null];
+  }).filter(c=>isFinite(c[0]) && isFinite(c[1]));
+  const nm = doc.querySelector('trk > name') || doc.querySelector('rte > name') || doc.getElementsByTagName('name')[0];
+  return {coords, name: nm ? nm.textContent.trim() : ''};
+}
+$('#gpxIn').addEventListener('change', async e=>{
+  const files = [...e.target.files]; e.target.value = '';
+  for (const f of files){
+    try{
+      setStatus(`Analyse de ${f.name}…`, 'busy');
+      const {coords, name} = parseGPX(await f.text());
+      if (coords.length<2) throw new Error('aucun point de trace trouvé');
+      const sid = 'gpx-' + (++gpxCount);
+      const r = await makeRoute({key:sid, sid, label: name || f.name.replace(/\.gpx$/i,''),
+        color: GPX_COLORS[(gpxCount-1) % GPX_COLORS.length], kind:'gpx', coords, time:null});
+      routes.push(r); selSid = r.sid;
+      afterRoutes(false);
+      map.fitBounds(r.bounds, {padding:[40,40]});
+      setStatus(r.elevSource==='ign' ? `Trace « ${r.label} » ajoutée.` : `Trace « ${r.label} » ajoutée (altitude approximative : service IGN indisponible).`);
+    }catch(err){ setStatus(`${f.name} : ${err.message}`, 'error'); }
+  }
+});
+
+/* ---------- démarrage ---------- */
+renderWaypoints();
+renderCard();
+renderSummary();
+scheduleDraw();
+</script>
+</body>
+</html>
