@@ -701,6 +701,7 @@ button,select,input{font:inherit;color:inherit}
 header{border-top:6px solid var(--rouge);padding:14px 18px 10px;flex:0 0 auto}
 .entete{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
 .marque{font-size:.82rem;color:var(--gris)}
+.retour{color:var(--gris);text-decoration:none;white-space:nowrap}.retour:hover{color:var(--rouge);text-decoration:underline}
 h1{font-size:1.65rem;line-height:1.1;margin:0;color:var(--rouge);font-weight:800}
 .profil{display:inline-flex;border:2px solid var(--rouge);border-radius:999px;overflow:hidden}
 .profil button{border:0;background:#fff;padding:5px 12px;cursor:pointer;font-weight:600;color:var(--rouge);font-size:.88rem}
@@ -865,7 +866,7 @@ h2{font-size:1.15rem;color:var(--rouge);margin:0 0 .35rem;font-weight:800}
   <aside id="panneau">
     <header>
       <div class="marque-ligne">
-        <div class="marque">Normandie Cabourg Pays d'Auge</div>
+        <div class="marque">Normandie Cabourg Pays d'Auge · <a class="retour" href="../index.html" data-i18n="retour"></a></div>
         <div class="langue" role="group" aria-label="Langue / Language">
           <button type="button" data-lang="fr" lang="fr" aria-pressed="true">FR</button>
           <button type="button" data-lang="en" lang="en" aria-pressed="false">EN</button>
@@ -1441,7 +1442,7 @@ const nomCommune = insee => (COMMUNES.find(c=>c.insee===insee)||{}).nom || "";
    ===================================================================== */
 const T = {
 fr:{
-  titre:"Les déchèteries", profil_aria:"Je suis", profil_part:"Particulier", profil_pro:"Professionnel",
+  titre:"Les déchèteries", retour:"← Tous les outils", profil_aria:"Je suis", profil_part:"Particulier", profil_pro:"Professionnel",
   tab_trouver:"Trouver", tab_horaires:"Horaires", tab_acces:"Accès",
   label_commune:"J'habite à", opt_commune:"Choisir ma commune",
   label_q:"Je veux déposer", ph_q:"Ex. : frigo, tonte, pot de peinture, canapé…",
@@ -1502,7 +1503,7 @@ fr:{
   feries:{an:"Jour de l'an",mai1:"1er mai",mai8:"8 mai",jul14:"14 juillet",aout15:"Assomption",tous:"Toussaint",nov11:"11 novembre",noel:"Noël",lpaq:"Lundi de Pâques",asc:"Ascension",lpen:"Lundi de Pentecôte"}
 },
 en:{
-  titre:"Recycling centres", profil_aria:"I am a", profil_part:"Resident", profil_pro:"Business",
+  titre:"Recycling centres", retour:"← All tools", profil_aria:"I am a", profil_part:"Resident", profil_pro:"Business",
   tab_trouver:"Find", tab_horaires:"Opening hours", tab_acces:"Access",
   label_commune:"I live in", opt_commune:"Choose my town",
   label_q:"I want to drop off", ph_q:"E.g. fridge, grass cuttings, paint, sofa…",
