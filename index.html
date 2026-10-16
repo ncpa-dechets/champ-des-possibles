@@ -211,7 +211,7 @@ const THEMES = [
   { id: "dechets",   nom: "Déchets",                  couleur: "#8cbf8f", accroche: "Collecte, déchèteries et prévention" },
   { id: "mobilite",  nom: "Mobilité & accessibilité", couleur: "#8fb0d8", accroche: "Temps de parcours et accès aux services" },
   { id: "amenagement", nom: "Aménagement & foncier", couleur: "#d9a27e", accroche: "Occupation du sol, évolution des paysages et sobriété foncière" },
-  { id: "eau",       nom: "Cycle de l'eau",          couleur: "#6cc3cf", accroche: "Rivières, crues, submersion et nappes" },
+  { id: "eau",       nom: "Cycle de l'eau",          couleur: "#6cc3cf", accroche: "Eau potable, rivières, crues, submersion et nappes" },
   { id: "tourisme",  nom: "Tourisme & cadre de vie",  couleur: "#cfc089", accroche: "Valoriser le territoire auprès des habitants et visiteurs" },
   { id: "economie",  nom: "Économie & emploi",        couleur: "#b79fd9", accroche: "Emploi, employeurs et recrutements" }
 ];
@@ -291,6 +291,15 @@ const OUTILS = [
     description: "Tableau de bord en temps réel du bassin de la Dives et du littoral : tendance des rivières sur 24 h, pluie prévue à 7 jours, marée à l'embouchure et niveau des nappes.",
     interet: "Anticiper un épisode de crue ou de submersion en un coup d'œil, à partir des seules données publiques.",
     tags: ["6 stations", "Hub'Eau · Vigicrues", "Open-Meteo"]
+  },
+  {
+    theme: "eau",
+    titre: "Eau potable et ressource en eau",
+    fichier: "outils/eau_potable_ressource_ncpa.html",
+    apercu: "eaupotable",
+    description: "Qualité de l'eau du robinet commune par commune (conformité, nitrates, pesticides), volumes prélevés dans les nappes et les rivières, et qualité des nappes souterraines autour du territoire, d'après le contrôle sanitaire de l'ARS et les bases nationales.",
+    interet: "Répondre à un élu ou à un habitant sur la qualité de son eau, suivre les non-conformités et éclairer les réflexions sur la protection de la ressource.",
+    tags: ["Contrôle sanitaire ARS", "Hub'Eau · BNPE · ADES", "Export CSV · GeoJSON"]
   },
   {
     theme: "eau",
@@ -470,6 +479,22 @@ const APERCUS = {
         <rect x="104" y="108" width="10" height="24" rx="2"/>
       </g>
       <circle cx="186" cy="42" r="5" class="vide" stroke="currentColor" stroke-width="2.5"/>
+    </svg>`,
+  eaupotable: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="currentColor" style="stroke:var(--carte)" stroke-width="2" stroke-linejoin="round">
+        <path d="M62 40 L102 28 L122 50 L110 82 L70 88 Z" opacity=".26"/>
+        <path d="M102 28 L146 22 L158 56 L122 50 Z" opacity=".12"/>
+        <path d="M122 50 L158 56 L164 96 L130 110 L110 82 Z" opacity=".2"/>
+        <path d="M70 88 L110 82 L130 110 L92 124 L62 114 Z" opacity=".1"/>
+      </g>
+      <path d="M122 50 L158 56 L164 96 L130 110 L110 82 Z" fill="none" stroke="#e0767a" stroke-width="2" stroke-linejoin="round" opacity=".85"/>
+      <path d="M200 24 C200 24 176 56 176 74 A24 24 0 0 0 224 74 C224 56 200 24 200 24Z" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="2"/>
+      <path d="M176.3 78 C189 72 211 84 223.7 78 A24 24 0 0 1 176.3 78Z" fill="currentColor" opacity=".45"/>
+      <line x1="236" y1="40" x2="304" y2="40" stroke="#e0767a" stroke-width="1.5" stroke-dasharray="6 5" opacity=".7"/>
+      <path d="M240 98 L252 92 L264 95 L276 80 L288 84 L298 70" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+      <g fill="currentColor"><circle cx="240" cy="98" r="3"/><circle cx="252" cy="92" r="3"/><circle cx="264" cy="95" r="3"/><circle cx="276" cy="80" r="3"/><circle cx="288" cy="84" r="3"/></g>
+      <circle cx="298" cy="70" r="6" class="marq"/>
     </svg>`,
   submersion: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">

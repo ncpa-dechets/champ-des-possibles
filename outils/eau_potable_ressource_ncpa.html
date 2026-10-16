@@ -11,32 +11,40 @@
 <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--rouge:#B91E27;--vert:#B1B993;--vert-f:#6E7647;--encre:#22262b;--gris:#5f6670;--trait:#e3e1d9;--fond:#f7f6f1;--bleu:#2B6CB0}
+:root{
+  --rouge:#B91E27; --vert:#B1B993; --vert-f:#6E7647;
+  --encre:#1F2622; --gris:#5F6862; --pale:#8A928C;
+  --fond:#FFFFFF; --panneau:#F5F6F0; --trait:#DDE0D3; --bleu:#2B6CB0;
+  --ombre:0 6px 28px rgba(20,24,28,.14), 0 1px 3px rgba(20,24,28,.08);
+  --police:Calibri,"Segoe UI",system-ui,sans-serif;
+}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--encre);background:var(--fond);display:flex;flex-direction:column;font-size:15px}
-header{background:#fff;border-bottom:4px solid var(--rouge);padding:12px 20px 10px;display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-end;justify-content:space-between}
-.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--rouge);font-weight:700}
-h1{margin:2px 0 0;font-size:24px;font-weight:700}
+body{font-family:var(--police);color:var(--encre);background:var(--fond);display:flex;flex-direction:column;font-size:15px;line-height:1.45}
+:focus-visible{outline:2px solid var(--rouge);outline-offset:2px}
+header{flex:0 0 auto;background:var(--fond);border-bottom:3px solid var(--rouge);padding:10px 20px;display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-end;justify-content:space-between}
+.retour{display:inline-block;margin:0 0 6px;font-size:12.5px;color:#6b7078;text-decoration:none}.retour:hover{color:#B91E27;text-decoration:underline}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--rouge);font-weight:700}
+h1{margin:0;font-size:22px;font-weight:700;line-height:1.2}
 .sous{color:var(--gris);font-size:13.5px;margin-top:2px}
 .reglages{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
 label.ch{font-size:12px;color:var(--gris);display:flex;flex-direction:column;gap:3px}
-select,input[type=search]{font:inherit;font-size:14px;padding:5px 8px;border:1px solid #cfccc2;border-radius:6px;background:#fff;color:var(--encre)}
-button{font:inherit;font-size:14px;cursor:pointer;border-radius:6px;border:1px solid #cfccc2;background:#fff;padding:6px 12px;color:var(--encre)}
-button:hover{background:#f3f1ea}
-button.prim{background:var(--rouge);border-color:var(--rouge);color:#fff}
-button.prim:hover{background:#9d1820}
-button:focus-visible,select:focus-visible,input:focus-visible,th:focus-visible{outline:2px solid var(--bleu);outline-offset:2px}
-nav{display:flex;gap:2px;padding:0 14px;background:#fff;border-bottom:1px solid var(--trait);overflow-x:auto}
-nav button{border:none;border-bottom:3px solid transparent;border-radius:0;padding:10px 14px;background:none;color:var(--gris);font-weight:600;white-space:nowrap}
+select,input[type=search]{font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--trait);border-radius:6px;background:#fff;color:var(--encre)}
+select:hover,input[type=search]:hover{border-color:#b9bdb2}
+button{font:inherit;font-size:14px;cursor:pointer;border-radius:6px;border:1px solid var(--trait);background:#fff;padding:6px 12px;color:var(--encre)}
+button:hover{border-color:var(--rouge);color:var(--rouge)}
+button.prim{background:var(--rouge);border-color:var(--rouge);color:#fff;font-weight:700}
+button.prim:hover{background:#9d1820;color:#fff}
+nav{flex:0 0 auto;display:flex;gap:2px;padding:0 14px;background:var(--fond);border-bottom:1px solid var(--trait);overflow-x:auto}
+nav button{border:none;border-bottom:3px solid transparent;border-radius:0;padding:10px 14px;background:none;color:var(--gris);font-weight:700;white-space:nowrap}
 nav button:hover{background:none;color:var(--encre)}
 nav button.on{color:var(--encre);border-bottom-color:var(--rouge)}
-#etat{font-size:12px;color:var(--gris);padding:4px 20px;background:#fbfaf6;border-bottom:1px solid var(--trait);min-height:23px}
+#etat{flex:0 0 auto;font-size:12px;color:var(--gris);padding:4px 20px;background:var(--panneau);border-bottom:1px solid var(--trait);min-height:23px}
 #etat.charge::before{content:"";display:inline-block;width:9px;height:9px;border:2px solid var(--vert-f);border-right-color:transparent;border-radius:50%;margin-right:8px;vertical-align:-1px;animation:tourne 1s linear infinite}
 @keyframes tourne{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){#etat.charge::before{animation:none}}
 main{flex:1;min-height:0;display:flex}
-#panneau{width:clamp(420px,47vw,720px);overflow-y:auto;padding:16px 20px 40px}
+#panneau{width:clamp(420px,47vw,720px);overflow-y:auto;padding:16px 20px 40px;background:var(--panneau)}
 #cartezone{flex:1;position:relative;min-width:0;border-left:1px solid var(--trait)}
 #map{position:absolute;inset:0}
 .pane[hidden]{display:none}
@@ -52,8 +60,8 @@ h3{font-size:15.5px;margin:22px 0 8px;border-bottom:1px solid var(--trait);paddi
 .note{font-size:12.5px;color:var(--gris);margin:6px 0 0;line-height:1.4;max-width:75ch}
 .tabwrap{overflow:auto;max-height:430px;border:1px solid var(--trait);border-radius:6px;background:#fff}
 table{border-collapse:collapse;width:100%;font-size:13px}
-th{position:sticky;top:0;background:#efede6;text-align:left;padding:6px 8px;cursor:pointer;white-space:nowrap;font-weight:600;user-select:none;z-index:1}
-td{padding:5px 8px;border-top:1px solid #eeece5;vertical-align:top}
+th{position:sticky;top:0;background:#fff;text-align:left;padding:7px 8px;cursor:pointer;white-space:nowrap;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--gris);border-bottom:1px solid var(--trait);user-select:none;z-index:1}
+td{padding:5px 8px;border-top:1px solid #eef0e8;vertical-align:top}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 tbody tr{cursor:pointer}
 tbody tr:hover{background:#f6f4ec}
@@ -71,7 +79,7 @@ button.lien{border:none;background:none;color:var(--bleu);padding:0;margin:0 0 6
 button.petit{font-size:12px;padding:2px 8px}
 .puce{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:5px}
 .meta{font-size:13.5px;color:var(--gris);margin:0 0 6px;line-height:1.45}
-.legende{position:absolute;left:10px;bottom:24px;z-index:500;background:rgba(255,255,255,.96);border:1px solid var(--trait);border-radius:8px;padding:9px 11px;font-size:12.5px;max-width:270px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.legende{position:absolute;left:10px;bottom:24px;z-index:500;background:rgba(255,255,255,.96);border-top:3px solid var(--rouge);border-radius:10px;padding:9px 12px;font-size:12.5px;max-width:270px;box-shadow:var(--ombre)}
 .legende h4{margin:0 0 6px;font-size:12.5px}
 .legende .lg{display:flex;align-items:center;gap:7px;margin:3px 0}
 .legende .ca{width:14px;height:14px;border:1px solid rgba(0,0,0,.25);flex:none}
@@ -80,14 +88,18 @@ button.petit{font-size:12px;padding:2px 8px}
 .methode p,.methode li{line-height:1.5;font-size:14px;max-width:78ch}
 .methode dt{font-weight:700;margin-top:10px}
 .methode dd{margin:2px 0 0 0;color:#3d434a;line-height:1.5;font-size:14px;max-width:78ch}
-.leaflet-popup-content{font-family:Calibri,"Segoe UI",system-ui,sans-serif;font-size:13px;line-height:1.4}
+.leaflet-container{font-family:inherit}
+.leaflet-popup-content{font-family:var(--police);font-size:13px;line-height:1.4}
+.leaflet-control-zoom,.leaflet-control-layers{border:0!important;box-shadow:var(--ombre)!important;border-radius:10px!important;overflow:hidden}
+.leaflet-container path.leaflet-interactive:focus,.leaflet-container .leaflet-interactive:focus{outline:none}
 .leaflet-popup-content table{font-size:12px;margin-top:4px}
 .leaflet-popup-content td{padding:1px 6px 1px 0;border:none}
 @media (max-width:860px){
  html,body{height:auto}
  body{display:block}
  main{display:flex;flex-direction:column}
- #cartezone{height:55vh;order:1;border-left:none;border-bottom:1px solid var(--trait)}
+ #cartezone{flex:none;height:55vh;order:1;border-left:none;border-bottom:1px solid var(--trait)}
+ .legende{max-width:220px;font-size:11.5px;padding:7px 9px}
  #panneau{width:auto;order:2}
 }
 </style>
@@ -95,6 +107,7 @@ button.petit{font-size:12px;padding:2px 8px}
 <body>
 <header>
  <div>
+  <a class="retour" href="../index.html" title="Retour à l'accueil Champs des possibles">← Tous les outils</a>
   <div class="eyebrow">NCPA · Cycle de l’eau</div>
   <h1>Eau potable et ressource en eau</h1>
   <div class="sous">Contrôle sanitaire de l’eau distribuée, prélèvements déclarés et qualité des nappes – données Hub’Eau consultées en direct</div>
@@ -122,7 +135,7 @@ button.petit{font-size:12px;padding:2px 8px}
    <h3>Eau du robinet</h3>
    <div class="chiffres" id="syn-rob"></div>
    <div class="graph"><canvas id="g-syn-conf"></canvas></div>
-   <p class="note">Nombre de prélèvements réalisés par l’ARS sur les réseaux de distribution desservant NCPA, chaque prélèvement n’étant compté qu’une fois.</p>
+   <p class="note">Nombre de prélèvements réalisés par l’ARS sur les réseaux de distribution desservant NCPA et sur les usines de traitement qui les alimentent, chaque prélèvement n’étant compté qu’une fois.</p>
    <div class="graph" style="margin-top:12px"><canvas id="g-syn-no3"></canvas></div>
    <p class="note">Moyenne annuelle des nitrates dans l’eau distribuée : commune la plus basse, médiane et commune la plus haute. Limite de qualité : 50 mg/L.</p>
    <h3>Prélèvements pour l’eau potable</h3>
@@ -166,7 +179,7 @@ button.petit{font-size:12px;padding:2px 8px}
     <dt>Eau du robinet</dt>
     <dd>API Hub’Eau « Qualité de l’eau potable », qui reprend les résultats du contrôle sanitaire publiés par le ministère de la Santé (mise à jour mensuelle). Les communes sont reliées à leurs réseaux de distribution (unités de distribution, UDI). Un même prélèvement est répété pour chaque commune desservie par le réseau : les totaux NCPA ne comptent chaque prélèvement qu’une fois.</dd>
     <dt>Conformité</dt>
-    <dd>Un prélèvement est non conforme quand il dépasse une <b>limite de qualité</b> (paramètres sanitaires), en bactériologie ou en physico-chimie. Les dépassements de <b>références de qualité</b> (indicateurs de fonctionnement des installations, sans risque sanitaire direct) ne sont pas comptés comme non-conformités. Les statistiques portent sur les prélèvements faits sur le réseau ; ceux faits en amont (captage, usine de traitement) sont présentés à part.</dd>
+    <dd>Un prélèvement est non conforme quand il dépasse une <b>limite de qualité</b> (paramètres sanitaires), en bactériologie ou en physico-chimie. Les dépassements de <b>références de qualité</b> (indicateurs de fonctionnement des installations, sans risque sanitaire direct) ne sont pas comptés comme non-conformités. Les statistiques portent sur les prélèvements faits sur le réseau et sur ceux faits en amont (usine de traitement, réservoir) : ces derniers portent sur l’eau traitée, sont jugés sur les mêmes limites de qualité et concentrent l’essentiel des analyses de pesticides. Le détail d’une commune distingue les deux.</dd>
     <dt>Nitrates et pesticides</dt>
     <dd>Limites de qualité de l’eau potable : 50 mg/L pour les nitrates, 0,1 µg/L par pesticide et 0,5 µg/L pour le total des pesticides analysés.</dd>
     <dt>D’où vient l’eau</dt>
@@ -194,7 +207,8 @@ const EPCI = "200065563";
 const HUB = "https://hubeau.eaufrance.fr/api";
 const AN = new Date().getFullYear();
 // Codes Sandre : nitrates, total pesticides, puis paramètres mesurés à presque chaque prélèvement (pour les recenser tous)
-const P_DIS = ["1340","6276","1449","1447","1302","1301","1303","1398","1295"];
+// + plomb, nickel, cuivre, chlorure de vinyle, chloroforme, bromates et métabolites de pesticides souvent recherchés seuls
+const P_DIS = ["1340","6276","1449","1447","1302","1301","1303","1398","1295","1382","1386","1392","1753","1135","1751","6854","8865"];
 const CHAMPS_DIS = "code_prelevement,date_prelevement,code_parametre,resultat_numerique,resultat_alphanumerique,libelle_unite,"
  + "conformite_limites_bact_prelevement,conformite_limites_pc_prelevement,conformite_references_bact_prelevement,"
  + "conformite_references_pc_prelevement,conclusion_conformite_prelevement,code_installation_amont,nom_installation_amont,"
@@ -287,15 +301,22 @@ function limite(fn){
  });
 }
 class ErrHttp extends Error{ constructor(st,m){ super(m); this.status=st; } }
+const DELAI_MS = 45000; // une requête Hub'Eau peut rester pendante sans jamais répondre : on l'abandonne pour la relancer
+function fetchDelai(url){
+ const c=new AbortController(), h=setTimeout(()=>c.abort(), DELAI_MS);
+ return fetch(url,{signal:c.signal})
+  .then(async r => ({ok:r.ok, status:r.status, corps: r.ok ? await r.json() : (await r.text()).slice(0,220)}))
+  .catch(e => { throw e.name==="AbortError" ? new Error(`pas de réponse après ${DELAI_MS/1000} s`) : e; })
+  .finally(() => clearTimeout(h));
+}
 async function getJSON(url){
  let derniere;
  for(let i=0;i<3;i++){
   try{
    STATS.req++;
-   const r = await limite(() => fetch(url));
-   if(r.ok) return await r.json();
-   const t = (await r.text()).slice(0,220);
-   derniere = new ErrHttp(r.status, "HTTP "+r.status+" – "+t);
+   const r = await limite(() => fetchDelai(url));
+   if(r.ok) return r.corps;
+   derniere = new ErrHttp(r.status, "HTTP "+r.status+" – "+r.corps);
    if(r.status>=400 && r.status<500 && r.status!==429) break;
   }catch(e){ derniere = e; }
   await sleep(900*(i+1));
@@ -444,7 +465,7 @@ function majLegende(){
  if(S.tab==="synthese" || S.tab==="robinet"){
   const an = S.rob && S.rob.ok ? S.rob.refYear : "";
   const v=R_VAR[S.rVar];
-  h=`<h4>${v.titre} – ${an}</h4>`;
+  h=`<h4>${v.titre}${an?" – "+an:""}</h4>`;
   if(S.rVar==="conf") h+=pastilles([COUL.ok,COUL.alerte,COUL.nc],["Aucune","1 prélèvement","2 prélèvements ou plus"]);
   else h+=pastilles(v.pal, libClasses(v.seuils));
   h+=pastilles([COUL.vide],["Pas de donnée"]);
@@ -478,7 +499,7 @@ function cfgSerie(series, unite, repere, repereLib){
  const tmax = tous.length ? Date.UTC(annee(Math.max(...tous.map(p=>p.t)))+1,0,1) : Date.UTC(AN+1,0,1);
  if(repere!=null) ds.push({label:repereLib, data:[{x:tmin,y:repere},{x:tmax,y:repere}], borderColor:"#B91E27", borderDash:[6,4], borderWidth:1.5, pointRadius:0, showLine:true});
  return {type:"line", data:{datasets:ds}, options:{animation:false, maintainAspectRatio:false,
-  scales:{x:{type:"linear", min:tmin, max:tmax, ticks:{stepSize:AN_MS, callback:v=>new Date(v+3*864e5).getFullYear(), maxTicksLimit:14}, grid:{display:false}},
+  scales:{x:{type:"linear", min:tmin, max:tmax, ticks:{stepSize:AN_MS, callback:v=>v>=tmax-30*864e5 ? "" : new Date(v+3*864e5).getFullYear(), maxTicksLimit:14}, grid:{display:false}},
           y:{beginAtZero:true, title:{display:true, text:unite}}},
   plugins:{legend:{position:"bottom", labels:{boxWidth:12, font:{size:11}}},
    tooltip:{callbacks:{title:it=>dfr(it[0].raw.x), label:it=>it.dataset.label+" : "+nfa(it.raw.y)+" "+unite}}}}};
@@ -552,6 +573,8 @@ async function chargerRobinet(gen){
   for(const ch of chunk(codes,20)) lignes.push(...await getAll(HUB+"/v1/qualite_eau_potable/communes_udi", {code_commune:ch}, 2000));
   const parC={};
   lignes.forEach(r => (parC[r.code_commune] ??= []).push(r));
+  // Un prélèvement fait sur le réseau porte souvent le code de l'UDI comme « installation amont » : seuls les autres codes sont en amont
+  const codesUDI = new Set(lignes.map(r=>r.code_reseau).filter(Boolean));
   const udi={};
   for(const c of codes){
    const l=parC[c]||[]; if(!l.length){ udi[c]=[]; continue; }
@@ -564,7 +587,7 @@ async function chargerRobinet(gen){
    try{
     const rows = await getAllPeriode(HUB+"/v1/qualite_eau_potable/resultats_dis",
      {code_commune:c, code_parametre:P_DIS, fields:CHAMPS_DIS}, "date_min_prelevement","date_max_prelevement", S.y0, AN, fDIS);
-    communes[c] = traiterCommune(rows);
+    communes[c] = traiterCommune(rows, codesUDI, new Set(udi[c].map(u=>u.code)));
    }catch(e){ communes[c]={err:String(e.message||e)}; STATS.err.push("Contrôle sanitaire "+c+" : "+(e.message||e)); }
    fait++;
    if(gen===S.generation) etat("rob",`Eau du robinet : contrôle sanitaire ${fait}/${codes.length} communes…`);
@@ -583,16 +606,17 @@ async function chargerRobinet(gen){
  if(S.tab==="robinet") rendreRobinet();
  majCarte();
 }
-function traiterCommune(rows){
+function traiterCommune(rows, codesUDI, udiCommune){
  const prel=new Map(), no3=new Map(), pest=new Map();
  let distrib=null, moa=null, tD=0;
  for(const r of rows){
   const t=Date.parse(r.date_prelevement); if(!isFinite(t) || !r.code_prelevement) continue;
   let p=prel.get(r.code_prelevement);
   if(!p){
+   const ci=r.code_installation_amont||"", amont=!!ci && !codesUDI.has(ci);
    p={code:r.code_prelevement, t, lb:r.conformite_limites_bact_prelevement||"", lpc:r.conformite_limites_pc_prelevement||"",
       rb:r.conformite_references_bact_prelevement||"", rpc:r.conformite_references_pc_prelevement||"",
-      concl:r.conclusion_conformite_prelevement||"", inst:r.nom_installation_amont||"", instCode:r.code_installation_amont||"", reseaux:r.reseaux||[]};
+      concl:r.conclusion_conformite_prelevement||"", inst:amont?(r.nom_installation_amont||ci):"", instCode:amont?ci:"", reseaux:r.reseaux||[]};
    prel.set(p.code,p);
   }
   if(r.nom_distributeur && t>=tD){ distrib=r.nom_distributeur; moa=r.nom_moa||moa; tD=t; }
@@ -603,8 +627,9 @@ function traiterCommune(rows){
   }
  }
  const P=[...prel.values()].sort((a,b)=>a.t-b.t);
+ // Les prélèvements amont portent sur l'eau traitée et sont jugés sur les mêmes limites : ils comptent dans la conformité
  const parAn={};
- for(const p of P.filter(p=>!p.inst)){
+ for(const p of P){
   const o=parAn[annee(p.t)] ??= {n:0,nc:0,ncB:0,ncPC:0,d:0,ref:0};
   o.n++;
   const nb=p.lb==="N", np=p.lpc==="N";
@@ -618,7 +643,11 @@ function traiterCommune(rows){
   const o=inst.get(k)||{nom:p.inst, code:p.instCode, n:0, dernier:0, debit:null, nc:0};
   o.n++; o.dernier=Math.max(o.dernier,p.t);
   if(p.lb==="N"||p.lpc==="N") o.nc++;
-  (p.reseaux||[]).forEach(rs => { if(rs && rs.debit!=null && rs.debit!=="") o.debit=rs.debit; });
+  // « debit » est un texte (« 100 % ») : on ne garde que la part vers les réseaux de la commune
+  (p.reseaux||[]).forEach(rs => {
+   const v=rs && rs.debit!=null ? parseFloat(String(rs.debit).replace(",",".")) : NaN;
+   if(isFinite(v) && (!udiCommune.size || udiCommune.has(rs.code))) o.debit=Math.max(o.debit ?? 0, v);
+  });
   inst.set(k,o);
  }
  const tri=(a,b)=>a.t-b.t;
@@ -627,10 +656,10 @@ function traiterCommune(rows){
 }
 function resumeCommune(o, an){
  const pa=o.parAn[an]||{n:0,nc:0,ncB:0,ncPC:0,d:0,ref:0};
- const no3=o.no3.filter(x=>!x.amont && annee(x.t)===an).map(x=>x.v);
- const pe=o.pest.filter(x=>!x.amont && annee(x.t)===an).map(x=>x.v);
- const res=o.no3.filter(x=>!x.amont);
- return {...pa, no3moy:moy(no3), no3max:max(no3), pestmax:max(pe), no3dernier:res.length?res[res.length-1]:null, dernier:o.tMax};
+ // Nitrates et pesticides : réseau + installations amont (eau traitée en production, où se font presque toutes les analyses de pesticides)
+ const no3=o.no3.filter(x=>annee(x.t)===an).map(x=>x.v);
+ const pe=o.pest.filter(x=>annee(x.t)===an).map(x=>x.v);
+ return {...pa, no3moy:moy(no3), no3max:max(no3), pestmax:max(pe), no3dernier:o.no3.length?o.no3[o.no3.length-1]:null, dernier:o.tMax};
 }
 function finaliserRobinet(){
  let tMax=0;
@@ -641,14 +670,14 @@ function finaliserRobinet(){
  S.rob.res={};
  for(const c in S.rob.communes){ const o=S.rob.communes[c]; if(!o.err) S.rob.res[c]=resumeCommune(o,S.rob.refYear); }
  const U=new Map();
- for(const o of Object.values(S.rob.communes)) if(!o.err) for(const p of o.prel) if(!p.inst) U.set(p.code,p);
+ for(const o of Object.values(S.rob.communes)) if(!o.err) for(const p of o.prel) U.set(p.code,p);
  const pa={};
  for(const p of U.values()){ const x=pa[annee(p.t)] ??= {n:0,nc:0}; x.n++; if(p.lb==="N"||p.lpc==="N") x.nc++; }
  S.rob.ncpaAn=pa;
  const no3an={};
  for(const c in S.rob.communes){
   const o=S.rob.communes[c]; if(o.err) continue;
-  const g={}; o.no3.filter(x=>!x.amont).forEach(x=>(g[annee(x.t)] ??= []).push(x.v));
+  const g={}; o.no3.forEach(x=>(g[annee(x.t)] ??= []).push(x.v));
   for(const a in g) (no3an[a] ??= []).push(moy(g[a]));
  }
  S.rob.no3an=no3an;
@@ -750,7 +779,8 @@ async function chargerNappes(gen){
     nature:s.nom_nature_pe||""});
   });
   S.nap={stations, param:{}, tout:{}, ok:true};
-  await chargerParamNappes(S.nParam, gen);
+  // La synthèse s'appuie toujours sur les nitrates, quel que soit le paramètre affiché
+  await Promise.all([...new Set(["1340", S.nParam])].map(k=>chargerParamNappes(k, gen)));
   if(gen!==S.generation) return;
   etat("nap","Nappes ✓");
  }catch(e){
@@ -841,7 +871,7 @@ function rendreSynthese(){
    + chiffre(`${avecNC.length} / ${S.communes.length}`, `communes avec au moins une non-conformité en ${an}`, avecNC.length>0)
    + chiffre(no3.length?nf(no3[0][1].no3moy,1)+" mg/L":"–", no3.length?`nitrates, moyenne la plus élevée (${esc(S.cIdx[no3[0][0]].properties.nom)})`:"nitrates")
    + chiffre(pe.length?nfa(pe[0][1].pestmax)+" µg/L":"–", "total pesticides, valeur maximale (limite 0,5 µg/L)", pe.length && pe[0][1].pestmax>0.5);
-  if(x.n) ret.push(`En ${an}, <b>${nf(taux*100,1)} %</b> des ${nf(x.n)} prélèvements réalisés sur les réseaux de distribution de NCPA étaient conformes aux limites de qualité.`
+  if(x.n) ret.push(`En ${an}, <b>${nf(taux*100,1)} %</b> des ${nf(x.n)} prélèvements réalisés sur l’eau distribuée à NCPA (réseaux et usines de traitement) étaient conformes aux limites de qualité.`
    + (avecNC.length ? ` ${avecNC.length} commune${avecNC.length>1?"s ont":" a"} connu au moins une non-conformité : ${avecNC.slice(0,6).join(", ")}${avecNC.length>6?"…":""}.` : " Aucune commune n’a connu de non-conformité."));
   if(no3.length) ret.push(`Les nitrates dans l’eau distribuée vont de <b>${nf(no3[no3.length-1][1].no3moy,1)}</b> à <b>${nf(no3[0][1].no3moy,1)} mg/L</b> en moyenne selon les communes (limite de qualité : 50 mg/L).`);
   const ans=Object.keys(S.rob.ncpaAn).map(Number).filter(a=>a>=S.y0).sort((a,b)=>a-b);
@@ -932,7 +962,7 @@ function rendreListeCommunes(){
   {k:"dernier", lib:"Dernier prél.", num:true, fmt:l=>dfr(l.dernier)}
  ], lignes, {tri:"nom", sens:1, clic:l=>choisirCommune(l.code), cls:l=>l.nc>0?"alerte":""});
  $("#x-r-com").onclick=()=>telecharger(`robinet_communes_${an}_${horodate()}.csv`, csv([
-  ["code","Code INSEE"],["nom","Commune"],["reseaux","Réseaux de distribution"],["n",`Prélèvements réseau ${an}`],["nc",`Non-conformités ${an}`],
+  ["code","Code INSEE"],["nom","Commune"],["reseaux","Réseaux de distribution"],["n",`Prélèvements ${an}`],["nc",`Non-conformités ${an}`],
   ["no3",`Nitrates moyenne ${an} (mg/L)`],["pest",`Total pesticides max ${an} (µg/L)`],[l=>isoDate(l.dernier),"Dernier prélèvement"]], lignes), "text/csv");
  $("#x-r-ana").onclick=exporterAnalysesRobinet;
  $("#x-r-nc").onclick=exporterNCRobinet;
@@ -968,7 +998,7 @@ function rendreDetailCommune(c){
  D.innerHTML = tete + `
   <p class="meta">${nf(f.properties.population)} habitants${o.distrib?` · Exploitant : ${esc(o.distrib)}`:""}${o.moa?` · Maître d’ouvrage : ${esc(o.moa)}`:""}</p>
   <div class="chiffres">
-   ${chiffre(nf(r.n), `prélèvements sur le réseau en ${an}`)}
+   ${chiffre(nf(r.n), `prélèvements (réseau et usines de traitement) en ${an}`)}
    ${chiffre(nf(r.nc), `non-conformité${r.nc>1?"s":""} aux limites de qualité en ${an}`, r.nc>0)}
    ${chiffre(nf(r.no3moy,1), `mg/L de nitrates en moyenne en ${an} (limite 50)`, r.no3moy>=40)}
    ${chiffre(nfa(r.pestmax), `µg/L : total pesticides, maximum ${an} (limite 0,5)`, r.pestmax>0.5)}
@@ -977,7 +1007,7 @@ function rendreDetailCommune(c){
   ${Object.keys(groupes).length ? Object.entries(groupes).map(([k,g])=>{ const s=servis(k); return `<p class="meta"><b>${esc(g.nom)}</b> (${esc(k)})${g.quartiers.filter(q=>q&&q!=="-").length?" – "+esc(g.quartiers.filter(q=>q&&q!=="-").filter(uniq).join(", ")):""}<br>Dessert aussi dans NCPA : ${esc(s.filter(n=>n!==f.properties.nom).join(", ")||"aucune autre commune")}</p>`; }).join("") : `<p class="attente">Réseau non renseigné.</p>`}
   <h3>Nitrates</h3>
   <div class="graph"><canvas id="g-r-no3"></canvas></div>
-  <p class="note">Points bleus : eau prélevée sur le réseau (au robinet). Points gris : prélèvements en amont (captage, usine de traitement), qui peuvent correspondre à de l’eau brute avant traitement.</p>
+  <p class="note">Points bleus : eau prélevée sur le réseau (au robinet). Points gris : prélèvements en amont du réseau (usine de traitement, réservoir), sur l’eau traitée avant sa distribution.</p>
   <h3>Pesticides (total des substances analysées)</h3>
   <div class="graph"><canvas id="g-r-pest"></canvas></div>
   <p class="note">La limite de qualité est de 0,1 µg/L par pesticide et de 0,5 µg/L pour le total.</p>
@@ -1001,7 +1031,7 @@ function rendreDetailCommune(c){
  const elI=$("#r-inst");
  if(o.inst.length) tableau(elI, [
   {k:"nom", lib:"Installation"}, {k:"code", lib:"Code"},
-  {k:"debit", lib:"Part de l’alimentation", num:true, fmt:l=>l.debit!=null?esc(l.debit)+" %":"–", val:l=>l.debit!=null?+l.debit:null},
+  {k:"debit", lib:"Part de l’alimentation", num:true, fmt:l=>l.debit!=null?nf(l.debit)+" %":"–"},
   {k:"n", lib:"Prélèvements", num:true}, {k:"nc", lib:"Non conf.", num:true},
   {k:"dernier", lib:"Dernier contrôle", num:true, fmt:l=>dfr(l.dernier)}], o.inst, {tri:"dernier", sens:-1});
  else elI.innerHTML=`<p class="attente">Aucun prélèvement en amont du réseau pour cette commune dans la période.</p>`;
@@ -1250,7 +1280,9 @@ function initUI(){
  const su=$("#pr-usage"); USAGES.forEach(u=>su.insertAdjacentHTML("beforeend",`<option value="${u.k}">${u.lib}</option>`));
  const majPr=()=>{ if(S.prel&&S.prel.ok){ construireCoucheOuvrages(); rendrePrel(); majCarte(); } };
  $("#pr-zone").onchange=majPr; $("#pr-usage").onchange=majPr;
- const np=$("#n-param"); Object.entries(NAPPES_P).forEach(([k,p])=>np.insertAdjacentHTML("beforeend",`<option value="${k}">${p.lib} (${p.unite})</option>`));
+ // Ordre explicite : les clés numériques d'un objet sont parcourues dans l'ordre croissant, pas dans l'ordre d'écriture
+ const np=$("#n-param"); ["1340","1108","1107","6854"].forEach(k=>np.insertAdjacentHTML("beforeend",`<option value="${k}">${NAPPES_P[k].lib} (${NAPPES_P[k].unite})</option>`));
+ np.value=S.nParam;
  np.onchange=async e=>{
   S.nParam=e.target.value; S.selStation=null;
   if(!S.nap||!S.nap.ok) return;
