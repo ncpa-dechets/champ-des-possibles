@@ -1,0 +1,1291 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eau potable et ressource en eau – NCPA</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--rouge:#B91E27;--vert:#B1B993;--vert-f:#6E7647;--encre:#22262b;--gris:#5f6670;--trait:#e3e1d9;--fond:#f7f6f1;--bleu:#2B6CB0}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--encre);background:var(--fond);display:flex;flex-direction:column;font-size:15px}
+header{background:#fff;border-bottom:4px solid var(--rouge);padding:12px 20px 10px;display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-end;justify-content:space-between}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--rouge);font-weight:700}
+h1{margin:2px 0 0;font-size:24px;font-weight:700}
+.sous{color:var(--gris);font-size:13.5px;margin-top:2px}
+.reglages{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+label.ch{font-size:12px;color:var(--gris);display:flex;flex-direction:column;gap:3px}
+select,input[type=search]{font:inherit;font-size:14px;padding:5px 8px;border:1px solid #cfccc2;border-radius:6px;background:#fff;color:var(--encre)}
+button{font:inherit;font-size:14px;cursor:pointer;border-radius:6px;border:1px solid #cfccc2;background:#fff;padding:6px 12px;color:var(--encre)}
+button:hover{background:#f3f1ea}
+button.prim{background:var(--rouge);border-color:var(--rouge);color:#fff}
+button.prim:hover{background:#9d1820}
+button:focus-visible,select:focus-visible,input:focus-visible,th:focus-visible{outline:2px solid var(--bleu);outline-offset:2px}
+nav{display:flex;gap:2px;padding:0 14px;background:#fff;border-bottom:1px solid var(--trait);overflow-x:auto}
+nav button{border:none;border-bottom:3px solid transparent;border-radius:0;padding:10px 14px;background:none;color:var(--gris);font-weight:600;white-space:nowrap}
+nav button:hover{background:none;color:var(--encre)}
+nav button.on{color:var(--encre);border-bottom-color:var(--rouge)}
+#etat{font-size:12px;color:var(--gris);padding:4px 20px;background:#fbfaf6;border-bottom:1px solid var(--trait);min-height:23px}
+#etat.charge::before{content:"";display:inline-block;width:9px;height:9px;border:2px solid var(--vert-f);border-right-color:transparent;border-radius:50%;margin-right:8px;vertical-align:-1px;animation:tourne 1s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#etat.charge::before{animation:none}}
+main{flex:1;min-height:0;display:flex}
+#panneau{width:clamp(420px,47vw,720px);overflow-y:auto;padding:16px 20px 40px}
+#cartezone{flex:1;position:relative;min-width:0;border-left:1px solid var(--trait)}
+#map{position:absolute;inset:0}
+.pane[hidden]{display:none}
+h2{font-size:20px;margin:2px 0 6px}
+h3{font-size:15.5px;margin:22px 0 8px;border-bottom:1px solid var(--trait);padding-bottom:4px}
+.intro{color:var(--gris);font-size:14px;line-height:1.45;margin:0 0 12px;max-width:72ch}
+.chiffres{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.chiffre{background:#fff;border-left:3px solid var(--vert);padding:8px 10px}
+.chiffre.alerte{border-left-color:var(--rouge)}
+.chiffre .v{font-size:23px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.chiffre .l{font-size:12.5px;color:var(--gris);margin-top:3px;line-height:1.3}
+.graph{position:relative;height:250px;background:#fff;padding:8px;border:1px solid var(--trait);border-radius:6px}
+.note{font-size:12.5px;color:var(--gris);margin:6px 0 0;line-height:1.4;max-width:75ch}
+.tabwrap{overflow:auto;max-height:430px;border:1px solid var(--trait);border-radius:6px;background:#fff}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{position:sticky;top:0;background:#efede6;text-align:left;padding:6px 8px;cursor:pointer;white-space:nowrap;font-weight:600;user-select:none;z-index:1}
+td{padding:5px 8px;border-top:1px solid #eeece5;vertical-align:top}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f6f4ec}
+tr.alerte td:first-child{box-shadow:inset 3px 0 0 var(--rouge)}
+tr.sel{background:#fbf3d9}
+tr.sous td{background:#fdf7f0;cursor:default;font-size:12.5px}
+.barre{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;align-items:flex-end}
+.exports{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.exports button{font-size:13px}
+.erreur{background:#fbeaea;border-left:3px solid var(--rouge);padding:10px 12px;font-size:14px;line-height:1.4}
+.attente{color:var(--gris);font-style:italic}
+.retenir{background:#fff;border:1px solid var(--trait);border-left:4px solid var(--rouge);padding:6px 14px;margin:12px 0}
+.retenir p{margin:8px 0;line-height:1.45}
+button.lien{border:none;background:none;color:var(--bleu);padding:0;margin:0 0 6px}
+button.petit{font-size:12px;padding:2px 8px}
+.puce{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:5px}
+.meta{font-size:13.5px;color:var(--gris);margin:0 0 6px;line-height:1.45}
+.legende{position:absolute;left:10px;bottom:24px;z-index:500;background:rgba(255,255,255,.96);border:1px solid var(--trait);border-radius:8px;padding:9px 11px;font-size:12.5px;max-width:270px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.legende h4{margin:0 0 6px;font-size:12.5px}
+.legende .lg{display:flex;align-items:center;gap:7px;margin:3px 0}
+.legende .ca{width:14px;height:14px;border:1px solid rgba(0,0,0,.25);flex:none}
+.legende .rd{width:12px;height:12px;border-radius:50%;flex:none}
+.legende .pt{color:var(--gris);font-size:11.5px;margin-top:5px;line-height:1.35}
+.methode p,.methode li{line-height:1.5;font-size:14px;max-width:78ch}
+.methode dt{font-weight:700;margin-top:10px}
+.methode dd{margin:2px 0 0 0;color:#3d434a;line-height:1.5;font-size:14px;max-width:78ch}
+.leaflet-popup-content{font-family:Calibri,"Segoe UI",system-ui,sans-serif;font-size:13px;line-height:1.4}
+.leaflet-popup-content table{font-size:12px;margin-top:4px}
+.leaflet-popup-content td{padding:1px 6px 1px 0;border:none}
+@media (max-width:860px){
+ html,body{height:auto}
+ body{display:block}
+ main{display:flex;flex-direction:column}
+ #cartezone{height:55vh;order:1;border-left:none;border-bottom:1px solid var(--trait)}
+ #panneau{width:auto;order:2}
+}
+</style>
+</head>
+<body>
+<header>
+ <div>
+  <div class="eyebrow">NCPA · Cycle de l’eau</div>
+  <h1>Eau potable et ressource en eau</h1>
+  <div class="sous">Contrôle sanitaire de l’eau distribuée, prélèvements déclarés et qualité des nappes – données Hub’Eau consultées en direct</div>
+ </div>
+ <div class="reglages">
+  <label class="ch">Données depuis<select id="cfg-y0"></select></label>
+  <label class="ch">Zone autour de NCPA<select id="cfg-rayon"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="15">15 km</option><option value="20">20 km</option></select></label>
+  <button class="prim" id="cfg-ok">Actualiser les données</button>
+ </div>
+</header>
+<nav id="onglets">
+ <button data-t="synthese" class="on">Synthèse</button>
+ <button data-t="robinet">Eau du robinet</button>
+ <button data-t="prel">Prélèvements</button>
+ <button data-t="nappes">Nappes souterraines</button>
+ <button data-t="methode">Méthode et sources</button>
+</nav>
+<div id="etat"></div>
+<main>
+ <div id="panneau">
+  <section class="pane" id="p-synthese">
+   <h2>Vue d’ensemble</h2>
+   <p class="intro">Les chiffres clés de l’eau potable sur les 38 communes de NCPA. Les volumes prélevés et les nappes couvrent aussi une zone de proximité autour du territoire, car l’eau consommée peut provenir de captages situés hors de NCPA.</p>
+   <div class="retenir" id="syn-retenir"><p class="attente">Chargement des données…</p></div>
+   <h3>Eau du robinet</h3>
+   <div class="chiffres" id="syn-rob"></div>
+   <div class="graph"><canvas id="g-syn-conf"></canvas></div>
+   <p class="note">Nombre de prélèvements réalisés par l’ARS sur les réseaux de distribution desservant NCPA, chaque prélèvement n’étant compté qu’une fois.</p>
+   <div class="graph" style="margin-top:12px"><canvas id="g-syn-no3"></canvas></div>
+   <p class="note">Moyenne annuelle des nitrates dans l’eau distribuée : commune la plus basse, médiane et commune la plus haute. Limite de qualité : 50 mg/L.</p>
+   <h3>Prélèvements pour l’eau potable</h3>
+   <div class="chiffres" id="syn-prel"></div>
+   <div class="graph"><canvas id="g-syn-prel"></canvas></div>
+   <h3>Nappes souterraines</h3>
+   <div class="chiffres" id="syn-nap"></div>
+  </section>
+
+  <section class="pane" id="p-robinet" hidden>
+   <div class="barre">
+    <label class="ch">Commune<select id="r-commune"><option value="">Toutes les communes</option></select></label>
+    <label class="ch">Colorer la carte selon<select id="r-var"><option value="conf">Non-conformités</option><option value="no3">Nitrates</option><option value="pest">Pesticides</option></select></label>
+   </div>
+   <div id="r-liste"></div>
+   <div id="r-detail" hidden></div>
+  </section>
+
+  <section class="pane" id="p-prel" hidden>
+   <h2>Prélèvements d’eau</h2>
+   <p class="intro">Volumes annuels prélevés dans le milieu naturel (nappes, rivières), déclarés aux agences de l’eau (base BNPE). Tous usages, avec un focus sur l’eau potable.</p>
+   <div class="barre">
+    <label class="ch">Zone<select id="pr-zone"><option value="tout">NCPA et proximité</option><option value="ncpa">NCPA seulement</option></select></label>
+    <label class="ch">Usage<select id="pr-usage"><option value="">Tous les usages</option></select></label>
+   </div>
+   <div id="pr-contenu"></div>
+  </section>
+
+  <section class="pane" id="p-nappes" hidden>
+   <h2>Qualité des nappes souterraines</h2>
+   <p class="intro">Analyses de l’eau brute des nappes (forages, puits, sources) issues de la base ADES : c’est l’eau avant tout traitement, telle qu’elle est puisée.</p>
+   <div class="barre">
+    <label class="ch">Paramètre<select id="n-param"></select></label>
+   </div>
+   <div id="n-contenu"></div>
+  </section>
+
+  <section class="pane methode" id="p-methode" hidden>
+   <h2>Méthode et sources</h2>
+   <dl>
+    <dt>Eau du robinet</dt>
+    <dd>API Hub’Eau « Qualité de l’eau potable », qui reprend les résultats du contrôle sanitaire publiés par le ministère de la Santé (mise à jour mensuelle). Les communes sont reliées à leurs réseaux de distribution (unités de distribution, UDI). Un même prélèvement est répété pour chaque commune desservie par le réseau : les totaux NCPA ne comptent chaque prélèvement qu’une fois.</dd>
+    <dt>Conformité</dt>
+    <dd>Un prélèvement est non conforme quand il dépasse une <b>limite de qualité</b> (paramètres sanitaires), en bactériologie ou en physico-chimie. Les dépassements de <b>références de qualité</b> (indicateurs de fonctionnement des installations, sans risque sanitaire direct) ne sont pas comptés comme non-conformités. Les statistiques portent sur les prélèvements faits sur le réseau ; ceux faits en amont (captage, usine de traitement) sont présentés à part.</dd>
+    <dt>Nitrates et pesticides</dt>
+    <dd>Limites de qualité de l’eau potable : 50 mg/L pour les nitrates, 0,1 µg/L par pesticide et 0,5 µg/L pour le total des pesticides analysés.</dd>
+    <dt>D’où vient l’eau</dt>
+    <dd>Les captages d’eau potable ne sont pas localisés dans les données publiques du contrôle sanitaire. L’outil liste les installations en amont (captages, usines de traitement) qui apparaissent dans les prélèvements de la commune, avec leur part dans l’alimentation du réseau quand elle est connue.</dd>
+    <dt>Prélèvements</dt>
+    <dd>API Hub’Eau « Prélèvements en eau » (Banque nationale des prélèvements quantitatifs en eau). Ces données viennent des redevances des agences de l’eau : les prélèvements de moins de 10 000 m³ par an et les usages exonérés n’y figurent pas. La position de certains ouvrages correspond au centre de la commune (cercle en pointillé sur la carte). Seuls les volumes réalisés sont retenus (volumes autorisés et données qualifiées d’incorrectes écartés).</dd>
+    <dt>Nappes</dt>
+    <dd>API Hub’Eau « Qualité des nappes d’eau souterraines » (base ADES). Les résultats inférieurs au seuil de quantification sont comptés à 0 dans les moyennes. La couleur des points correspond à la moyenne de la dernière année mesurée. Le seuil de 50 mg/L de nitrates est aussi la norme de qualité des eaux souterraines.</dd>
+    <dt>Zone de proximité</dt>
+    <dd>Ouvrages et points de suivi situés à moins de la distance choisie des limites de NCPA (calcul à partir des contours communaux de l’API Découpage administratif).</dd>
+    <dt>Précautions</dt>
+    <dd>Les données sont interrogées en direct : une connexion internet est nécessaire et les chiffres peuvent évoluer d’une consultation à l’autre. Les seuils colorés des nappes et des pesticides sont des repères de lecture, pas des classements réglementaires.</dd>
+   </dl>
+   <h3>Requêtes de cette session</h3>
+   <div id="m-session" class="note"></div>
+  </section>
+ </div>
+ <div id="cartezone"><div id="map"></div><div class="legende" id="legende"></div></div>
+</main>
+
+<script>
+"use strict";
+/* ============ Paramètres ============ */
+const EPCI = "200065563";
+const HUB = "https://hubeau.eaufrance.fr/api";
+const AN = new Date().getFullYear();
+// Codes Sandre : nitrates, total pesticides, puis paramètres mesurés à presque chaque prélèvement (pour les recenser tous)
+const P_DIS = ["1340","6276","1449","1447","1302","1301","1303","1398","1295"];
+const CHAMPS_DIS = "code_prelevement,date_prelevement,code_parametre,resultat_numerique,resultat_alphanumerique,libelle_unite,"
+ + "conformite_limites_bact_prelevement,conformite_limites_pc_prelevement,conformite_references_bact_prelevement,"
+ + "conformite_references_pc_prelevement,conclusion_conformite_prelevement,code_installation_amont,nom_installation_amont,"
+ + "reseaux,nom_distributeur,nom_moa";
+const COUL = {ok:"#5B9A68", alerte:"#E3A63B", nc:"#B91E27", vide:"#C9C6BC"};
+const PAL5 = ["#DCEAF4","#9CC3DF","#F2C14E","#E07B39","#B91E27"];
+const PAL4 = ["#DCEAF4","#F2C14E","#E07B39","#B91E27"];
+const PAL3 = ["#DCEAF4","#E07B39","#B91E27"];
+const NAPPES_P = {
+ "1340":{lib:"Nitrates", unite:"mg/L", seuils:[10,25,40,50], pal:PAL5, repere:50, repereLib:"50 mg/L (limite eau potable)"},
+ "1108":{lib:"Atrazine déséthyl", unite:"µg/L", seuils:[0.05,0.1,0.5], pal:PAL4, repere:0.1, repereLib:"0,1 µg/L (repère pesticides)"},
+ "1107":{lib:"Atrazine", unite:"µg/L", seuils:[0.05,0.1,0.5], pal:PAL4, repere:0.1, repereLib:"0,1 µg/L (repère pesticides)"},
+ "6854":{lib:"ESA-métolachlore", unite:"µg/L", seuils:[0.05,0.1,0.5], pal:PAL4, repere:0.1, repereLib:"0,1 µg/L (repère pesticides)"}
+};
+const R_VAR = {
+ conf:{titre:"Non-conformités aux limites de qualité"},
+ no3:{titre:"Nitrates, moyenne annuelle (mg/L)", seuils:[10,25,40,50], pal:PAL5},
+ pest:{titre:"Total pesticides, maximum annuel (µg/L)", seuils:[0.1,0.5], pal:PAL3}
+};
+// Ordre de test important : « industrie… hors irrigation, hors énergie » doit être reconnu avant irrigation/énergie
+const USAGES = [
+ {k:"aep", lib:"Eau potable", c:"#2B6CB0", t:/POTABLE|\bAEP\b/},
+ {k:"ind", lib:"Industrie et activités économiques", c:"#8E6BB8", t:/INDUS|ECONOM/},
+ {k:"irr", lib:"Irrigation", c:"#7A9A3A", t:/IRRIG/},
+ {k:"ene", lib:"Énergie", c:"#E07B39", t:/ENERG|REFROID|HYDRO/},
+ {k:"can", lib:"Canaux", c:"#3BA6A6", t:/CANA/},
+ {k:"aut", lib:"Autres usages", c:"#8A8A8A", t:/[\s\S]*/}
+];
+const U_IDX = Object.fromEntries(USAGES.map(u=>[u.k,u]));
+
+/* ============ État ============ */
+const S = {y0:AN-11, rayon:10, tab:"synthese", rVar:"conf", selCommune:"", communes:[], cIdx:{},
+ rob:null, prel:null, nap:null, nParam:"1340", selOuvrage:null, selStation:null, etat:{}, generation:0};
+
+/* ============ Outils ============ */
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const nf = (v,d=0) => v==null || !isFinite(v) ? "–" : v.toLocaleString("fr-FR",{minimumFractionDigits:d, maximumFractionDigits:d});
+const nfa = v => v==null || !isFinite(v) ? "–" : v.toLocaleString("fr-FR",{maximumFractionDigits: Math.abs(v)<1 ? 3 : Math.abs(v)<10 ? 2 : 1});
+const dfr = t => t ? new Date(t).toLocaleDateString("fr-FR") : "–";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uniq = (v,i,a) => a.indexOf(v) === i;
+const moy = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+const max = a => a.length ? Math.max(...a) : null;
+const somme = a => a.reduce((x,y)=>x+(y||0),0);
+const mediane = a => { if(!a.length) return null; const b=[...a].sort((x,y)=>x-y), m=Math.floor(b.length/2); return b.length%2 ? b[m] : (b[m-1]+b[m])/2; };
+const annee = t => new Date(t).getFullYear();
+function chunk(a,n){ const o=[]; for(let i=0;i<a.length;i+=n) o.push(a.slice(i,i+n)); return o; }
+function qs(p){
+ return Object.entries(p).filter(([,v]) => v!=null && v!=="")
+  .map(([k,v]) => k+"="+encodeURIComponent(Array.isArray(v)?v.join(","):v).replace(/%2C/g,",")).join("&");
+}
+function classe(v, seuils, pal){
+ if(v==null || !isFinite(v)) return COUL.vide;
+ let i=0; while(i<seuils.length && v>=seuils[i]) i++;
+ return pal[i];
+}
+function libClasses(seuils){
+ const f = v => nfa(v);
+ const out = ["moins de "+f(seuils[0])];
+ for(let i=1;i<seuils.length;i++) out.push(f(seuils[i-1])+" à "+f(seuils[i]));
+ out.push(f(seuils[seuils.length-1])+" et plus");
+ return out;
+}
+function tendance(pts){ // pente par an (moindres carrés) sur [{a,v}]
+ if(pts.length<4) return null;
+ const mx=moy(pts.map(p=>p.a)), my=moy(pts.map(p=>p.v));
+ let n=0,d=0; pts.forEach(p=>{ n+=(p.a-mx)*(p.v-my); d+=(p.a-mx)**2; });
+ return d ? n/d : null;
+}
+function etat(k, txt){
+ if(txt==null) delete S.etat[k]; else S.etat[k]=txt;
+ const el=$("#etat"), v=Object.values(S.etat);
+ el.textContent = v.join("  ·  ");
+ el.classList.toggle("charge", v.some(x=>/…/.test(x)));
+ const a=$("#r-attente"); if(a && k==="rob") a.textContent = txt||"";
+}
+function erreurHTML(quoi, msg){
+ return `<div class="erreur">Les données ${quoi} n’ont pas pu être chargées.<br><small>${esc(msg)}</small><br>Vérifiez la connexion internet puis cliquez sur « Actualiser les données ». L’état des API est consultable sur hubeau.eaufrance.fr/status.</div>`;
+}
+function chiffre(v, l, alerte){ return `<div class="chiffre${alerte?" alerte":""}"><div class="v">${v}</div><div class="l">${l}</div></div>`; }
+
+/* ============ Réseau (API) ============ */
+const STATS = {req:0, err:[]};
+let actifs = 0; const attente = []; const MAXPAR = 6;
+function limite(fn){
+ return new Promise((res,rej) => {
+  const go = () => { actifs++; fn().then(res,rej).finally(() => { actifs--; const n=attente.shift(); if(n) n(); }); };
+  actifs < MAXPAR ? go() : attente.push(go);
+ });
+}
+class ErrHttp extends Error{ constructor(st,m){ super(m); this.status=st; } }
+async function getJSON(url){
+ let derniere;
+ for(let i=0;i<3;i++){
+  try{
+   STATS.req++;
+   const r = await limite(() => fetch(url));
+   if(r.ok) return await r.json();
+   const t = (await r.text()).slice(0,220);
+   derniere = new ErrHttp(r.status, "HTTP "+r.status+" – "+t);
+   if(r.status>=400 && r.status<500 && r.status!==429) break;
+  }catch(e){ derniere = e; }
+  await sleep(900*(i+1));
+ }
+ throw derniere;
+}
+async function suivre(j){
+ const out=[...(j.data||[])], count=j.count||out.length;
+ let n=0;
+ while(j.next && out.length<count && out.length<20000 && n<60){
+  j = await getJSON(j.next.replace(/^http:/,"https:"));
+  out.push(...(j.data||[])); n++;
+ }
+ out.tronque = count>out.length;
+ return out;
+}
+async function getAll(base, params, taille=5000){
+ try{ return await suivre(await getJSON(base+"?"+qs({...params, size:taille}))); }
+ catch(e){
+  if(e.status===400 && params.fields){ const p={...params}; delete p.fields; return getAll(base,p,taille); }
+  if(e.status===400 && taille>1000) return getAll(base,params,1000);
+  throw e;
+ }
+}
+// Découpe la période en deux tant que la requête dépasse la profondeur maximale (20 000 lignes)
+async function getAllPeriode(base, params, kMin, kMax, a0, a1, fmt, taille=5000){
+ const p = {...params, [kMin]:fmt(a0,false), [kMax]:fmt(a1,true)};
+ let j;
+ try{ j = await getJSON(base+"?"+qs({...p, size:taille})); }
+ catch(e){
+  if(e.status===400 && params.fields){ const q={...params}; delete q.fields; return getAllPeriode(base,q,kMin,kMax,a0,a1,fmt,taille); }
+  if(e.status===400 && taille>1000) return getAllPeriode(base,params,kMin,kMax,a0,a1,fmt,1000);
+  throw e;
+ }
+ if((j.count||0)>20000 && a0<a1){
+  const m=Math.floor((a0+a1)/2);
+  const [x,y] = await Promise.all([getAllPeriode(base,params,kMin,kMax,a0,m,fmt,taille), getAllPeriode(base,params,kMin,kMax,m+1,a1,fmt,taille)]);
+  const r=x.concat(y); r.tronque = x.tronque||y.tronque; return r;
+ }
+ return suivre(j);
+}
+const fDIS = (a,fin) => fin ? `${a}-12-31 23:59:59` : `${a}-01-01 00:00:00`;
+const fJour = (a,fin) => fin ? `${a}-12-31` : `${a}-01-01`;
+
+/* ============ Géométrie ============ */
+const G = {lat0:49.25, kx:72.7, ky:110.57, polys:[]};
+const proj = (lon,lat) => [lon*G.kx, lat*G.ky];
+function anneaux(g){ return g.type==="Polygon" ? [g.coordinates] : g.type==="MultiPolygon" ? g.coordinates : []; }
+function preparerGeom(){
+ let a=180,b=90,c=-180,d=-90;
+ S.communes.forEach(f => anneaux(f.geometry).forEach(pl => pl.forEach(r => r.forEach(([x,y]) => { a=Math.min(a,x); b=Math.min(b,y); c=Math.max(c,x); d=Math.max(d,y); }))));
+ G.lat0=(b+d)/2; G.kx=111.32*Math.cos(G.lat0*Math.PI/180);
+ G.polys=[];
+ S.communes.forEach(f => anneaux(f.geometry).forEach(pl => G.polys.push(pl.map(r => r.map(([x,y]) => proj(x,y))))));
+ S.bboxNCPA=[a,b,c,d];
+}
+function dansAnneau(p,r){
+ let c=false;
+ for(let i=0,j=r.length-1;i<r.length;j=i++){
+  const [xi,yi]=r[i],[xj,yj]=r[j];
+  if(((yi>p[1])!==(yj>p[1])) && (p[0] < (xj-xi)*(p[1]-yi)/(yj-yi)+xi)) c=!c;
+ }
+ return c;
+}
+function distSeg(p,a,b){
+ const dx=b[0]-a[0], dy=b[1]-a[1], l=dx*dx+dy*dy;
+ let t = l ? ((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l : 0;
+ t=Math.max(0,Math.min(1,t));
+ return Math.hypot(a[0]+t*dx-p[0], a[1]+t*dy-p[1]);
+}
+function distanceNCPA(lon,lat){
+ if(lon==null || lat==null || !isFinite(+lon) || !isFinite(+lat)) return Infinity;
+ const p=proj(+lon,+lat);
+ for(const pl of G.polys){ const [ext,...trous]=pl; if(dansAnneau(p,ext) && !trous.some(t=>dansAnneau(p,t))) return 0; }
+ let d=Infinity;
+ for(const pl of G.polys) for(const r of pl) for(let i=1;i<r.length;i++){ const v=distSeg(p,r[i-1],r[i]); if(v<d) d=v; }
+ return d;
+}
+function bboxZone(){
+ const [a,b,c,d]=S.bboxNCPA, dl=S.rayon/G.ky, dg=S.rayon/G.kx;
+ return [a-dg,b-dl,c+dg,d+dl].map(v => +v.toFixed(5));
+}
+
+/* ============ Carte ============ */
+let carte; const couches = {};
+function initCarte(){
+ carte = L.map("map", {preferCanvas:true}).setView([49.25,-0.05], 11);
+ const planIGN = L.tileLayer("https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image%2Fpng&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}", {maxZoom:19, attribution:"© IGN / Géoplateforme"});
+ const ortho = L.tileLayer("https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image%2Fjpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}", {maxZoom:20, maxNativeZoom:19, attribution:"© IGN / Géoplateforme"});
+ let plan = null;
+ try{
+  if(window.maplibregl && L.maplibreGL) plan = L.maplibreGL({style:"https://tiles.openfreemap.org/styles/positron",
+   attribution:'© <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'});
+ }catch(e){ plan = null; }
+ const bases = {};
+ if(plan){ bases["Plan"] = plan; } else { bases["Plan IGN"] = planIGN; }
+ bases["Photographies aériennes IGN"] = ortho;
+ (plan || planIGN).addTo(carte);
+ L.control.layers(bases, null, {position:"topright"}).addTo(carte);
+ L.control.scale({imperial:false}).addTo(carte);
+}
+function dessinerCommunes(){
+ couches.communes = L.geoJSON({type:"FeatureCollection", features:S.communes}, {
+  style: styleCommune,
+  onEachFeature: (f,l) => {
+   l.on("click", () => choisirCommune(f.properties.code, true));
+   l.bindTooltip(() => bulleCommune(f.properties.code), {sticky:true});
+  }
+ }).addTo(carte);
+ carte.fitBounds(couches.communes.getBounds(), {padding:[20,20]});
+}
+function couleurCommune(c){
+ if(!S.rob || !S.rob.ok) return null;
+ const r=S.rob.res[c]; if(!r) return COUL.vide;
+ if(S.rVar==="conf") return r.n ? (r.nc===0 ? COUL.ok : r.nc===1 ? COUL.alerte : COUL.nc) : COUL.vide;
+ if(S.rVar==="no3") return classe(r.no3moy, R_VAR.no3.seuils, R_VAR.no3.pal);
+ return classe(r.pestmax, R_VAR.pest.seuils, R_VAR.pest.pal);
+}
+function styleCommune(f){
+ const c=f.properties.code, sel=S.selCommune===c;
+ const st={weight:sel?3:0.8, color:sel?"#B91E27":"#6E7647", opacity:0.9, fillColor:"#B1B993", fillOpacity:0.06};
+ if(S.tab==="synthese" || S.tab==="robinet"){ const col=couleurCommune(c); if(col){ st.fillColor=col; st.fillOpacity=0.55; } }
+ return st;
+}
+function bulleCommune(c){
+ const f=S.cIdx[c]; let t=`<b>${esc(f.properties.nom)}</b>`;
+ if(S.rob && S.rob.ok && (S.tab==="synthese" || S.tab==="robinet")){
+  const r=S.rob.res[c];
+  if(r) t += `<br>${S.rob.refYear} : ${r.n} prélèvements, ${r.nc} non-conformité${r.nc>1?"s":""}<br>Nitrates (moyenne) : ${nf(r.no3moy,1)} mg/L<br>Pesticides totaux (max.) : ${nfa(r.pestmax)} µg/L`;
+ }
+ return t;
+}
+function majCarte(){
+ if(couches.communes) couches.communes.setStyle(styleCommune);
+ const vis = {ouvrages:S.tab==="prel", stations:S.tab==="nappes"};
+ for(const k of ["ouvrages","stations"]){
+  const l=couches[k]; if(!l) continue;
+  if(vis[k] && !carte.hasLayer(l)) l.addTo(carte);
+  if(!vis[k] && carte.hasLayer(l)) carte.removeLayer(l);
+ }
+ majLegende();
+}
+function majLegende(){
+ const el=$("#legende"); let h="";
+ const pastilles=(cols,libs,forme="ca") => cols.map((c,i)=>`<div class="lg"><span class="${forme}" style="background:${c}"></span>${libs[i]}</div>`).join("");
+ if(S.tab==="synthese" || S.tab==="robinet"){
+  const an = S.rob && S.rob.ok ? S.rob.refYear : "";
+  const v=R_VAR[S.rVar];
+  h=`<h4>${v.titre} – ${an}</h4>`;
+  if(S.rVar==="conf") h+=pastilles([COUL.ok,COUL.alerte,COUL.nc],["Aucune","1 prélèvement","2 prélèvements ou plus"]);
+  else h+=pastilles(v.pal, libClasses(v.seuils));
+  h+=pastilles([COUL.vide],["Pas de donnée"]);
+  h+=`<div class="pt">Cliquez sur une commune pour son détail.</div>`;
+ } else if(S.tab==="prel"){
+  h=`<h4>Ouvrages de prélèvement</h4>`+pastilles(USAGES.map(u=>u.c), USAGES.map(u=>u.lib), "rd");
+  h+=`<div class="pt">Taille : volume de la dernière année. Pointillé : position approximative (centre de la commune). Couleur atténuée : hors NCPA, à moins de ${S.rayon} km.</div>`;
+ } else if(S.tab==="nappes"){
+  const p=NAPPES_P[S.nParam];
+  h=`<h4>${p.lib} – moyenne de la dernière année mesurée (${p.unite})</h4>`+pastilles(p.pal, libClasses(p.seuils), "rd")+pastilles([COUL.vide],["Pas de mesure depuis "+S.y0],"rd");
+  h+=`<div class="pt">Couleur atténuée : hors NCPA, à moins de ${S.rayon} km.</div>`;
+ } else {
+  h=`<h4>Communes de NCPA</h4><div class="pt">Les contours proviennent de l’API Découpage administratif.</div>`;
+ }
+ el.innerHTML=h;
+}
+
+/* ============ Graphiques ============ */
+const graphs = {};
+function graph(id, cfg){
+ if(graphs[id]){ graphs[id].destroy(); delete graphs[id]; }
+ const el=document.getElementById(id); if(!el) return;
+ graphs[id]=new Chart(el, cfg);
+}
+const AN_MS = 365.25*864e5;
+function cfgSerie(series, unite, repere, repereLib){
+ const tous = series.flatMap(s=>s.pts);
+ const ds = series.map(s => ({label:s.lib, data:s.pts.map(p=>({x:p.t,y:p.v})), borderColor:s.col, backgroundColor:s.col,
+  pointRadius: s.pts.length>200 ? 1.5 : 2.5, borderWidth: s.ligne===false ? 0 : 1.4, showLine: s.ligne!==false, tension:0}));
+ const tmin = tous.length ? Date.UTC(annee(Math.min(...tous.map(p=>p.t))),0,1) : Date.UTC(S.y0,0,1);
+ const tmax = tous.length ? Date.UTC(annee(Math.max(...tous.map(p=>p.t)))+1,0,1) : Date.UTC(AN+1,0,1);
+ if(repere!=null) ds.push({label:repereLib, data:[{x:tmin,y:repere},{x:tmax,y:repere}], borderColor:"#B91E27", borderDash:[6,4], borderWidth:1.5, pointRadius:0, showLine:true});
+ return {type:"line", data:{datasets:ds}, options:{animation:false, maintainAspectRatio:false,
+  scales:{x:{type:"linear", min:tmin, max:tmax, ticks:{stepSize:AN_MS, callback:v=>new Date(v+3*864e5).getFullYear(), maxTicksLimit:14}, grid:{display:false}},
+          y:{beginAtZero:true, title:{display:true, text:unite}}},
+  plugins:{legend:{position:"bottom", labels:{boxWidth:12, font:{size:11}}},
+   tooltip:{callbacks:{title:it=>dfr(it[0].raw.x), label:it=>it.dataset.label+" : "+nfa(it.raw.y)+" "+unite}}}}};
+}
+function cfgBarres(labels, datasets, unite, empile=true){
+ return {type:"bar", data:{labels, datasets}, options:{animation:false, maintainAspectRatio:false,
+  scales:{x:{stacked:empile, grid:{display:false}}, y:{stacked:empile, beginAtZero:true, title:{display:!!unite, text:unite},
+   ticks:{callback:v=>nf(v)}}},
+  plugins:{legend:{position:"bottom", labels:{boxWidth:12, font:{size:11}}},
+   tooltip:{callbacks:{label:it=>it.dataset.label+" : "+nf(it.raw)+(unite?" "+unite:"")}}}}};
+}
+
+/* ============ Tableaux ============ */
+function tableau(el, cols, lignes, opts={}){
+ let tri=opts.tri||null, sens=opts.sens||1;
+ const rendre = () => {
+  const L=[...lignes];
+  if(tri){
+   const c=cols.find(c=>c.k===tri);
+   L.sort((a,b) => { const va=c.val?c.val(a):a[tri], vb=c.val?c.val(b):b[tri];
+    if(va==null || va==="" || (typeof va==="number" && !isFinite(va))) return 1;
+    if(vb==null || vb==="" || (typeof vb==="number" && !isFinite(vb))) return -1;
+    if(typeof va==="string") return va.localeCompare(vb,"fr")*sens;
+    return (va-vb)*sens; });
+  }
+  el.innerHTML = `<div class="tabwrap"><table><thead><tr>${cols.map(c=>`<th data-k="${c.k}" class="${c.num?"num":""}" tabindex="0">${c.lib}${tri===c.k?(sens>0?" ▲":" ▼"):""}</th>`).join("")}</tr></thead><tbody>${
+   L.map(l=>`<tr data-i="${lignes.indexOf(l)}" class="${opts.cls?opts.cls(l):""}">${cols.map(c=>`<td class="${c.num?"num":""}">${c.fmt?c.fmt(l):esc(l[c.k])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  el.querySelectorAll("th").forEach(th => {
+   const f = () => { const k=th.dataset.k; if(tri===k) sens=-sens; else { tri=k; sens=cols.find(c=>c.k===k).num?-1:1; } rendre(); };
+   th.onclick=f; th.onkeydown=e=>{ if(e.key==="Enter") f(); };
+  });
+  if(opts.clic) el.querySelectorAll("tbody tr").forEach(tr => tr.onclick = e => { if(e.target.closest("button")) return; opts.clic(lignes[+tr.dataset.i], tr); });
+  if(opts.apres) opts.apres(el);
+ };
+ rendre();
+}
+
+/* ============ Exports ============ */
+function telecharger(nom, contenu, type){
+ const b=new Blob([contenu],{type}), a=document.createElement("a");
+ a.href=URL.createObjectURL(b); a.download=nom; document.body.appendChild(a); a.click();
+ setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+function csv(cols, lignes){
+ const e = v => { if(v==null || (typeof v==="number" && !isFinite(v))) return ""; let s = typeof v==="number" ? String(v).replace(".",",") : String(v);
+  return /[;"\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+ return "\ufeff"+[cols.map(c=>c[1]).join(";"), ...lignes.map(l=>cols.map(c=>e(typeof c[0]==="function"?c[0](l):l[c[0]])).join(";"))].join("\r\n");
+}
+const isoDate = t => t ? new Date(t).toISOString().slice(0,10) : "";
+const horodate = () => new Date().toISOString().slice(0,10);
+
+/* ============ Chargement : communes ============ */
+async function chargerCommunes(){
+ etat("com","Communes de NCPA…");
+ const j = await getJSON("https://geo.api.gouv.fr/communes?codeEpci="+EPCI+"&fields=nom,code,population,contour&format=geojson&geometry=contour");
+ S.communes = (j.features||[]).filter(f=>f.geometry).sort((a,b)=>a.properties.nom.localeCompare(b.properties.nom,"fr"));
+ if(!S.communes.length) throw new Error("Aucune commune renvoyée pour l’EPCI "+EPCI);
+ S.cIdx = Object.fromEntries(S.communes.map(f=>[f.properties.code,f]));
+ preparerGeom();
+ const sel=$("#r-commune");
+ S.communes.forEach(f => sel.insertAdjacentHTML("beforeend", `<option value="${f.properties.code}">${esc(f.properties.nom)}</option>`));
+ etat("com", null);
+}
+
+/* ============ Chargement : eau du robinet ============ */
+async function chargerRobinet(gen){
+ const codes = S.communes.map(f=>f.properties.code);
+ try{
+  etat("rob","Eau du robinet : réseaux de distribution…");
+  const lignes=[];
+  for(const ch of chunk(codes,20)) lignes.push(...await getAll(HUB+"/v1/qualite_eau_potable/communes_udi", {code_commune:ch}, 2000));
+  const parC={};
+  lignes.forEach(r => (parC[r.code_commune] ??= []).push(r));
+  const udi={};
+  for(const c of codes){
+   const l=parC[c]||[]; if(!l.length){ udi[c]=[]; continue; }
+   const amax=Math.max(...l.map(r=>+r.annee||0));
+   udi[c]=l.filter(r=>+r.annee===amax).map(r=>({code:r.code_reseau, nom:r.nom_reseau, quartier:r.nom_quartier, annee:amax}));
+  }
+  const communes={}; let fait=0;
+  etat("rob",`Eau du robinet : contrôle sanitaire 0/${codes.length} communes…`);
+  await Promise.all(codes.map(async c => {
+   try{
+    const rows = await getAllPeriode(HUB+"/v1/qualite_eau_potable/resultats_dis",
+     {code_commune:c, code_parametre:P_DIS, fields:CHAMPS_DIS}, "date_min_prelevement","date_max_prelevement", S.y0, AN, fDIS);
+    communes[c] = traiterCommune(rows);
+   }catch(e){ communes[c]={err:String(e.message||e)}; STATS.err.push("Contrôle sanitaire "+c+" : "+(e.message||e)); }
+   fait++;
+   if(gen===S.generation) etat("rob",`Eau du robinet : contrôle sanitaire ${fait}/${codes.length} communes…`);
+  }));
+  if(gen!==S.generation) return;
+  S.rob = {udi, communes};
+  finaliserRobinet();
+  const nErr = Object.values(communes).filter(o=>o.err).length;
+  etat("rob", "Eau du robinet ✓"+(nErr?` (${nErr} commune${nErr>1?"s":""} en erreur)`:""));
+ }catch(e){
+  if(gen!==S.generation) return;
+  S.rob = {err:String(e.message||e)}; STATS.err.push("Eau du robinet : "+(e.message||e));
+  etat("rob","Eau du robinet : erreur");
+ }
+ rendreSynthese();
+ if(S.tab==="robinet") rendreRobinet();
+ majCarte();
+}
+function traiterCommune(rows){
+ const prel=new Map(), no3=new Map(), pest=new Map();
+ let distrib=null, moa=null, tD=0;
+ for(const r of rows){
+  const t=Date.parse(r.date_prelevement); if(!isFinite(t) || !r.code_prelevement) continue;
+  let p=prel.get(r.code_prelevement);
+  if(!p){
+   p={code:r.code_prelevement, t, lb:r.conformite_limites_bact_prelevement||"", lpc:r.conformite_limites_pc_prelevement||"",
+      rb:r.conformite_references_bact_prelevement||"", rpc:r.conformite_references_pc_prelevement||"",
+      concl:r.conclusion_conformite_prelevement||"", inst:r.nom_installation_amont||"", instCode:r.code_installation_amont||"", reseaux:r.reseaux||[]};
+   prel.set(p.code,p);
+  }
+  if(r.nom_distributeur && t>=tD){ distrib=r.nom_distributeur; moa=r.nom_moa||moa; tD=t; }
+  const v=r.resultat_numerique, cp=String(r.code_parametre);
+  if(v!=null && isFinite(v)){
+   if(cp==="1340") no3.set(p.code,{t, v:+v, amont:!!p.inst, inst:p.inst, txt:r.resultat_alphanumerique});
+   if(cp==="6276") pest.set(p.code,{t, v:+v, amont:!!p.inst, inst:p.inst, txt:r.resultat_alphanumerique});
+  }
+ }
+ const P=[...prel.values()].sort((a,b)=>a.t-b.t);
+ const parAn={};
+ for(const p of P.filter(p=>!p.inst)){
+  const o=parAn[annee(p.t)] ??= {n:0,nc:0,ncB:0,ncPC:0,d:0,ref:0};
+  o.n++;
+  const nb=p.lb==="N", np=p.lpc==="N";
+  if(nb||np) o.nc++; if(nb) o.ncB++; if(np) o.ncPC++;
+  if(p.lb==="D"||p.lpc==="D") o.d++;
+  if(p.rb==="N"||p.rpc==="N") o.ref++;
+ }
+ const inst=new Map();
+ for(const p of P.filter(p=>p.inst)){
+  const k=p.instCode||p.inst;
+  const o=inst.get(k)||{nom:p.inst, code:p.instCode, n:0, dernier:0, debit:null, nc:0};
+  o.n++; o.dernier=Math.max(o.dernier,p.t);
+  if(p.lb==="N"||p.lpc==="N") o.nc++;
+  (p.reseaux||[]).forEach(rs => { if(rs && rs.debit!=null && rs.debit!=="") o.debit=rs.debit; });
+  inst.set(k,o);
+ }
+ const tri=(a,b)=>a.t-b.t;
+ return {prel:P, parAn, no3:[...no3.values()].sort(tri), pest:[...pest.values()].sort(tri),
+  inst:[...inst.values()].sort((a,b)=>b.dernier-a.dernier), distrib, moa, tMax:P.length?P[P.length-1].t:0, tronque:!!rows.tronque};
+}
+function resumeCommune(o, an){
+ const pa=o.parAn[an]||{n:0,nc:0,ncB:0,ncPC:0,d:0,ref:0};
+ const no3=o.no3.filter(x=>!x.amont && annee(x.t)===an).map(x=>x.v);
+ const pe=o.pest.filter(x=>!x.amont && annee(x.t)===an).map(x=>x.v);
+ const res=o.no3.filter(x=>!x.amont);
+ return {...pa, no3moy:moy(no3), no3max:max(no3), pestmax:max(pe), no3dernier:res.length?res[res.length-1]:null, dernier:o.tMax};
+}
+function finaliserRobinet(){
+ let tMax=0;
+ for(const o of Object.values(S.rob.communes)) if(!o.err && o.tMax>tMax) tMax=o.tMax;
+ S.rob.tMax=tMax;
+ const d=new Date(tMax||Date.now());
+ S.rob.refYear = d.getMonth()===11 ? d.getFullYear() : d.getFullYear()-1;
+ S.rob.res={};
+ for(const c in S.rob.communes){ const o=S.rob.communes[c]; if(!o.err) S.rob.res[c]=resumeCommune(o,S.rob.refYear); }
+ const U=new Map();
+ for(const o of Object.values(S.rob.communes)) if(!o.err) for(const p of o.prel) if(!p.inst) U.set(p.code,p);
+ const pa={};
+ for(const p of U.values()){ const x=pa[annee(p.t)] ??= {n:0,nc:0}; x.n++; if(p.lb==="N"||p.lpc==="N") x.nc++; }
+ S.rob.ncpaAn=pa;
+ const no3an={};
+ for(const c in S.rob.communes){
+  const o=S.rob.communes[c]; if(o.err) continue;
+  const g={}; o.no3.filter(x=>!x.amont).forEach(x=>(g[annee(x.t)] ??= []).push(x.v));
+  for(const a in g) (no3an[a] ??= []).push(moy(g[a]));
+ }
+ S.rob.no3an=no3an;
+ S.rob.ok=true;
+}
+
+/* ============ Chargement : prélèvements ============ */
+function catUsage(lib){
+ const s=(lib||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+ return USAGES.find(u=>u.t.test(s)).k;
+}
+async function chargerPrel(gen){
+ try{
+  etat("prel","Prélèvements : volumes déclarés…");
+  const bb=bboxZone();
+  const [ch, ouv] = await Promise.all([
+   getAll(HUB+"/v1/prelevements/chroniques", {bbox:bb}, 5000),
+   getAll(HUB+"/v1/prelevements/referentiel/ouvrages", {bbox:bb}, 5000).catch(()=>[])
+  ]);
+  if(gen!==S.generation) return;
+  const info=new Map(ouv.map(o=>[o.code_ouvrage,o]));
+  const O=new Map();
+  for(const r of ch){
+   if(r.code_statut_instruction && String(r.code_statut_instruction).toUpperCase()!=="REA") continue;
+   if(String(r.code_qualification_volume)==="2") continue;
+   const a=+r.annee; if(!a || r.volume==null) continue;
+   let o=O.get(r.code_ouvrage);
+   if(!o){
+    const io=info.get(r.code_ouvrage)||{};
+    const lon=r.longitude ?? io.longitude, lat=r.latitude ?? io.latitude;
+    const precLib=io.libelle_precision_coord||"";
+    o={code:r.code_ouvrage, nom:r.nom_ouvrage||io.nom_ouvrage||r.code_ouvrage, commune:r.nom_commune||io.nom_commune||"",
+       insee:r.code_commune_insee||io.code_commune_insee||"", lon:+lon, lat:+lat,
+       milieu:io.libelle_type_milieu||"", precis:!(/centro/i.test(precLib) || String(io.code_precision_coord)==="5"), precLib,
+       vol:{}, usage:{}, dist:distanceNCPA(lon,lat)};
+    O.set(r.code_ouvrage,o);
+   }
+   o.vol[a]=(o.vol[a]||0)+(+r.volume||0);
+   o.usage[a]=r.libelle_usage||o.usage[a]||"";
+  }
+  const ouvrages=[...O.values()].filter(o=>o.dist<=S.rayon && isFinite(o.lon) && isFinite(o.lat));
+  let anMax=0;
+  ouvrages.forEach(o=>{
+   const ans=Object.keys(o.vol).map(Number).sort((a,b)=>a-b);
+   const dernier=ans[ans.length-1];
+   o.anDernier=dernier; o.usageLib=o.usage[dernier]||""; o.cat=catUsage(o.usageLib);
+   o.zone=o.dist===0?"ncpa":"prox";
+   anMax=Math.max(anMax,dernier||0);
+  });
+  S.prel={ouvrages, anMax, tronque:ch.tronque, ok:true};
+  etat("prel","Prélèvements ✓");
+ }catch(e){
+  if(gen!==S.generation) return;
+  S.prel={err:String(e.message||e)}; STATS.err.push("Prélèvements : "+(e.message||e));
+  etat("prel","Prélèvements : erreur");
+ }
+ rendreSynthese();
+ if(S.prel.ok) construireCoucheOuvrages();
+ if(S.tab==="prel") rendrePrel();
+ majCarte();
+}
+function ouvragesFiltres(){
+ const z=$("#pr-zone").value, u=$("#pr-usage").value;
+ return S.prel.ouvrages.filter(o=>(z==="tout"||o.zone==="ncpa") && (!u||o.cat===u));
+}
+function construireCoucheOuvrages(){
+ if(couches.ouvrages){ carte.removeLayer(couches.ouvrages); }
+ const L0=ouvragesFiltres();
+ const ref = o => o.vol[S.prel.anMax] ?? o.vol[o.anDernier] ?? 0;
+ const vmax=Math.max(1,...L0.map(ref));
+ const g=L.layerGroup();
+ [...L0].sort((a,b)=>ref(b)-ref(a)).forEach(o=>{
+  const u=U_IDX[o.cat];
+  const m=L.circleMarker([o.lat,o.lon],{radius:4+16*Math.sqrt(ref(o)/vmax), color:o.precis?"#ffffff":u.c, weight:o.precis?1:1.5,
+   dashArray:o.precis?null:"3 3", fillColor:u.c, fillOpacity:o.zone==="ncpa"?0.8:0.4});
+  m.bindPopup(()=>popupOuvrage(o));
+  m.on("click",()=>{ S.selOuvrage=o.code; if(S.tab==="prel") rendrePrel(); });
+  g.addLayer(m);
+ });
+ couches.ouvrages=g;
+}
+function popupOuvrage(o){
+ const ans=Object.keys(o.vol).map(Number).sort((a,b)=>b-a).slice(0,6);
+ return `<b>${esc(o.nom)}</b><br>${esc(o.commune)}${o.zone==="ncpa"?"":` (hors NCPA, ${nf(o.dist,1)} km)`}<br>Usage : ${esc(o.usageLib||"non précisé")}<br>Ressource : ${esc(o.milieu||"non précisée")}${o.precis?"":"<br><i>Position approximative : "+esc(o.precLib||"centre de la commune")+"</i>"}
+ <table>${ans.map(a=>`<tr><td>${a}</td><td style="text-align:right">${nf(o.vol[a])} m³</td></tr>`).join("")}</table>`;
+}
+
+/* ============ Chargement : nappes ============ */
+async function chargerNappes(gen){
+ try{
+  etat("nap","Nappes : points de suivi…");
+  const st=await getAll(HUB+"/v1/qualite_nappes/stations", {bbox:bboxZone()}, 5000);
+  if(gen!==S.generation) return;
+  const stations=new Map();
+  st.forEach(s=>{
+   const d=distanceNCPA(s.longitude,s.latitude); if(d>S.rayon) return;
+   stations.set(s.bss_id,{bss:s.bss_id, code:s.code_bss, lib:s.libelle_pe||s.code_bss||s.bss_id, commune:s.nom_commune||"", insee:s.code_insee||"",
+    lon:+s.longitude, lat:+s.latitude, dist:d, zone:d===0?"ncpa":"prox", prof:s.profondeur_investigation ?? null,
+    nature:s.nom_nature_pe||""});
+  });
+  S.nap={stations, param:{}, tout:{}, ok:true};
+  await chargerParamNappes(S.nParam, gen);
+  if(gen!==S.generation) return;
+  etat("nap","Nappes ✓");
+ }catch(e){
+  if(gen!==S.generation) return;
+  S.nap={err:String(e.message||e)}; STATS.err.push("Nappes : "+(e.message||e));
+  etat("nap","Nappes : erreur");
+ }
+ rendreSynthese();
+ if(S.tab==="nappes") rendreNappes();
+ majCarte();
+}
+async function chargerParamNappes(code, gen){
+ if(S.nap.param[code]) { construireCoucheStations(); return; }
+ etat("nap",`Nappes : analyses ${NAPPES_P[code].lib.toLowerCase()}…`);
+ const rows=await getAllPeriode(HUB+"/v1/qualite_nappes/analyses",
+  {bbox:bboxZone(), code_param:code, fields:"bss_id,code_bss,date_debut_prelevement,resultat,code_remarque_analyse,nom_unite,symbole_unite,longitude,latitude"},
+  "date_debut_prelevement","date_fin_prelevement", S.y0, AN, fJour);
+ if(gen!==undefined && gen!==S.generation) return;
+ const parSt=new Map(); let unite=null;
+ for(const r of rows){
+  if(r.resultat==null) continue;
+  let s=S.nap.stations.get(r.bss_id);
+  if(!s){
+   const d=distanceNCPA(r.longitude,r.latitude); if(d>S.rayon) continue;
+   s={bss:r.bss_id, code:r.code_bss, lib:r.code_bss||r.bss_id, commune:"", lon:+r.longitude, lat:+r.latitude, dist:d, zone:d===0?"ncpa":"prox", nature:""};
+   S.nap.stations.set(r.bss_id,s);
+  }
+  const t=Date.parse(r.date_debut_prelevement); if(!isFinite(t)) continue;
+  const rq=r.code_remarque_analyse, q = rq==null || String(rq)==="1";
+  (parSt.get(r.bss_id) || parSt.set(r.bss_id,[]).get(r.bss_id)).push({t, v:+r.resultat, q});
+  unite = unite || r.symbole_unite || r.nom_unite || null;
+ }
+ const res=new Map();
+ for(const [b,pts] of parSt){
+  pts.sort((a,b)=>a.t-b.t);
+  const g={}; pts.forEach(p=>(g[annee(p.t)] ??= []).push(p.q?p.v:0));
+  const ans=Object.keys(g).map(Number).sort((a,b)=>a-b);
+  const mAn=ans.map(a=>({a, v:moy(g[a])}));
+  const quant=pts.filter(p=>p.q).map(p=>p.v);
+  res.set(b,{pts, mAn, anDernier:ans[ans.length-1], moyDernier:mAn[mAn.length-1].v, max:max(quant), n:pts.length, nq:quant.length, pente:tendance(mAn)});
+ }
+ S.nap.param[code]={res, unite:unite||NAPPES_P[code].unite, tronque:rows.tronque};
+ construireCoucheStations();
+ etat("nap","Nappes ✓");
+}
+function construireCoucheStations(){
+ if(couches.stations) carte.removeLayer(couches.stations);
+ const P=S.nap.param[S.nParam]; if(!P) return;
+ const def=NAPPES_P[S.nParam];
+ const g=L.layerGroup();
+ const L0=[...S.nap.stations.values()].filter(s=>isFinite(s.lat)&&isFinite(s.lon));
+ L0.sort((a,b)=>(P.res.has(a.bss)?1:0)-(P.res.has(b.bss)?1:0));
+ L0.forEach(s=>{
+  const r=P.res.get(s.bss);
+  const col=r?classe(r.moyDernier,def.seuils,def.pal):COUL.vide;
+  const m=L.circleMarker([s.lat,s.lon],{radius:r?7:4, color:r?"#40454b":"#9a978e", weight:r?1:0.8, fillColor:col, fillOpacity:r?(s.zone==="ncpa"?0.9:0.5):0.5});
+  m.bindPopup(()=>popupStation(s));
+  m.on("click",()=>{ S.selStation=s.bss; if(S.tab==="nappes") rendreNappes(); });
+  g.addLayer(m);
+ });
+ couches.stations=g;
+ if(S.tab==="nappes") majCarte();
+}
+function popupStation(s){
+ const P=S.nap.param[S.nParam], r=P&&P.res.get(s.bss), def=NAPPES_P[S.nParam];
+ let h=`<b>${esc(s.lib)}</b><br>${esc(s.commune)}${s.zone==="ncpa"?"":` (hors NCPA, ${nf(s.dist,1)} km)`}<br>Code BSS : ${esc(s.code||s.bss)}`;
+ if(r) h+=`<br>${def.lib} : ${nfa(r.moyDernier)} ${P.unite} en moyenne en ${r.anDernier}<br>Maximum depuis ${S.y0} : ${nfa(r.max)} ${P.unite} (${r.n} analyses)`;
+ else h+=`<br>Pas d’analyse de ${def.lib.toLowerCase()} depuis ${S.y0}`;
+ if(s.code) h+=`<br><a href="https://ades.eaufrance.fr/Fiche/PtEau?code=${encodeURIComponent(s.code)}" target="_blank" rel="noopener">Fiche ADES</a>`;
+ return h;
+}
+
+/* ============ Rendu : synthèse ============ */
+function rendreSynthese(){
+ const ret=[];
+ // Eau du robinet
+ const elR=$("#syn-rob");
+ if(!S.rob){ elR.innerHTML=`<p class="attente">Chargement…</p>`; }
+ else if(S.rob.err){ elR.innerHTML=erreurHTML("du contrôle sanitaire",S.rob.err); }
+ else {
+  const an=S.rob.refYear, x=S.rob.ncpaAn[an]||{n:0,nc:0};
+  const res=Object.entries(S.rob.res);
+  const avecNC=res.filter(([,r])=>r.nc>0).map(([c])=>S.cIdx[c].properties.nom);
+  const no3=res.filter(([,r])=>r.no3moy!=null).sort((a,b)=>b[1].no3moy-a[1].no3moy);
+  const pe=res.filter(([,r])=>r.pestmax!=null).sort((a,b)=>b[1].pestmax-a[1].pestmax);
+  const taux=x.n?(1-x.nc/x.n):null;
+  elR.innerHTML = chiffre(taux==null?"–":nf(taux*100,1)+" %", `des ${nf(x.n)} prélèvements conformes aux limites de qualité en ${an}`, x.nc>0)
+   + chiffre(`${avecNC.length} / ${S.communes.length}`, `communes avec au moins une non-conformité en ${an}`, avecNC.length>0)
+   + chiffre(no3.length?nf(no3[0][1].no3moy,1)+" mg/L":"–", no3.length?`nitrates, moyenne la plus élevée (${esc(S.cIdx[no3[0][0]].properties.nom)})`:"nitrates")
+   + chiffre(pe.length?nfa(pe[0][1].pestmax)+" µg/L":"–", "total pesticides, valeur maximale (limite 0,5 µg/L)", pe.length && pe[0][1].pestmax>0.5);
+  if(x.n) ret.push(`En ${an}, <b>${nf(taux*100,1)} %</b> des ${nf(x.n)} prélèvements réalisés sur les réseaux de distribution de NCPA étaient conformes aux limites de qualité.`
+   + (avecNC.length ? ` ${avecNC.length} commune${avecNC.length>1?"s ont":" a"} connu au moins une non-conformité : ${avecNC.slice(0,6).join(", ")}${avecNC.length>6?"…":""}.` : " Aucune commune n’a connu de non-conformité."));
+  if(no3.length) ret.push(`Les nitrates dans l’eau distribuée vont de <b>${nf(no3[no3.length-1][1].no3moy,1)}</b> à <b>${nf(no3[0][1].no3moy,1)} mg/L</b> en moyenne selon les communes (limite de qualité : 50 mg/L).`);
+  const ans=Object.keys(S.rob.ncpaAn).map(Number).filter(a=>a>=S.y0).sort((a,b)=>a-b);
+  graph("g-syn-conf", cfgBarres(ans, [
+   {label:"Conformes", data:ans.map(a=>S.rob.ncpaAn[a].n-S.rob.ncpaAn[a].nc), backgroundColor:COUL.ok},
+   {label:"Non conformes", data:ans.map(a=>S.rob.ncpaAn[a].nc), backgroundColor:COUL.nc}], "prélèvements"));
+  const an2=Object.keys(S.rob.no3an).map(Number).filter(a=>a>=S.y0).sort((a,b)=>a-b);
+  graph("g-syn-no3", {type:"line", data:{labels:an2, datasets:[
+   {label:"Commune la plus haute", data:an2.map(a=>max(S.rob.no3an[a])), borderColor:"#E07B39", backgroundColor:"#E07B39", tension:0},
+   {label:"Médiane des communes", data:an2.map(a=>mediane(S.rob.no3an[a])), borderColor:"#2B6CB0", backgroundColor:"#2B6CB0", tension:0},
+   {label:"Commune la plus basse", data:an2.map(a=>Math.min(...S.rob.no3an[a])), borderColor:"#9CC3DF", backgroundColor:"#9CC3DF", tension:0},
+   {label:"Limite de qualité (50 mg/L)", data:an2.map(()=>50), borderColor:"#B91E27", borderDash:[6,4], pointRadius:0, borderWidth:1.5}]},
+   options:{animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true, title:{display:true,text:"mg/L"}}, x:{grid:{display:false}}},
+    plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:11}}}, tooltip:{callbacks:{label:it=>it.dataset.label+" : "+nf(it.raw,1)+" mg/L"}}}}});
+ }
+ // Prélèvements
+ const elP=$("#syn-prel");
+ if(!S.prel){ elP.innerHTML=`<p class="attente">Chargement…</p>`; }
+ else if(S.prel.err){ elP.innerHTML=erreurHTML("de prélèvements",S.prel.err); }
+ else {
+  const aep=S.prel.ouvrages.filter(o=>o.cat==="aep"), a=S.prel.anMax;
+  const vN=somme(aep.filter(o=>o.zone==="ncpa").map(o=>o.vol[a])), vP=somme(aep.filter(o=>o.zone==="prox").map(o=>o.vol[a]));
+  const ans=[]; for(let y=S.y0;y<=a;y++) ans.push(y);
+  const tot=y=>somme(aep.map(o=>o.vol[y]));
+  const a0=ans.find(y=>tot(y)>0);
+  const evo= a0 && a0<a ? tot(a)/tot(a0)-1 : null;
+  elP.innerHTML = chiffre(nf(vN/1e6,2)+" Mm³", `prélevés pour l’eau potable dans NCPA en ${a}`)
+   + chiffre(nf(vP/1e6,2)+" Mm³", `dans un rayon de ${S.rayon} km autour de NCPA`)
+   + chiffre(String(aep.filter(o=>o.vol[a]).length), `ouvrages d’eau potable déclarant un volume en ${a}`)
+   + chiffre(evo==null?"–":(evo>0?"+":"")+nf(evo*100,0)+" %", evo==null?"évolution":`évolution des volumes pour l’eau potable entre ${a0} et ${a}`);
+  if(a) ret.push(`En ${a}, <b>${nf(vN/1e6,2)} million${vN>=2e6?"s":""} de m³</b> ont été prélevés pour l’eau potable sur le territoire de NCPA, et ${nf(vP/1e6,2)} million${vP>=2e6?"s":""} de m³ à moins de ${S.rayon} km autour.`);
+  graph("g-syn-prel", cfgBarres(ans, [
+   {label:"Dans NCPA", data:ans.map(y=>somme(aep.filter(o=>o.zone==="ncpa").map(o=>o.vol[y]))), backgroundColor:"#2B6CB0"},
+   {label:`À moins de ${S.rayon} km`, data:ans.map(y=>somme(aep.filter(o=>o.zone==="prox").map(o=>o.vol[y]))), backgroundColor:"#9CC3DF"}], "m³"));
+ }
+ // Nappes
+ const elN=$("#syn-nap");
+ const P=S.nap&&S.nap.ok?S.nap.param["1340"]:null;
+ if(!S.nap || (S.nap.ok && !P)){ elN.innerHTML=`<p class="attente">Chargement…</p>`; }
+ else if(S.nap.err){ elN.innerHTML=erreurHTML("des nappes",S.nap.err); }
+ else {
+  const recents=[...P.res.values()].filter(r=>r.anDernier>=AN-5);
+  const n40=recents.filter(r=>r.moyDernier>=40).length, n50=recents.filter(r=>r.moyDernier>=50).length;
+  const pentes=recents.map(r=>r.pente).filter(v=>v!=null);
+  const hausse=pentes.filter(v=>v>0.2).length, baisse=pentes.filter(v=>v<-0.2).length;
+  elN.innerHTML = chiffre(String(recents.length), `points de suivi des nappes avec des nitrates mesurés depuis ${AN-5}`)
+   + chiffre(String(n40), "points à 40 mg/L ou plus (moyenne de la dernière année)", n40>0)
+   + chiffre(String(n50), "points à 50 mg/L ou plus", n50>0)
+   + chiffre(pentes.length?`${hausse} ↗ · ${baisse} ↘`:"–", "points en hausse / en baisse (plus de 0,2 mg/L par an)");
+  if(recents.length) ret.push(`Sur ${recents.length} points de suivi des nappes autour de NCPA, <b>${n40}</b> présente${n40>1?"nt":""} une teneur moyenne en nitrates de 40 mg/L ou plus lors de leur dernière année de mesure${n50?`, dont ${n50} au-delà de 50 mg/L`:""}.`);
+ }
+ $("#syn-retenir").innerHTML = ret.length ? ret.map(t=>`<p>${t}</p>`).join("") : `<p class="attente">Chargement des données…</p>`;
+}
+
+/* ============ Rendu : eau du robinet ============ */
+function choisirCommune(c, depuisCarte){
+ S.selCommune=c||"";
+ $("#r-commune").value=S.selCommune;
+ if(S.tab!=="robinet") ongl("robinet"); else rendreRobinet();
+ if(couches.communes) couches.communes.setStyle(styleCommune);
+ if(c && !depuisCarte){ const l=couches.communes.getLayers().find(l=>l.feature.properties.code===c); if(l) carte.fitBounds(l.getBounds(),{padding:[40,40], maxZoom:13}); }
+}
+function rendreRobinet(){
+ const Lst=$("#r-liste"), D=$("#r-detail");
+ if(!S.rob){ D.hidden=true; Lst.hidden=false; Lst.innerHTML=`<h2>Eau du robinet</h2><p class="attente" id="r-attente">${esc(S.etat.rob||"Chargement…")}</p>`; return; }
+ if(S.rob.err){ D.hidden=true; Lst.hidden=false; Lst.innerHTML=`<h2>Eau du robinet</h2>`+erreurHTML("du contrôle sanitaire",S.rob.err); return; }
+ if(S.selCommune){ Lst.hidden=true; D.hidden=false; rendreDetailCommune(S.selCommune); }
+ else { D.hidden=true; Lst.hidden=false; rendreListeCommunes(); }
+}
+function rendreListeCommunes(){
+ const an=S.rob.refYear;
+ const lignes=S.communes.map(f=>{
+  const c=f.properties.code, o=S.rob.communes[c], r=S.rob.res[c];
+  return {code:c, nom:f.properties.nom, reseaux:(S.rob.udi[c]||[]).map(u=>u.nom).filter(uniq).join(", "),
+   n:r?r.n:null, nc:r?r.nc:null, no3:r?r.no3moy:null, pest:r?r.pestmax:null, dernier:o&&!o.err?o.tMax:null, err:o&&o.err};
+ });
+ $("#r-liste").innerHTML = `<h2>Eau du robinet</h2>
+  <p class="intro">Résultats du contrôle sanitaire de l’ARS sur les réseaux qui desservent les communes. Année de référence : <b>${an}</b>, dernière année complète (données disponibles jusqu’au ${dfr(S.rob.tMax)}). Cliquez sur une ligne ou sur la carte pour le détail d’une commune.</p>
+  <div id="r-tab"></div>
+  <div class="exports"><button id="x-r-com">Synthèse par commune (CSV)</button><button id="x-r-ana">Analyses nitrates et pesticides (CSV)</button><button id="x-r-nc">Prélèvements non conformes (CSV)</button></div>`;
+ tableau($("#r-tab"), [
+  {k:"nom", lib:"Commune"},
+  {k:"reseaux", lib:"Réseau(x)", fmt:l=>`<small>${esc(l.reseaux)||"–"}</small>`},
+  {k:"n", lib:`Prél. ${an}`, num:true, fmt:l=>l.err?"erreur":nf(l.n)},
+  {k:"nc", lib:"Non conf.", num:true, fmt:l=>l.nc?`<b style="color:#B91E27">${l.nc}</b>`:nf(l.nc)},
+  {k:"no3", lib:"Nitrates moy. (mg/L)", num:true, fmt:l=>nf(l.no3,1)},
+  {k:"pest", lib:"Pesticides max (µg/L)", num:true, fmt:l=>nfa(l.pest)},
+  {k:"dernier", lib:"Dernier prél.", num:true, fmt:l=>dfr(l.dernier)}
+ ], lignes, {tri:"nom", sens:1, clic:l=>choisirCommune(l.code), cls:l=>l.nc>0?"alerte":""});
+ $("#x-r-com").onclick=()=>telecharger(`robinet_communes_${an}_${horodate()}.csv`, csv([
+  ["code","Code INSEE"],["nom","Commune"],["reseaux","Réseaux de distribution"],["n",`Prélèvements réseau ${an}`],["nc",`Non-conformités ${an}`],
+  ["no3",`Nitrates moyenne ${an} (mg/L)`],["pest",`Total pesticides max ${an} (µg/L)`],[l=>isoDate(l.dernier),"Dernier prélèvement"]], lignes), "text/csv");
+ $("#x-r-ana").onclick=exporterAnalysesRobinet;
+ $("#x-r-nc").onclick=exporterNCRobinet;
+}
+function exporterAnalysesRobinet(){
+ const L0=[];
+ for(const f of S.communes){
+  const c=f.properties.code, o=S.rob.communes[c]; if(!o||o.err) continue;
+  o.no3.forEach(x=>L0.push({c, nom:f.properties.nom, p:"Nitrates", u:"mg/L", ...x}));
+  o.pest.forEach(x=>L0.push({c, nom:f.properties.nom, p:"Total des pesticides analysés", u:"µg/L", ...x}));
+ }
+ telecharger(`robinet_analyses_${horodate()}.csv`, csv([["c","Code INSEE"],["nom","Commune"],[l=>isoDate(l.t),"Date"],["p","Paramètre"],
+  ["v","Résultat"],["txt","Résultat (texte)"],["u","Unité"],[l=>l.amont?"Installation amont":"Réseau de distribution","Lieu"],["inst","Installation amont"]], L0), "text/csv");
+}
+function exporterNCRobinet(){
+ const L0=[];
+ for(const f of S.communes){
+  const c=f.properties.code, o=S.rob.communes[c]; if(!o||o.err) continue;
+  o.prel.filter(p=>p.lb==="N"||p.lpc==="N").forEach(p=>L0.push({c, nom:f.properties.nom, ...p}));
+ }
+ telecharger(`robinet_non_conformites_${horodate()}.csv`, csv([["c","Code INSEE"],["nom","Commune"],["code","Code prélèvement"],[l=>isoDate(l.t),"Date"],
+  [l=>l.inst||"Réseau de distribution","Lieu"],[l=>l.lb==="N"?"oui":"","Non-conformité bactériologique"],[l=>l.lpc==="N"?"oui":"","Non-conformité physico-chimique"],["concl","Conclusion sanitaire"]], L0), "text/csv");
+}
+function rendreDetailCommune(c){
+ const D=$("#r-detail"), o=S.rob.communes[c], an=S.rob.refYear, f=S.cIdx[c];
+ const tete=`<button class="lien" id="r-retour">← Toutes les communes</button><h2>${esc(f.properties.nom)}</h2>`;
+ if(!o||o.err){ D.innerHTML=tete+erreurHTML("du contrôle sanitaire",o?o.err:"pas de donnée"); $("#r-retour").onclick=()=>choisirCommune(""); return; }
+ const r=S.rob.res[c];
+ const udi=S.rob.udi[c]||[];
+ const groupes={}; udi.forEach(u=>{ (groupes[u.code] ??= {nom:u.nom, quartiers:[]}).quartiers.push(u.quartier); });
+ const servis=code=>S.communes.filter(g=>(S.rob.udi[g.properties.code]||[]).some(u=>u.code===code)).map(g=>g.properties.nom);
+ const nc=o.prel.filter(p=>p.lb==="N"||p.lpc==="N").sort((a,b)=>b.t-a.t);
+ D.innerHTML = tete + `
+  <p class="meta">${nf(f.properties.population)} habitants${o.distrib?` · Exploitant : ${esc(o.distrib)}`:""}${o.moa?` · Maître d’ouvrage : ${esc(o.moa)}`:""}</p>
+  <div class="chiffres">
+   ${chiffre(nf(r.n), `prélèvements sur le réseau en ${an}`)}
+   ${chiffre(nf(r.nc), `non-conformité${r.nc>1?"s":""} aux limites de qualité en ${an}`, r.nc>0)}
+   ${chiffre(nf(r.no3moy,1), `mg/L de nitrates en moyenne en ${an} (limite 50)`, r.no3moy>=40)}
+   ${chiffre(nfa(r.pestmax), `µg/L : total pesticides, maximum ${an} (limite 0,5)`, r.pestmax>0.5)}
+  </div>
+  <h3>Réseau${Object.keys(groupes).length>1?"x":""} de distribution</h3>
+  ${Object.keys(groupes).length ? Object.entries(groupes).map(([k,g])=>{ const s=servis(k); return `<p class="meta"><b>${esc(g.nom)}</b> (${esc(k)})${g.quartiers.filter(q=>q&&q!=="-").length?" – "+esc(g.quartiers.filter(q=>q&&q!=="-").filter(uniq).join(", ")):""}<br>Dessert aussi dans NCPA : ${esc(s.filter(n=>n!==f.properties.nom).join(", ")||"aucune autre commune")}</p>`; }).join("") : `<p class="attente">Réseau non renseigné.</p>`}
+  <h3>Nitrates</h3>
+  <div class="graph"><canvas id="g-r-no3"></canvas></div>
+  <p class="note">Points bleus : eau prélevée sur le réseau (au robinet). Points gris : prélèvements en amont (captage, usine de traitement), qui peuvent correspondre à de l’eau brute avant traitement.</p>
+  <h3>Pesticides (total des substances analysées)</h3>
+  <div class="graph"><canvas id="g-r-pest"></canvas></div>
+  <p class="note">La limite de qualité est de 0,1 µg/L par pesticide et de 0,5 µg/L pour le total.</p>
+  <h3>Conformité des prélèvements par année</h3>
+  <div class="graph"><canvas id="g-r-conf"></canvas></div>
+  <h3>D’où vient l’eau : installations en amont contrôlées</h3>
+  <div id="r-inst"></div>
+  <p class="note">Captages et usines de traitement qui alimentent le réseau, tels qu’ils apparaissent dans le contrôle sanitaire. La part dans l’alimentation est indiquée quand l’ARS la renseigne.</p>
+  <h3>Prélèvements non conformes (${nc.length} depuis ${S.y0})</h3>
+  <div id="r-nc"></div>
+  ${o.tronque?`<p class="note">Attention : le volume de données a été tronqué par l’API pour cette commune.</p>`:""}`;
+ $("#r-retour").onclick=()=>choisirCommune("");
+ const pts=(arr,amont)=>arr.filter(x=>x.amont===amont).map(x=>({t:x.t,v:x.v}));
+ graph("g-r-no3", cfgSerie([{lib:"Réseau de distribution",pts:pts(o.no3,false),col:"#2B6CB0"},{lib:"Installations amont",pts:pts(o.no3,true),col:"#9a978e",ligne:false}], "mg/L", 50, "Limite de qualité (50 mg/L)"));
+ graph("g-r-pest", cfgSerie([{lib:"Réseau de distribution",pts:pts(o.pest,false),col:"#2B6CB0"},{lib:"Installations amont",pts:pts(o.pest,true),col:"#9a978e",ligne:false}], "µg/L", 0.5, "Limite de qualité (0,5 µg/L)"));
+ const ans=[]; for(let y=S.y0;y<=annee(o.tMax||Date.now());y++) ans.push(y);
+ graph("g-r-conf", cfgBarres(ans, [
+  {label:"Conformes", data:ans.map(a=>{const x=o.parAn[a]; return x?x.n-x.nc:0;}), backgroundColor:COUL.ok},
+  {label:"Non conformes (bactériologie)", data:ans.map(a=>{const x=o.parAn[a]; return x?x.ncB:0;}), backgroundColor:COUL.nc},
+  {label:"Non conformes (physico-chimie)", data:ans.map(a=>{const x=o.parAn[a]; return x?Math.max(0,x.nc-x.ncB):0;}), backgroundColor:"#E07B39"}], "prélèvements"));
+ const elI=$("#r-inst");
+ if(o.inst.length) tableau(elI, [
+  {k:"nom", lib:"Installation"}, {k:"code", lib:"Code"},
+  {k:"debit", lib:"Part de l’alimentation", num:true, fmt:l=>l.debit!=null?esc(l.debit)+" %":"–", val:l=>l.debit!=null?+l.debit:null},
+  {k:"n", lib:"Prélèvements", num:true}, {k:"nc", lib:"Non conf.", num:true},
+  {k:"dernier", lib:"Dernier contrôle", num:true, fmt:l=>dfr(l.dernier)}], o.inst, {tri:"dernier", sens:-1});
+ else elI.innerHTML=`<p class="attente">Aucun prélèvement en amont du réseau pour cette commune dans la période.</p>`;
+ const elN=$("#r-nc");
+ if(!nc.length){ elN.innerHTML=`<p class="attente">Aucun prélèvement non conforme depuis ${S.y0}.</p>`; return; }
+ tableau(elN, [
+  {k:"t", lib:"Date", num:true, fmt:l=>dfr(l.t)},
+  {k:"inst", lib:"Lieu", fmt:l=>esc(l.inst||"Réseau")},
+  {k:"type", lib:"Type", val:l=>(l.lb==="N"?"B":"")+(l.lpc==="N"?"P":""), fmt:l=>[l.lb==="N"?"Bactériologique":"", l.lpc==="N"?"Physico-chimique":""].filter(Boolean).join(" + ")},
+  {k:"concl", lib:"Conclusion de l’ARS", fmt:l=>`<small>${esc(l.concl)}</small>`},
+  {k:"x", lib:"", fmt:l=>`<button class="petit" data-p="${esc(l.code)}">Paramètres en cause</button>`}
+ ], nc, {tri:"t", sens:-1, apres:el=>el.querySelectorAll("button[data-p]").forEach(b=>b.onclick=()=>parametresEnCause(b, b.dataset.p, c))});
+}
+function depasse(r){
+ const lim=r.limite_qualite_parametre, v=r.resultat_numerique;
+ if(!lim || v==null || !isFinite(v)) return false;
+ const s=String(lim).replace(/\(.*?\)/g,"").replace(/\/\s*\d+\s*m?l/gi,"").replace(/,/g,".");
+ const m=[...s.matchAll(/(<=|>=|<|>|≤|≥)?\s*(-?\d+(?:\.\d+)?)/g)];
+ let ko=false;
+ for(const x of m){ const op=x[1]||"<=", n=+x[2];
+  if((op==="<="||op==="≤") && v>n) ko=true; if(op==="<" && v>=n) ko=true;
+  if((op===">="||op==="≥") && v<n) ko=true; if(op===">" && v<=n) ko=true; }
+ return ko;
+}
+async function parametresEnCause(btn, code, c){
+ const tr=btn.closest("tr"); btn.disabled=true; btn.textContent="Chargement…";
+ const suiv=tr.nextElementSibling; if(suiv && suiv.classList.contains("sous")) suiv.remove();
+ const nt=document.createElement("tr"); nt.className="sous";
+ try{
+  const rows=await getAll(HUB+"/v1/qualite_eau_potable/resultats_dis", {code_prelevement:code, code_commune:c,
+   fields:"libelle_parametre,resultat_numerique,resultat_alphanumerique,libelle_unite,limite_qualite_parametre"}, 1000);
+  const lim=rows.filter(r=>r.limite_qualite_parametre);
+  const dep=lim.filter(depasse);
+  const lig=r=>`<b>${esc(r.libelle_parametre)}</b> : ${esc(r.resultat_alphanumerique ?? nfa(r.resultat_numerique))} ${esc(r.libelle_unite||"")} (limite ${esc(r.limite_qualite_parametre)})`;
+  nt.innerHTML=`<td colspan="5">${dep.length ? "Dépassement : "+dep.map(lig).join(" ; ") : "Aucun dépassement repéré automatiquement. Paramètres soumis à une limite : "+(lim.map(lig).join(" ; ")||"aucun")}</td>`;
+  btn.textContent="Paramètres en cause";
+ }catch(e){ nt.innerHTML=`<td colspan="5">Impossible de charger le détail : ${esc(e.message||e)}</td>`; btn.textContent="Réessayer"; }
+ btn.disabled=false; tr.after(nt);
+}
+
+/* ============ Rendu : prélèvements ============ */
+function rendrePrel(){
+ const el=$("#pr-contenu");
+ if(!S.prel){ el.innerHTML=`<p class="attente">${esc(S.etat.prel||"Chargement…")}</p>`; return; }
+ if(S.prel.err){ el.innerHTML=erreurHTML("de prélèvements",S.prel.err); return; }
+ const L0=ouvragesFiltres(), a=S.prel.anMax;
+ const ans=[]; for(let y=S.y0;y<=a;y++) ans.push(y);
+ const vA=somme(L0.map(o=>o.vol[a])), vAep=somme(L0.filter(o=>o.cat==="aep").map(o=>o.vol[a]));
+ const tot=y=>somme(L0.map(o=>o.vol[y])); const a0=ans.find(y=>tot(y)>0);
+ const evo=a0&&a0<a?tot(a)/tot(a0)-1:null;
+ const sel=S.selOuvrage?S.prel.ouvrages.find(o=>o.code===S.selOuvrage):null;
+ el.innerHTML = `<div class="chiffres">
+   ${chiffre(nf(vA/1e6,2)+" Mm³", `prélevés en ${a} (sélection)`)}
+   ${chiffre(nf(vAep/1e6,2)+" Mm³", `dont eau potable en ${a}`)}
+   ${chiffre(String(L0.filter(o=>o.vol[a]).length), `ouvrages déclarant un volume en ${a}`)}
+   ${chiffre(evo==null?"–":(evo>0?"+":"")+nf(evo*100,0)+" %", evo==null?"évolution":`évolution entre ${a0} et ${a}`)}
+  </div>
+  <div class="graph"><canvas id="g-pr-ans"></canvas></div>
+  <p class="note">Volumes annuels par usage. La dernière année disponible dans la BNPE a souvent un ou deux ans de décalage.${S.prel.tronque?" Attention : la liste a été tronquée par l’API.":""}</p>
+  ${sel?`<h3>${esc(sel.nom)}</h3><p class="meta">${esc(sel.commune)}${sel.zone==="ncpa"?"":` (hors NCPA, ${nf(sel.dist,1)} km)`} · ${esc(sel.usageLib||"usage non précisé")} · ${esc(sel.milieu||"ressource non précisée")} · ${esc(sel.code)}${sel.precis?"":" · position approximative"}</p><div class="graph" style="height:200px"><canvas id="g-pr-ouv"></canvas></div>`:""}
+  <h3>Ouvrages (${L0.length})</h3>
+  <div id="pr-tab"></div>
+  <div class="exports"><button id="x-pr-csv">Volumes par ouvrage (CSV)</button><button id="x-pr-geo">Ouvrages (GeoJSON)</button></div>`;
+ graph("g-pr-ans", cfgBarres(ans, USAGES.map(u=>({label:u.lib, data:ans.map(y=>somme(L0.filter(o=>o.cat===u.k).map(o=>o.vol[y]))), backgroundColor:u.c}))
+  .filter(d=>d.data.some(v=>v>0)), "m³"));
+ if(sel){
+  const ys=Object.keys(sel.vol).map(Number).filter(y=>y>=S.y0).sort((x,y)=>x-y);
+  graph("g-pr-ouv", cfgBarres(ys, [{label:"Volume prélevé", data:ys.map(y=>sel.vol[y]), backgroundColor:U_IDX[sel.cat].c}], "m³", false));
+ }
+ const moyP=o=>{ const v=ans.map(y=>o.vol[y]).filter(v=>v!=null); return moy(v); };
+ const lignes=L0.map(o=>({...o, vDer:o.vol[a]??null, vMoy:moyP(o), zoneLib:o.zone==="ncpa"?"NCPA":nf(o.dist,1)+" km"}));
+ tableau($("#pr-tab"), [
+  {k:"nom", lib:"Ouvrage", fmt:l=>esc(l.nom)+(l.precis?"":" <small>(position approx.)</small>")},
+  {k:"commune", lib:"Commune"},
+  {k:"cat", lib:"Usage", fmt:l=>`<span class="puce" style="background:${U_IDX[l.cat].c}"></span>${esc(U_IDX[l.cat].lib)}`, val:l=>U_IDX[l.cat].lib},
+  {k:"milieu", lib:"Ressource"},
+  {k:"dist", lib:"Zone", num:true, fmt:l=>l.zoneLib},
+  {k:"vDer", lib:`m³ ${a}`, num:true, fmt:l=>nf(l.vDer)},
+  {k:"vMoy", lib:"m³ moy./an", num:true, fmt:l=>nf(l.vMoy)}
+ ], lignes, {tri:"vMoy", sens:-1, cls:l=>l.code===S.selOuvrage?"sel":"", clic:l=>{
+   S.selOuvrage=l.code; rendrePrel();
+   carte.setView([l.lat,l.lon], Math.max(carte.getZoom(),12));
+   couches.ouvrages.eachLayer(m=>{ const ll=m.getLatLng(); if(Math.abs(ll.lat-l.lat)<1e-9 && Math.abs(ll.lng-l.lon)<1e-9) m.openPopup(); });
+ }});
+ $("#x-pr-csv").onclick=()=>{
+  const cols=[["code","Code ouvrage"],["nom","Ouvrage"],["insee","Code INSEE"],["commune","Commune"],["usageLib","Usage"],["milieu","Ressource"],
+   [l=>l.zone==="ncpa"?"NCPA":"Proximité","Zone"],[l=>+l.dist.toFixed(2),"Distance à NCPA (km)"],[l=>l.precis?"oui":"non","Position précise"],["lon","Longitude"],["lat","Latitude"],
+   ...ans.map(y=>[l=>l.vol[y]??null, "m³ "+y])];
+  telecharger(`prelevements_ouvrages_${horodate()}.csv`, csv(cols, L0), "text/csv");
+ };
+ $("#x-pr-geo").onclick=()=>{
+  const fc={type:"FeatureCollection", features:L0.map(o=>({type:"Feature", geometry:{type:"Point", coordinates:[o.lon,o.lat]},
+   properties:{code:o.code, nom:o.nom, commune:o.commune, insee:o.insee, usage:o.usageLib, categorie:U_IDX[o.cat].lib, ressource:o.milieu,
+    zone:o.zone==="ncpa"?"NCPA":"Proximité", distance_km:+o.dist.toFixed(2), position_precise:o.precis,
+    ...Object.fromEntries(ans.map(y=>["m3_"+y, o.vol[y]??null]))}}))};
+  telecharger(`prelevements_ouvrages_${horodate()}.geojson`, JSON.stringify(fc), "application/geo+json");
+ };
+}
+
+/* ============ Rendu : nappes ============ */
+function rendreNappes(){
+ const el=$("#n-contenu");
+ if(!S.nap){ el.innerHTML=`<p class="attente">${esc(S.etat.nap||"Chargement…")}</p>`; return; }
+ if(S.nap.err){ el.innerHTML=erreurHTML("des nappes",S.nap.err); return; }
+ const P=S.nap.param[S.nParam], def=NAPPES_P[S.nParam];
+ if(!P){ el.innerHTML=`<p class="attente">${esc(S.etat.nap||"Chargement…")}</p>`; return; }
+ const st=[...S.nap.stations.values()];
+ const avec=st.filter(s=>P.res.has(s.bss)).map(s=>({...s, ...P.res.get(s.bss)}));
+ const recents=avec.filter(s=>s.anDernier>=AN-5);
+ const nRep=recents.filter(s=>s.moyDernier>=def.repere).length;
+ const sel=S.selStation?S.nap.stations.get(S.selStation):null;
+ const g={}; avec.forEach(s=>s.mAn.forEach(x=>(g[x.a] ??= []).push(x.v)));
+ const ans=Object.keys(g).map(Number).sort((a,b)=>a-b);
+ el.innerHTML = `<div class="chiffres">
+   ${chiffre(String(st.length), `points de suivi à moins de ${S.rayon} km`)}
+   ${chiffre(String(recents.length), `avec ${def.lib.toLowerCase()} mesuré depuis ${AN-5}`)}
+   ${chiffre(String(nRep), `à ${nfa(def.repere)} ${P.unite} ou plus (dernière année mesurée)`, nRep>0)}
+  </div>
+  <div class="graph"><canvas id="g-n-ans"></canvas></div>
+  <p class="note">Moyennes annuelles des points de suivi : médiane et point le plus élevé. Le nombre de points mesurés varie d’une année à l’autre.${P.tronque?" Attention : données tronquées par l’API.":""}</p>
+  <div id="n-detail"></div>
+  <h3>Points de suivi (${avec.length} avec des mesures)</h3>
+  <div id="n-tab"></div>
+  <div class="exports"><button id="x-n-csv">Points de suivi (CSV)</button><button id="x-n-geo">Points de suivi (GeoJSON)</button><button id="x-n-ana">Analyses ${esc(def.lib.toLowerCase())} (CSV)</button></div>`;
+ graph("g-n-ans", {type:"line", data:{labels:ans, datasets:[
+  {label:"Point le plus élevé", data:ans.map(a=>max(g[a])), borderColor:"#E07B39", backgroundColor:"#E07B39", tension:0},
+  {label:"Médiane des points", data:ans.map(a=>mediane(g[a])), borderColor:"#2B6CB0", backgroundColor:"#2B6CB0", tension:0},
+  {label:def.repereLib, data:ans.map(()=>def.repere), borderColor:"#B91E27", borderDash:[6,4], pointRadius:0, borderWidth:1.5}]},
+  options:{animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true, title:{display:true,text:P.unite}}, x:{grid:{display:false}}},
+   plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:11}}}, tooltip:{callbacks:{label:it=>it.dataset.label+" : "+nfa(it.raw)+" "+P.unite}}}}});
+ if(sel) rendreDetailStation(sel);
+ tableau($("#n-tab"), [
+  {k:"lib", lib:"Point de suivi", fmt:l=>esc(l.lib)+`<br><small>${esc(l.code||l.bss)}</small>`},
+  {k:"commune", lib:"Commune"},
+  {k:"dist", lib:"Zone", num:true, fmt:l=>l.zone==="ncpa"?"NCPA":nf(l.dist,1)+" km"},
+  {k:"anDernier", lib:"Dernière année", num:true},
+  {k:"moyDernier", lib:`Moyenne (${esc(P.unite)})`, num:true, fmt:l=>`<span class="puce" style="background:${classe(l.moyDernier,def.seuils,def.pal)}"></span>${nfa(l.moyDernier)}`},
+  {k:"max", lib:"Maximum", num:true, fmt:l=>nfa(l.max)},
+  {k:"pente", lib:"Tendance /an", num:true, fmt:l=>l.pente==null?"–":(l.pente>0?"+":"")+nfa(l.pente)},
+  {k:"n", lib:"Analyses", num:true}
+ ], avec, {tri:"moyDernier", sens:-1, cls:l=>l.bss===S.selStation?"sel":"", clic:l=>{
+   S.selStation=l.bss; rendreNappes();
+   carte.setView([l.lat,l.lon], Math.max(carte.getZoom(),12));
+ }});
+ const colsSt=[["bss","Identifiant BSS"],["code","Code BSS"],["lib","Libellé"],["commune","Commune"],[l=>l.zone==="ncpa"?"NCPA":"Proximité","Zone"],
+  [l=>+l.dist.toFixed(2),"Distance à NCPA (km)"],["lon","Longitude"],["lat","Latitude"],["anDernier","Dernière année mesurée"],
+  ["moyDernier",`${def.lib} moyenne dernière année (${P.unite})`],["max",`${def.lib} maximum (${P.unite})`],["pente",`Tendance (${P.unite}/an)`],["n","Nombre d’analyses"]];
+ $("#x-n-csv").onclick=()=>telecharger(`nappes_${S.nParam}_${horodate()}.csv`, csv(colsSt, st.map(s=>({...s, ...(P.res.get(s.bss)||{})}))), "text/csv");
+ $("#x-n-geo").onclick=()=>{
+  const fc={type:"FeatureCollection", features:st.map(s=>{ const r=P.res.get(s.bss)||{}; return {type:"Feature", geometry:{type:"Point",coordinates:[s.lon,s.lat]},
+   properties:{bss_id:s.bss, code_bss:s.code, libelle:s.lib, commune:s.commune, zone:s.zone==="ncpa"?"NCPA":"Proximité", distance_km:+s.dist.toFixed(2),
+    parametre:def.lib, unite:P.unite, derniere_annee:r.anDernier??null, moyenne_derniere_annee:r.moyDernier??null, maximum:r.max??null, tendance_par_an:r.pente??null, nb_analyses:r.n??0}}; })};
+  telecharger(`nappes_${S.nParam}_${horodate()}.geojson`, JSON.stringify(fc), "application/geo+json");
+ };
+ $("#x-n-ana").onclick=()=>{
+  const L0=[]; for(const [b,r] of P.res){ const s=S.nap.stations.get(b)||{}; r.pts.forEach(p=>L0.push({b, code:s.code, lib:s.lib, ...p})); }
+  telecharger(`nappes_analyses_${S.nParam}_${horodate()}.csv`, csv([["b","Identifiant BSS"],["code","Code BSS"],["lib","Point de suivi"],[l=>isoDate(l.t),"Date"],
+   ["v",`Résultat (${P.unite})`],[l=>l.q?"oui":"non","Quantifié"]], L0), "text/csv");
+ };
+}
+function rendreDetailStation(s){
+ const el=$("#n-detail"), P=S.nap.param[S.nParam], def=NAPPES_P[S.nParam], r=P.res.get(s.bss);
+ const tout=S.nap.tout[s.bss];
+ el.innerHTML=`<h3>${esc(s.lib)}</h3>
+  <p class="meta">${esc(s.commune)}${s.zone==="ncpa"?"":` (hors NCPA, ${nf(s.dist,1)} km)`} · ${esc(s.code||s.bss)}${s.nature?" · "+esc(s.nature):""}${s.code?` · <a href="https://ades.eaufrance.fr/Fiche/PtEau?code=${encodeURIComponent(s.code)}" target="_blank" rel="noopener">fiche ADES</a>`:""}</p>
+  ${r?`<div class="graph" style="height:220px"><canvas id="g-n-st"></canvas></div>`:`<p class="attente">Pas d’analyse de ${esc(def.lib.toLowerCase())} depuis ${S.y0}.</p>`}
+  <div style="margin-top:10px">${tout&&tout.ok?"":`<button id="n-tout">${tout&&tout.charge?"Chargement…":"Voir tous les paramètres analysés sur ce point"}</button>`}</div>
+  <div id="n-tout-res"></div>`;
+ if(r) graph("g-n-st", cfgSerie([{lib:def.lib, pts:r.pts.map(p=>({t:p.t, v:p.q?p.v:0})), col:"#2B6CB0"}], P.unite, def.repere, def.repereLib));
+ const b=$("#n-tout"); if(b) b.onclick=()=>chargerToutStation(s);
+ if(tout&&tout.ok) rendreToutStation(s);
+}
+async function chargerToutStation(s){
+ S.nap.tout[s.bss]={charge:true}; rendreDetailStation(s);
+ try{
+  const rows=await getAllPeriode(HUB+"/v1/qualite_nappes/analyses", {bss_id:s.bss,
+   fields:"date_debut_prelevement,code_param,nom_param,resultat,code_remarque_analyse,nom_unite,symbole_unite"},
+   "date_debut_prelevement","date_fin_prelevement", S.y0, AN, fJour);
+  const g=new Map();
+  for(const r of rows){
+   if(r.resultat==null) continue;
+   const t=Date.parse(r.date_debut_prelevement); if(!isFinite(t)) continue;
+   const q=r.code_remarque_analyse==null || String(r.code_remarque_analyse)==="1";
+   const o=g.get(r.code_param)||{code:r.code_param, nom:r.nom_param||String(r.code_param), unite:r.symbole_unite||r.nom_unite||"", pts:[]};
+   o.pts.push({t, v:+r.resultat, q}); g.set(r.code_param,o);
+  }
+  const L0=[...g.values()].map(o=>{ o.pts.sort((a,b)=>a.t-b.t); const qv=o.pts.filter(p=>p.q).map(p=>p.v); const d=o.pts[o.pts.length-1];
+   return {...o, n:o.pts.length, nq:qv.length, max:max(qv), dernier:d.t, dernierV:d.q?d.v:null}; });
+  S.nap.tout[s.bss]={ok:true, params:L0, tronque:rows.tronque};
+ }catch(e){ S.nap.tout[s.bss]={err:String(e.message||e)}; }
+ if(S.selStation===s.bss && S.tab==="nappes") rendreDetailStation(s);
+}
+function rendreToutStation(s){
+ const T=S.nap.tout[s.bss], el=$("#n-tout-res");
+ if(T.err){ el.innerHTML=erreurHTML("de ce point",T.err); return; }
+ el.innerHTML=`<h3>Tous les paramètres (${T.params.length})</h3>
+  <div class="barre"><label class="ch">Filtrer<input type="search" id="n-filtre" placeholder="ex. atrazine, chlorure…"></label>
+  <label class="ch">&nbsp;<span><input type="checkbox" id="n-quant"> seulement les paramètres quantifiés</span></label></div>
+  <div class="graph" style="height:200px" id="n-p-g" hidden><canvas id="g-n-p"></canvas></div>
+  <div id="n-p-tab"></div>
+  <div class="exports"><button id="x-n-tout">Toutes les analyses de ce point (CSV)</button></div>
+  ${T.tronque?`<p class="note">Attention : données tronquées par l’API.</p>`:""}
+  <p class="note">« Quantifié » : au moins une analyse au-dessus du seuil de quantification du laboratoire. Les autres résultats sont comptés à 0.</p>`;
+ const maj=()=>{
+  const f=($("#n-filtre").value||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""), q=$("#n-quant").checked;
+  const L0=T.params.filter(p=>(!q||p.nq>0) && (!f || p.nom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").includes(f)));
+  tableau($("#n-p-tab"), [
+   {k:"nom", lib:"Paramètre"}, {k:"code", lib:"Code", num:true},
+   {k:"n", lib:"Analyses", num:true}, {k:"nq", lib:"Quantifiées", num:true},
+   {k:"max", lib:"Maximum", num:true, fmt:l=>l.max==null?"–":nfa(l.max)+" "+esc(l.unite)},
+   {k:"dernier", lib:"Dernière analyse", num:true, fmt:l=>dfr(l.dernier)+(l.dernierV!=null?` : ${nfa(l.dernierV)}`:" : non quantifié")}
+  ], L0, {tri:"nq", sens:-1, clic:l=>{
+    $("#n-p-g").hidden=false;
+    graph("g-n-p", cfgSerie([{lib:l.nom, pts:l.pts.map(p=>({t:p.t, v:p.q?p.v:0})), col:"#6E7647"}], l.unite));
+  }});
+ };
+ $("#n-filtre").oninput=maj; $("#n-quant").onchange=maj; maj();
+ $("#x-n-tout").onclick=()=>{
+  const L0=[]; T.params.forEach(p=>p.pts.forEach(x=>L0.push({nom:p.nom, code:p.code, unite:p.unite, ...x})));
+  telecharger(`nappes_${(s.code||s.bss).replace(/[\/\\]/g,"-")}_${horodate()}.csv`, csv([["code","Code paramètre"],["nom","Paramètre"],[l=>isoDate(l.t),"Date"],
+   ["v","Résultat"],["unite","Unité"],[l=>l.q?"oui":"non","Quantifié"]], L0), "text/csv");
+ };
+}
+
+/* ============ Navigation ============ */
+function ongl(t){
+ S.tab=t;
+ document.querySelectorAll("#onglets button").forEach(b=>b.classList.toggle("on", b.dataset.t===t));
+ document.querySelectorAll(".pane").forEach(p=>p.hidden = p.id!=="p-"+t);
+ $("#panneau").scrollTop=0;
+ if(t==="synthese") rendreSynthese();
+ if(t==="robinet") rendreRobinet();
+ if(t==="prel") rendrePrel();
+ if(t==="nappes") rendreNappes();
+ if(t==="methode") $("#m-session").innerHTML=`${STATS.req} requêtes envoyées. `+(STATS.err.length?`Erreurs :<br>${STATS.err.slice(0,30).map(esc).join("<br>")}`:"Aucune erreur.");
+ majCarte();
+ setTimeout(()=>carte.invalidateSize(), 50);
+}
+function initUI(){
+ const sy=$("#cfg-y0");
+ for(let y=AN-1;y>=2000;y--) sy.insertAdjacentHTML("beforeend",`<option value="${y}"${y===S.y0?" selected":""}>${y}</option>`);
+ document.querySelectorAll("#onglets button").forEach(b=>b.onclick=()=>ongl(b.dataset.t));
+ $("#cfg-ok").onclick=()=>{ S.y0=+sy.value; S.rayon=+$("#cfg-rayon").value; lancerChargements(); };
+ $("#r-commune").onchange=e=>choisirCommune(e.target.value);
+ $("#r-var").onchange=e=>{ S.rVar=e.target.value; majCarte(); };
+ const su=$("#pr-usage"); USAGES.forEach(u=>su.insertAdjacentHTML("beforeend",`<option value="${u.k}">${u.lib}</option>`));
+ const majPr=()=>{ if(S.prel&&S.prel.ok){ construireCoucheOuvrages(); rendrePrel(); majCarte(); } };
+ $("#pr-zone").onchange=majPr; $("#pr-usage").onchange=majPr;
+ const np=$("#n-param"); Object.entries(NAPPES_P).forEach(([k,p])=>np.insertAdjacentHTML("beforeend",`<option value="${k}">${p.lib} (${p.unite})</option>`));
+ np.onchange=async e=>{
+  S.nParam=e.target.value; S.selStation=null;
+  if(!S.nap||!S.nap.ok) return;
+  rendreNappes(); majLegende();
+  try{ await chargerParamNappes(S.nParam, S.generation); }
+  catch(err){ STATS.err.push("Nappes "+S.nParam+" : "+(err.message||err)); etat("nap","Nappes : erreur sur ce paramètre"); $("#n-contenu").innerHTML=erreurHTML("de ce paramètre",String(err.message||err)); return; }
+  if(S.tab==="nappes"){ rendreNappes(); majCarte(); }
+ };
+}
+function lancerChargements(){
+ S.generation++; const gen=S.generation;
+ STATS.req=0; STATS.err=[];
+ S.rob=null; S.prel=null; S.nap=null; S.selOuvrage=null; S.selStation=null;
+ ["ouvrages","stations"].forEach(k=>{ if(couches[k]){ carte.removeLayer(couches[k]); couches[k]=null; } });
+ Object.keys(graphs).forEach(k=>{ graphs[k].destroy(); delete graphs[k]; });
+ S.etat={}; etat("rob","Eau du robinet…"); etat("prel","Prélèvements…"); etat("nap","Nappes…");
+ rendreSynthese(); ongl(S.tab);
+ const t0=Date.now();
+ Promise.allSettled([chargerRobinet(gen), chargerPrel(gen), chargerNappes(gen)]).then(()=>{
+  if(gen!==S.generation) return;
+  etat("fin", `chargé en ${nf((Date.now()-t0)/1000)} s, le ${new Date().toLocaleString("fr-FR")}`);
+ });
+}
+async function demarrer(){
+ initCarte(); initUI(); majLegende();
+ try{ await chargerCommunes(); }
+ catch(e){
+  etat("com","Erreur");
+  $("#syn-retenir").innerHTML=erreurHTML("des communes (API Découpage administratif)", String(e.message||e));
+  return;
+ }
+ dessinerCommunes();
+ lancerChargements();
+}
+demarrer();
+</script>
+</body>
+</html>
