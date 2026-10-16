@@ -93,6 +93,7 @@ kbd{font-family:inherit;border:1px solid var(--ligne);border-bottom-width:2px;bo
   box-shadow:0 1px 6px rgba(0,0,0,.25);max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .etiquette .annee{display:block;font-size:24px;font-weight:700;line-height:1.05;letter-spacing:-.01em}
 .etiquette .cat{display:block;font-size:12px;color:var(--mute)}
+.etiquette.charge .cat::after{content:" · chargement…"}
 #tagB{border-left-color:var(--rouge)}
 #tagB.dans-loupe{padding:3px 8px 4px;max-width:none}
 #tagB.dans-loupe .annee{font-size:17px}
@@ -234,7 +235,7 @@ const etat = {
   a: null, b: null, mode: "swipe", orient: "v", pos: 0.5, rayon: 140,
   loupeFixe: false, loupePt: null,
 };
-let tuileA = null, tuileB = null, ovLimites = null, ovCadastre = null, coucheNcpa = null, repere = null;
+let ovLimites = null, ovCadastre = null, coucheNcpa = null, repere = null;
 
 /* ---------------- Utilitaires ---------------- */
 const $ = id => document.getElementById(id);
@@ -309,6 +310,45 @@ function couvreNcpa(c){
   }
   return true;
 }
+/* Sondage réel de la couverture : l'emprise déclarée par l'IGN englobe souvent
+   la France entière (DOM compris) alors que le millésime n'a pas de données sur NCPA.
+   On demande 5 tuiles réparties sur le territoire ; il faut au moins 3 réponses. */
+const SONDES_KEY = "comparateurOrtho.sondes.v1";
+const POINTS_SONDE = [[49.24, -0.12], [49.20, -0.19], [49.20, -0.05], [49.29, -0.19], [49.29, -0.05]];
+let sondes = {};
+try { const s = JSON.parse(localStorage.getItem(SONDES_KEY) || "null"); if (s && Date.now() - s.t < CACHE_JOURS * 864e5) sondes = s.res; } catch (e) {}
+
+async function tuileExiste(c, style, lat, lon){
+  const z = clamp(13, c.minZ, c.maxZ), t = tuile(lat, lon, z);
+  const u = urlTuiles({...c, style}).replace("{z}", z).replace("{y}", t.row).replace("{x}", t.col);
+  const r = await fetch(u);
+  return r.ok && /^image\//.test(r.headers.get("content-type") || "");
+}
+async function sonderCouche(c){
+  let n = 0;
+  for (const [lat, lon] of POINTS_SONDE){
+    if (await tuileExiste(c, c.style, lat, lon) || (c.style !== "normal" && await tuileExiste(c, "normal", lat, lon))) n++;
+    if (n >= 3) return true;
+  }
+  return false;
+}
+async function sonderCouverture(){
+  const aTester = etat.couches.filter(c => c.cat !== "Actuelle" && !(c.id in sondes));
+  if (!aTester.length) return;
+  statut(`Vérification de la couverture de ${aTester.length} millésimes sur NCPA…`);
+  let retires = 0, file = [...aTester];
+  const ouvrier = async () => {
+    for (let c; (c = file.shift()); ){
+      try { sondes[c.id] = await sonderCouche(c); if (!sondes[c.id]) retires++; }
+      catch (e) { /* réseau indisponible : on garde la couche sans conclure */ }
+    }
+  };
+  await Promise.all(Array.from({length: 4}, ouvrier));
+  try { localStorage.setItem(SONDES_KEY, JSON.stringify({t: Date.now(), res: sondes})); } catch (e) {}
+  if (retires) installerCouches(etat.liste, null, `${retires} millésime(s) sans image sur NCPA retiré(s)`);
+  else statut(`${etat.couches.length} vues couvrant NCPA.`);
+}
+
 /* Services écartés de l'affichage */
 const EXCLUS = new Set([
   ...[2002, 2003, 2006, 2007, 2008, 2010, 2011, 2013, 2014, 2015, 2017, 2018, 2019, 2021, 2022, 2024]
@@ -319,6 +359,7 @@ const EXCLUS = new Set([
 function retenue(c){
   return ["Actuelle", "Millésimes BD ORTHO", "Photos historiques"].includes(c.cat)
       && !EXCLUS.has(c.id)
+      && sondes[c.id] !== false
       && !/SPOT|PLEIADES|PLÉIADES|SAT|IRC|INFRAROUGE/i.test(c.id + " " + c.title)
       && couvreNcpa(c);
 }
@@ -352,6 +393,7 @@ function classer(c){
 }
 
 function installerCouches(liste, overlays, source){
+  etat.liste = liste;
   etat.couches = liste.map(classer).filter(retenue).sort((p, q) =>
     ORDRE_CAT.indexOf(p.cat) - ORDRE_CAT.indexOf(q.cat) || q.tri - p.tri || p.libelle.localeCompare(q.libelle));
   etat.parId = Object.fromEntries(etat.couches.map(c => [c.id, c]));
@@ -401,23 +443,47 @@ function coucheTuiles(c, pane, extra){
    si aucune tuile ne se charge avec ce style, on bascule sur le style "normal". */
 function coucheVue(c, pane){
   const lyr = coucheTuiles(c, pane);
-  if (c.style !== "normal"){
-    let ok = 0, ko = 0;
-    lyr.on("tileload", () => ok++);
-    lyr.on("tileerror", () => {
-      ko++;
-      if (ko >= 6 && ok === 0 && !lyr._secours){ lyr._secours = true; lyr.setUrl(urlTuiles({...c, style: "normal"})); }
-    });
-  }
+  lyr._ok = lyr._ko = 0;                       // tuiles reçues / en erreur depuis le dernier chargement
+  lyr.on("loading", () => { lyr._ok = lyr._ko = 0; });
+  lyr.on("tileload", () => lyr._ok++);
+  lyr.on("tileerror", () => {
+    lyr._ko++;
+    if (c.style !== "normal" && lyr._ko >= 6 && lyr._ok === 0 && !lyr._secours){ lyr._secours = true; lyr.setUrl(urlTuiles({...c, style: "normal"})); }
+  });
+  lyr.on("load", verifierCouverture);
   return lyr;
+}
+
+/* Changement de vue sans trou d'affichage : la nouvelle couche se charge par-dessus
+   l'ancienne, qui n'est retirée qu'une fois la nouvelle prête (ou après 10 s).
+   Un nouveau choix pendant le chargement annule la couche en attente. */
+const vues = {A: {id: null, actuelle: null, attente: null}, B: {id: null, actuelle: null, attente: null}};
+function majVue(cote, c){
+  const v = vues[cote];
+  if (v.id === c.id) return;
+  v.id = c.id;
+  if (v.attente){ map.removeLayer(v.attente); v.attente = null; }
+  const lyr = coucheVue(c, "pane" + cote);
+  if (!v.actuelle){ v.actuelle = lyr.addTo(map); return; }
+  v.attente = lyr;
+  $("tag" + cote).classList.add("charge");
+  let delai = null;
+  const basculer = () => {
+    clearTimeout(delai);
+    if (v.attente !== lyr) return;                // couche entre-temps remplacée
+    map.removeLayer(v.actuelle);
+    v.actuelle = lyr; v.attente = null;
+    $("tag" + cote).classList.remove("charge");
+  };
+  lyr.once("load", basculer);
+  delai = setTimeout(basculer, 10000);
+  lyr.addTo(map);
 }
 
 function afficherVues(){
   const ca = etat.parId[etat.a], cb = etat.parId[etat.b];
-  if (tuileA) map.removeLayer(tuileA);
-  if (tuileB) map.removeLayer(tuileB);
-  tuileA = coucheVue(ca, "paneA").addTo(map);
-  tuileB = coucheVue(cb, "paneB").addTo(map);
+  majVue("A", ca);
+  majVue("B", cb);
   for (const [tag, c] of [["tagA", ca], ["tagB", cb]]){
     $(tag).querySelector(".annee").textContent = c.court;
     $(tag).querySelector(".cat").textContent = c.cat === "Actuelle" ? c.libelle : c.cat;
@@ -444,7 +510,11 @@ function verifierCouverture(){
     const b = c && c.bbox;
     if (b && (b[2] - b[0]) < 300 && !(p.lng >= b[0] && p.lng <= b[2] && p.lat >= b[1] && p.lat <= b[3])) hors.push(n);
   });
+  const vides = [["Vue 1", vues.A], ["Vue 2", vues.B]]
+    .filter(([, v]) => { const l = v.attente || v.actuelle; return l && !l.isLoading() && l._ok === 0 && l._ko > 0; })
+    .map(([n]) => n);
   if (etat.a === etat.b) statut("Les deux vues sont identiques : choisissez deux millésimes différents.", true);
+  else if (vides.length) statut(`${vides.join(" et ")} : aucune image disponible ici pour ce millésime.`, true);
   else if (hors.length) statut(`${hors.join(" et ")} : cette zone semble hors de l'emprise du millésime.`, true);
   else if ($("statut").classList.contains("alerte")) statut(`${etat.couches.length} vues couvrant NCPA.`);
 }
@@ -733,8 +803,12 @@ $("btnLien").onclick = async () => {
     } catch (e) {
       console.warn(e);
       statut(`Catalogue IGN injoignable (${e.message}) : liste de secours utilisée (${etat.couches.length} vues).`, true);
+      return;
     }
   }
+
+  // 3. Retrait des millésimes qui n'ont en réalité aucune image sur NCPA
+  sonderCouverture();
 })();
 </script>
 </body>
