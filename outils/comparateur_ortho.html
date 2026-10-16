@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparateur d'orthophotos – IGN</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --rouge:#B91E27; --vert:#B1B993; --vert-fonce:#6f7650;
+  --encre:#23272b; --mute:#5f655c; --ligne:#d9dcd3; --fond:#f3f4f1; --blanc:#fff;
+  --police:Calibri,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;font-family:var(--police);color:var(--encre);background:var(--fond);font-size:15px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--rouge);outline-offset:2px}
+
+/* ---------- Panneau ---------- */
+#panel{width:300px;flex:0 0 300px;height:100vh;overflow-y:auto;background:var(--blanc);border-right:1px solid var(--ligne);display:flex;flex-direction:column}
+.entete{border-top:5px solid var(--rouge);padding:16px 18px 14px;border-bottom:1px solid var(--ligne)}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--rouge);font-weight:700}
+.entete h1{font-size:22px;line-height:1.15;margin:4px 0 6px;font-weight:700}
+.entete p{margin:0;color:var(--mute);font-size:13.5px;line-height:1.4}
+.bloc{padding:14px 18px;border-bottom:1px solid var(--ligne)}
+.bloc h2{font-size:14px;margin:0 0 8px;font-weight:700}
+label.champ{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
+label.champ .pastille{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+select,input[type=search]{width:100%;padding:7px 8px;border:1px solid var(--ligne);border-radius:4px;background:var(--blanc)}
+select:hover,input[type=search]:hover{border-color:#b9bdb2}
+.ligne-boutons{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--ligne);background:var(--blanc);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:13.5px}
+.btn:hover{border-color:var(--rouge);color:var(--rouge)}
+.segment{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rouge);border-radius:5px;overflow:hidden}
+.segment button{border:0;background:var(--blanc);padding:8px 0;cursor:pointer;font-weight:700;color:var(--rouge)}
+.segment button[aria-pressed=true]{background:var(--rouge);color:#fff}
+.options{margin-top:10px;font-size:13.5px}
+.options[hidden]{display:none}
+.options .rangee{display:flex;align-items:center;gap:8px;margin:6px 0}
+.options input[type=range]{flex:1;accent-color:var(--rouge)}
+.check{display:flex;align-items:flex-start;gap:8px;margin:6px 0;font-size:13.5px;cursor:pointer}
+.check input{accent-color:var(--rouge);margin-top:3px}
+.check small{display:block;color:var(--mute);font-size:12px}
+.radios{display:flex;gap:14px}
+.radios label{display:flex;gap:5px;align-items:center;cursor:pointer}
+.radios input{accent-color:var(--rouge)}
+#resultats{list-style:none;margin:4px 0 0;padding:0;border:1px solid var(--ligne);border-radius:4px;max-height:220px;overflow:auto}
+#resultats:empty{display:none}
+#resultats li{padding:6px 8px;cursor:pointer;font-size:13.5px;border-bottom:1px solid #eef0eb}
+#resultats li:last-child{border-bottom:0}
+#resultats li:hover,#resultats li.actif{background:#f6f1f1}
+#resultats li small{display:block;color:var(--mute);font-size:12px}
+details{font-size:13px;color:var(--mute)}
+details summary{cursor:pointer;color:var(--encre);font-weight:700;font-size:14px}
+.fiche{margin:8px 0;line-height:1.4}
+.fiche b{color:var(--encre)}
+.fiche a{color:var(--rouge)}
+#statut{font-size:12.5px;color:var(--mute);line-height:1.4}
+#statut.alerte{color:var(--rouge)}
+.raccourcis{font-size:12px;color:var(--mute);margin-top:6px;line-height:1.5}
+kbd{font-family:inherit;border:1px solid var(--ligne);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:#fafaf8;font-size:11.5px}
+.pied{margin-top:auto;padding:12px 18px;font-size:12px;color:var(--mute)}
+
+/* ---------- Carte ---------- */
+#carte{flex:1 1 auto;position:relative;min-width:0;height:100vh;background:#cfd3cb}
+#map{position:absolute;inset:0;background:#cfd3cb}
+#ui{position:absolute;inset:0;pointer-events:none;z-index:500;overflow:hidden}
+
+/* Rideau */
+#rideau{position:absolute;pointer-events:auto;touch-action:none}
+#rideau .barre{position:absolute;background:var(--rouge);box-shadow:0 0 0 1px #fff}
+#rideau .zone{position:absolute}
+#rideau .poignee{position:absolute;width:42px;height:42px;border-radius:50%;background:#fff;border:3px solid var(--rouge);
+  display:grid;place-items:center;cursor:inherit;padding:0;color:var(--rouge);font-weight:700;font-size:18px;line-height:1}
+#rideau.v{top:0;bottom:0;width:0;cursor:ew-resize}
+#rideau.v .barre{top:0;bottom:0;left:-2px;width:4px}
+#rideau.v .zone{top:0;bottom:0;left:-14px;width:28px}
+#rideau.v .poignee{top:50%;left:-21px;transform:translateY(-50%)}
+#rideau.h{left:0;right:0;height:0;cursor:ns-resize}
+#rideau.h .barre{left:0;right:0;top:-2px;height:4px}
+#rideau.h .zone{left:0;right:0;top:-14px;height:28px}
+#rideau.h .poignee{left:50%;top:-21px;transform:translateX(-50%) rotate(90deg)}
+
+/* Loupe */
+#loupe{position:absolute;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--rouge),0 4px 18px rgba(0,0,0,.35)}
+
+/* Étiquettes des millésimes */
+.etiquette{position:absolute;background:#fff;border-left:5px solid var(--vert-fonce);padding:5px 10px 6px;border-radius:0 4px 4px 0;
+  box-shadow:0 1px 6px rgba(0,0,0,.25);max-width:46%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.etiquette .annee{display:block;font-size:24px;font-weight:700;line-height:1.05;letter-spacing:-.01em}
+.etiquette .cat{display:block;font-size:12px;color:var(--mute)}
+#tagB{border-left-color:var(--rouge)}
+#tagB.dans-loupe{padding:3px 8px 4px;max-width:none}
+#tagB.dans-loupe .annee{font-size:17px}
+
+.leaflet-container{font-family:var(--police)}
+.leaflet-tooltip.nom-commune{background:rgba(255,255,255,.92);border:0;font-weight:700;font-size:12.5px;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+
+@media (max-width:860px){
+  body{flex-direction:column}
+  #panel{width:100%;flex:0 0 auto;height:auto;max-height:46vh;border-right:0;border-bottom:1px solid var(--ligne)}
+  #carte{height:auto;flex:1 1 auto;min-height:0}
+  .etiquette .annee{font-size:19px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<aside id="panel">
+  <div class="entete">
+    <div class="eyebrow">Outils cartographiques NCPA</div>
+    <h1>Comparateur d'orthophotos</h1>
+    <p>Deux millésimes IGN sur le même fond, à comparer au rideau ou à la loupe.</p>
+  </div>
+
+  <div class="bloc">
+    <h2>Aller à</h2>
+    <input type="search" id="recherche" placeholder="Adresse, commune ou « lat, lon »" autocomplete="off" aria-label="Rechercher une adresse">
+    <ul id="resultats" role="listbox"></ul>
+    <div class="ligne-boutons">
+      <button class="btn" id="btnNcpa" type="button">Recentrer sur NCPA</button>
+      <button class="btn" id="btnEffacer" type="button" hidden>Retirer le repère</button>
+    </div>
+  </div>
+
+  <div class="bloc">
+    <h2>Millésimes comparés</h2>
+    <label class="champ" for="selA"><span class="pastille" style="background:var(--vert-fonce)"></span>Vue 1 – <span id="libA">à gauche</span></label>
+    <select id="selA"></select>
+    <label class="champ" for="selB"><span class="pastille" style="background:var(--rouge)"></span>Vue 2 – <span id="libB">à droite</span></label>
+    <select id="selB"></select>
+    <div class="ligne-boutons">
+      <button class="btn" id="btnInverser" type="button">⇄ Inverser les vues</button>
+    </div>
+  </div>
+
+  <div class="bloc">
+    <h2>Mode de comparaison</h2>
+    <div class="segment" role="group" aria-label="Mode">
+      <button type="button" id="modeRideau" aria-pressed="true">Rideau</button>
+      <button type="button" id="modeLoupe" aria-pressed="false">Loupe</button>
+    </div>
+    <div class="options" id="optRideau">
+      <div class="radios">
+        <label><input type="radio" name="orient" value="v" checked> Vertical</label>
+        <label><input type="radio" name="orient" value="h"> Horizontal</label>
+      </div>
+      <div class="raccourcis">Faites glisser la barre rouge, ou utilisez les flèches une fois la poignée sélectionnée.</div>
+    </div>
+    <div class="options" id="optLoupe" hidden>
+      <div class="rangee"><span>Taille</span><input type="range" id="rayon" min="40" max="360" step="10" value="140" aria-label="Rayon de la loupe"><span id="rayonVal">140 px</span></div>
+      <label class="check"><input type="checkbox" id="loupeFixe"><span>Loupe fixée au centre<small>Pratique sur tablette : on déplace la carte sous la loupe.</small></span></label>
+      <div class="raccourcis"><kbd>Maj</kbd> + molette pour changer la taille.</div>
+    </div>
+  </div>
+
+  <div class="bloc">
+    <h2>Couches superposées</h2>
+    <label class="check"><input type="checkbox" id="ovLimites"><span>Limites communales<small>IGN – Admin Express, toute la France</small></span></label>
+    <label class="check"><input type="checkbox" id="ovCadastre"><span>Parcelles cadastrales<small>Visibles à partir du zoom 15</small></span></label>
+    <label class="check"><input type="checkbox" id="ovNcpa" checked><span>Communes de NCPA<small>Contours et noms au survol</small></span></label>
+  </div>
+
+  <div class="bloc">
+    <details id="infos">
+      <summary>À propos des deux vues</summary>
+      <div id="fiches"></div>
+    </details>
+  </div>
+
+  <div class="bloc">
+    <button class="btn" id="btnLien" type="button">Copier le lien de cette vue</button>
+    <div class="raccourcis" style="margin-top:10px">Raccourcis : <kbd>R</kbd> rideau, <kbd>L</kbd> loupe, <kbd>I</kbd> inverser.</div>
+  </div>
+
+  <div class="pied">
+    <div id="statut">Chargement de la liste des millésimes…</div>
+    <div style="margin-top:6px">Sources : IGN – Géoplateforme (orthophotos, limites, cadastre, géocodage), geo.api.gouv.fr (communes).</div>
+  </div>
+</aside>
+
+<main id="carte">
+  <div id="map" aria-label="Carte"></div>
+  <div id="ui">
+    <div id="rideau" class="v">
+      <div class="zone"></div><div class="barre"></div>
+      <button class="poignee" type="button" aria-label="Déplacer le rideau">⇔</button>
+    </div>
+    <div id="loupe" hidden></div>
+    <div id="tagA" class="etiquette"><span class="annee"></span><span class="cat"></span></div>
+    <div id="tagB" class="etiquette"><span class="annee"></span><span class="cat"></span></div>
+  </div>
+</main>
+
+<script>
+/* ======================================================================
+   Comparateur d'orthophotos IGN – rideau / loupe
+   Principe : deux couches de tuiles WMTS superposées dans deux "panes"
+   Leaflet ; la couche du dessus (Vue 2) est découpée par un clip-path
+   (demi-écran pour le rideau, disque pour la loupe).
+   ====================================================================== */
+const GEOPF = "https://data.geopf.fr/wmts";
+const CAPS_URL = GEOPF + "?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities";
+const CACHE_KEY = "comparateurOrtho.couches.v2";
+const CACHE_JOURS = 7;
+const NCPA_SIREN = "200065563";
+const NCPA_CENTRE = [49.255, -0.085], NCPA_ZOOM = 12;
+const NCPA_BBOX = [-0.26, 49.15, 0.02, 49.33];   // emprise approximative de NCPA (lon min, lat min, lon max, lat max)
+const Z_CONTROLE = 12;                           // niveau de zoom utilisé pour vérifier la couverture des tuiles
+const ATTR = '© <a href="https://cartes.gouv.fr" target="_blank" rel="noopener">IGN – Géoplateforme</a>';
+
+/* Liste de secours si le GetCapabilities ne répond pas (identifiants vérifiés). */
+const FALLBACK = [
+  {id:"ORTHOIMAGERY.ORTHOPHOTOS", title:"Photographies aériennes (dernière BD ORTHO)", style:"normal", format:"image/jpeg", tms:"PM", minZ:0, maxZ:19},
+  {id:"ORTHOIMAGERY.ORTHOPHOTOS.1950-1965", title:"Photographies aériennes historiques 1950-1965", style:"BDORTHOHISTORIQUE", format:"image/png", tms:"PM_0_18", minZ:0, maxZ:18},
+  {id:"ORTHOIMAGERY.ORTHOPHOTOS.1965-1980", title:"Photographies aériennes 1965-1980", style:"BDORTHOHISTORIQUE", format:"image/png", tms:"PM_3_18", minZ:3, maxZ:18, bbox:[-6,40,10,52]},
+  {id:"ORTHOIMAGERY.ORTHOPHOTOS.1980-1995", title:"Photographies aériennes historiques 1980-1995", style:"BDORTHOHISTORIQUE", format:"image/png", tms:"PM_3_18", minZ:3, maxZ:18, bbox:[-5,40,10,52]},
+];
+const OVERLAY_FALLBACK = {
+  limites: {id:"LIMITES_ADMINISTRATIVES_EXPRESS.LATEST", style:"normal", format:"image/png", tms:"PM", minZ:0, maxZ:18},
+  cadastre: {id:"CADASTRALPARCELS.PARCELLAIRE_EXPRESS", style:"PCI vecteur", format:"image/png", tms:"PM", minZ:0, maxZ:19},
+};
+
+/* ---------------- État ---------------- */
+const etat = {
+  couches: [], parId: {}, overlays: {...OVERLAY_FALLBACK},
+  a: null, b: null, mode: "swipe", orient: "v", pos: 0.5, rayon: 140,
+  loupeFixe: false, loupePt: null,
+};
+let tuileA = null, tuileB = null, ovLimites = null, ovCadastre = null, coucheNcpa = null, repere = null;
+
+/* ---------------- Utilitaires ---------------- */
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function statut(txt, alerte){ const s = $("statut"); s.textContent = txt; s.classList.toggle("alerte", !!alerte); }
+function enfants(el, nom){ return Array.from(el.children).filter(c => c.localName === nom); }
+function texteEnfant(el, nom){ const c = enfants(el, nom)[0]; return c ? c.textContent.trim() : ""; }
+function echapper(t){ return String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ---------------- Lecture du GetCapabilities ---------------- */
+function lireCouche(el){
+  const id = texteEnfant(el, "Identifier");
+  const styles = enfants(el, "Style");
+  const def = styles.find(s => s.getAttribute("isDefault") === "true") || styles[0];
+  const formats = enfants(el, "Format").map(f => f.textContent.trim());
+  const liens = enfants(el, "TileMatrixSetLink");
+  const lien = liens.find(l => /^PM/.test(texteEnfant(l, "TileMatrixSet")));
+  if (!id || !lien) return null;
+  const tms = texteEnfant(lien, "TileMatrixSet");
+  const niveaux = Array.from(lien.getElementsByTagNameNS("*", "TileMatrix"))
+                       .map(t => parseInt(t.textContent, 10)).filter(n => !isNaN(n));
+  let minZ, maxZ;
+  if (niveaux.length){ minZ = Math.min(...niveaux); maxZ = Math.max(...niveaux); }
+  else { const m = tms.match(/PM_(\d+)_(\d+)/); minZ = m ? +m[1] : 0; maxZ = m ? +m[2] : 19; }
+  let limites = null;
+  for (const tl of lien.getElementsByTagNameNS("*", "TileMatrixLimits")){
+    if (parseInt(texteEnfant(tl, "TileMatrix"), 10) !== Z_CONTROLE) continue;
+    limites = ["MinTileRow", "MaxTileRow", "MinTileCol", "MaxTileCol"].map(n => parseInt(texteEnfant(tl, n), 10));
+  }
+  let bbox = null;
+  const bb = enfants(el, "WGS84BoundingBox")[0];
+  if (bb){
+    const lo = texteEnfant(bb, "LowerCorner").split(/\s+/).map(Number);
+    const hi = texteEnfant(bb, "UpperCorner").split(/\s+/).map(Number);
+    if (lo.length === 2 && hi.length === 2) bbox = [lo[0], lo[1], hi[0], hi[1]];
+  }
+  return {
+    id, title: texteEnfant(el, "Title") || id, abstract: texteEnfant(el, "Abstract"),
+    style: def ? texteEnfant(def, "Identifier") : "normal",
+    format: formats.includes("image/jpeg") ? "image/jpeg" : (formats[0] || "image/png"),
+    tms, minZ, maxZ, bbox, limites,
+  };
+}
+
+function analyserCapabilities(xmlTxt){
+  const doc = new DOMParser().parseFromString(xmlTxt, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) throw new Error("XML illisible");
+  const toutes = Array.from(doc.getElementsByTagNameNS("*", "Layer")).map(lireCouche).filter(Boolean);
+  const orthos = toutes.filter(c => /^(HR\.)?ORTHOIMAGERY\./.test(c.id));
+  const trouver = ids => { for (const i of ids){ const c = toutes.find(x => x.id === i); if (c) return c; } return null; };
+  const overlays = {
+    limites: trouver(["LIMITES_ADMINISTRATIVES_EXPRESS.LATEST", "ADMINEXPRESS-COG-CARTO.LATEST", "ADMINEXPRESS-COG.LATEST"]) || OVERLAY_FALLBACK.limites,
+    cadastre: trouver(["CADASTRALPARCELS.PARCELLAIRE_EXPRESS", "CADASTRALPARCELS.PARCELS"]) || OVERLAY_FALLBACK.cadastre,
+  };
+  if (!orthos.length) throw new Error("aucune orthophoto trouvée");
+  return {couches: orthos, overlays};
+}
+
+/* ---------------- Couverture de NCPA ---------------- */
+function tuile(lat, lon, z){
+  const n = 2 ** z, r = lat * Math.PI / 180;
+  return {col: Math.floor((lon + 180) / 360 * n),
+          row: Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n)};
+}
+function couvreNcpa(c){
+  const [lo0, la0, lo1, la1] = NCPA_BBOX, cLat = (la0 + la1) / 2, cLon = (lo0 + lo1) / 2;
+  if (c.bbox && !(cLon >= c.bbox[0] && cLon <= c.bbox[2] && cLat >= c.bbox[1] && cLat <= c.bbox[3])) return false;
+  if (c.maxZ < Z_CONTROLE || c.minZ > Z_CONTROLE) return true;      // pas de contrôle possible à ce zoom
+  if (c.limites && c.limites.every(v => !isNaN(v))){
+    const [r0, r1, k0, k1] = c.limites, t = tuile(cLat, cLon, Z_CONTROLE);
+    if (t.row < r0 || t.row > r1 || t.col < k0 || t.col > k1) return false;
+  }
+  return true;
+}
+/* Version présentable : BD ORTHO (actuelle + millésimes) et photos historiques couvrant NCPA */
+function retenue(c){
+  return ["Actuelle", "Millésimes BD ORTHO", "Photos historiques"].includes(c.cat)
+      && !/SPOT|PLEIADES|PLÉIADES|SAT|IRC|INFRAROUGE/i.test(c.id + " " + c.title)
+      && couvreNcpa(c);
+}
+
+/* ---------------- Classement et libellés ---------------- */
+const ORDRE_CAT = ["Actuelle", "Millésimes BD ORTHO", "Photos historiques", "Ortho Express", "Ortho PAC (ASP)", "Infrarouge couleur (IRC)", "Satellite", "Autres"];
+function classer(c){
+  const txt = c.id + " " + c.title;
+  const annees = (txt.match(/(19|20)\d{2}/g) || []).map(Number);
+  const y0 = annees.length ? Math.min(...annees) : null, y1 = annees.length ? Math.max(...annees) : null;
+  const periode = y0 == null ? "" : (y0 === y1 ? String(y0) : `${y0}–${y1}`);
+  let cat, court, libelle;
+  if (c.id === "ORTHOIMAGERY.ORTHOPHOTOS" || c.id === "HR.ORTHOIMAGERY.ORTHOPHOTOS"){
+    cat = "Actuelle"; court = "Actuelle"; libelle = c.id.startsWith("HR.") ? "Dernière BD ORTHO (haute résolution)" : "Dernière BD ORTHO";
+  } else if (/IRC/.test(c.id)){
+    cat = "Infrarouge couleur (IRC)"; court = `${periode} IRC`; libelle = `Infrarouge ${periode}`;
+  } else if (/PAC|SOCLE-ASP/.test(c.id)){
+    cat = "Ortho PAC (ASP)"; court = `PAC ${periode}`; libelle = /SOCLE/.test(c.id) ? `Ortho socle ASP ${periode}` : `Ortho PAC ${periode}`;
+  } else if (/SAT|SPOT|PLEIADES/i.test(c.id)){
+    cat = "Satellite"; court = periode || "Satellite"; libelle = c.title;
+  } else if (/EXPRESS/.test(c.id)){
+    cat = "Ortho Express"; court = periode || "Express"; libelle = c.title;
+  } else if (y1 && y1 < 2000){
+    cat = "Photos historiques"; court = periode; libelle = `Photos aériennes ${periode}`;
+  } else if (y0){
+    cat = "Millésimes BD ORTHO"; court = periode; libelle = c.title;
+  } else {
+    cat = "Autres"; court = c.title; libelle = c.title;
+  }
+  return {...c, cat, court, libelle, tri: y0 == null ? 9999 : y1};
+}
+
+function installerCouches(liste, overlays, source){
+  etat.couches = liste.map(classer).filter(retenue).sort((p, q) =>
+    ORDRE_CAT.indexOf(p.cat) - ORDRE_CAT.indexOf(q.cat) || q.tri - p.tri || p.libelle.localeCompare(q.libelle));
+  etat.parId = Object.fromEntries(etat.couches.map(c => [c.id, c]));
+  if (overlays) etat.overlays = overlays;
+  remplirSelects();
+  statut(`${etat.couches.length} vues couvrant NCPA (${source}).`);
+}
+
+function remplirSelects(){
+  for (const sel of [$("selA"), $("selB")]){
+    sel.innerHTML = "";
+    let grp = null, catCourante = null;
+    for (const c of etat.couches){
+      if (c.cat !== catCourante){ grp = document.createElement("optgroup"); grp.label = c.cat; sel.appendChild(grp); catCourante = c.cat; }
+      const o = document.createElement("option"); o.value = c.id; o.textContent = c.libelle; grp.appendChild(o);
+    }
+  }
+  const anciens = etat.couches.filter(c => c.cat === "Millésimes BD ORTHO");
+  const defA = (anciens.length ? anciens[anciens.length - 1] : etat.couches[etat.couches.length - 1]).id;   // le plus ancien millésime
+  const defB = etat.parId["ORTHOIMAGERY.ORTHOPHOTOS"] ? "ORTHOIMAGERY.ORTHOPHOTOS" : etat.couches[0].id;
+  etat.a = etat.parId[etat.a] ? etat.a : defA;
+  etat.b = etat.parId[etat.b] ? etat.b : defB;
+  $("selA").value = etat.a; $("selB").value = etat.b;
+  afficherVues();
+}
+
+/* ---------------- Carte ---------------- */
+const map = L.map("map", {minZoom: 5, maxZoom: 21, zoomControl: true, attributionControl: true});
+map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
+map.createPane("paneA").style.zIndex = 200;
+map.createPane("paneB").style.zIndex = 250;
+map.createPane("paneOver").style.zIndex = 380;
+map.getPane("paneOver").style.pointerEvents = "none";
+
+function urlTuiles(c){
+  return `${GEOPF}?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${encodeURIComponent(c.id)}` +
+         `&STYLE=${encodeURIComponent(c.style)}&FORMAT=${encodeURIComponent(c.format)}` +
+         `&TILEMATRIXSET=${encodeURIComponent(c.tms)}&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}`;
+}
+function coucheTuiles(c, pane, extra){
+  const o = {pane, minNativeZoom: c.minZ, maxNativeZoom: c.maxZ, maxZoom: 21, attribution: ATTR, keepBuffer: 3, ...extra};
+  if (c.bbox && (c.bbox[2] - c.bbox[0]) < 300) o.bounds = L.latLngBounds([[c.bbox[1], c.bbox[0]], [c.bbox[3], c.bbox[2]]]);
+  return L.tileLayer(urlTuiles(c), o);
+}
+
+/* Couche d'une vue. Les photos historiques utilisent un style IGN particulier ;
+   si aucune tuile ne se charge avec ce style, on bascule sur le style "normal". */
+function coucheVue(c, pane){
+  const lyr = coucheTuiles(c, pane);
+  if (c.style !== "normal"){
+    let ok = 0, ko = 0;
+    lyr.on("tileload", () => ok++);
+    lyr.on("tileerror", () => {
+      ko++;
+      if (ko >= 6 && ok === 0 && !lyr._secours){ lyr._secours = true; lyr.setUrl(urlTuiles({...c, style: "normal"})); }
+    });
+  }
+  return lyr;
+}
+
+function afficherVues(){
+  const ca = etat.parId[etat.a], cb = etat.parId[etat.b];
+  if (tuileA) map.removeLayer(tuileA);
+  if (tuileB) map.removeLayer(tuileB);
+  tuileA = coucheVue(ca, "paneA").addTo(map);
+  tuileB = coucheVue(cb, "paneB").addTo(map);
+  for (const [tag, c] of [["tagA", ca], ["tagB", cb]]){
+    $(tag).querySelector(".annee").textContent = c.court;
+    $(tag).querySelector(".cat").textContent = c.cat === "Actuelle" ? c.libelle : c.cat;
+    $(tag).title = c.title;
+  }
+  remplirFiches(ca, cb);
+  verifierCouverture();
+  majDecoupe();
+  ecrireAdresse();
+}
+
+function remplirFiches(ca, cb){
+  const lier = t => echapper(t).replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u.length > 50 ? "document IGN" : u}</a>`);
+  const fiche = (n, c) => `<div class="fiche"><b>Vue ${n} – ${echapper(c.title)}</b><br>` +
+    (c.abstract ? lier(c.abstract.length > 420 ? c.abstract.slice(0, 420) + "…" : c.abstract) + "<br>" : "") +
+    `<span style="font-size:12px">Identifiant : ${echapper(c.id)} · zooms ${c.minZ}–${c.maxZ}</span></div>`;
+  $("fiches").innerHTML = fiche(1, ca) + fiche(2, cb);
+}
+
+function verifierCouverture(){
+  if (!etat.couches.length) return;
+  const p = map.getCenter(), hors = [];
+  [["Vue 1", etat.parId[etat.a]], ["Vue 2", etat.parId[etat.b]]].forEach(([n, c]) => {
+    const b = c && c.bbox;
+    if (b && (b[2] - b[0]) < 300 && !(p.lng >= b[0] && p.lng <= b[2] && p.lat >= b[1] && p.lat <= b[3])) hors.push(n);
+  });
+  if (etat.a === etat.b) statut("Les deux vues sont identiques : choisissez deux millésimes différents.", true);
+  else if (hors.length) statut(`${hors.join(" et ")} : cette zone semble hors de l'emprise du millésime.`, true);
+  else if ($("statut").classList.contains("alerte")) statut(`${etat.couches.length} vues couvrant NCPA.`);
+}
+
+/* ---------------- Découpage (rideau / loupe) ---------------- */
+function centreLoupe(){
+  const s = map.getSize();
+  if (etat.loupeFixe || !etat.loupePt) return L.point(s.x / 2, s.y / 2);
+  return etat.loupePt;
+}
+function majDecoupe(){
+  const pane = map.getPane("paneB"), s = map.getSize();
+  const o = map.containerPointToLayerPoint([0, 0]);       // coin haut-gauche de l'écran, dans le repère du pane
+  let cp;
+  if (etat.mode === "swipe"){
+    if (etat.orient === "v"){
+      const x = o.x + s.x * etat.pos;
+      cp = `polygon(${x}px ${o.y}px, ${o.x + s.x}px ${o.y}px, ${o.x + s.x}px ${o.y + s.y}px, ${x}px ${o.y + s.y}px)`;
+    } else {
+      const y = o.y + s.y * etat.pos;
+      cp = `polygon(${o.x}px ${y}px, ${o.x + s.x}px ${y}px, ${o.x + s.x}px ${o.y + s.y}px, ${o.x}px ${o.y + s.y}px)`;
+    }
+  } else {
+    const c = centreLoupe();
+    cp = `circle(${etat.rayon}px at ${o.x + c.x}px ${o.y + c.y}px)`;
+  }
+  pane.style.clipPath = cp; pane.style.webkitClipPath = cp;
+  placerInterface();
+}
+
+function placerInterface(){
+  const s = map.getSize(), rideau = $("rideau"), loupe = $("loupe"), tA = $("tagA"), tB = $("tagB");
+  rideau.hidden = etat.mode !== "swipe";
+  $("libA").textContent = etat.mode === "lens" ? "hors de la loupe" : etat.orient === "v" ? "à gauche" : "en haut";
+  $("libB").textContent = etat.mode === "lens" ? "dans la loupe" : etat.orient === "v" ? "à droite" : "en bas";
+  loupe.hidden = etat.mode !== "lens";
+  tB.classList.toggle("dans-loupe", etat.mode === "lens");
+  // remise à zéro des positions des étiquettes
+  for (const t of [tA, tB]){ t.style.left = t.style.right = t.style.top = t.style.bottom = ""; }
+  if (etat.mode === "swipe"){
+    rideau.className = etat.orient;
+    if (etat.orient === "v"){
+      rideau.style.left = (s.x * etat.pos) + "px"; rideau.style.top = "";
+      tA.style.left = "54px"; tA.style.top = "12px";
+      tB.style.right = "12px"; tB.style.top = "12px";
+    } else {
+      rideau.style.top = (s.y * etat.pos) + "px"; rideau.style.left = "";
+      tA.style.left = "54px"; tA.style.top = "12px";
+      tB.style.left = "54px"; tB.style.bottom = "28px";
+    }
+    tA.style.visibility = etat.pos > 0.03 ? "visible" : "hidden";
+    tB.style.visibility = etat.pos < 0.97 ? "visible" : "hidden";
+  } else {
+    const c = centreLoupe(), r = etat.rayon;
+    Object.assign(loupe.style, {left: (c.x - r) + "px", top: (c.y - r) + "px", width: 2 * r + "px", height: 2 * r + "px"});
+    tA.style.left = "54px"; tA.style.top = "12px"; tA.style.visibility = "visible";
+    tB.style.visibility = "visible";
+    tB.style.left = (c.x - r) + "px";
+    const enBas = c.y + r + 44 < s.y;
+    tB.style.top = enBas ? (c.y + r + 8) + "px" : Math.max(4, c.y - r - 44) + "px";
+  }
+}
+
+map.on("move zoom zoomend resize viewreset", majDecoupe);
+map.on("moveend", () => { verifierCouverture(); ecrireAdresse(); });
+map.on("mousemove", e => { if (etat.mode === "lens" && !etat.loupeFixe){ etat.loupePt = e.containerPoint; majDecoupe(); } });
+
+/* Glisser le rideau */
+(function(){
+  const rideau = $("rideau"), poignee = rideau.querySelector(".poignee");
+  let glisse = false;
+  const majDepuis = e => {
+    const r = $("carte").getBoundingClientRect();
+    etat.pos = etat.orient === "v" ? clamp((e.clientX - r.left) / r.width, 0, 1) : clamp((e.clientY - r.top) / r.height, 0, 1);
+    majDecoupe();
+  };
+  rideau.addEventListener("pointerdown", e => { glisse = true; rideau.setPointerCapture(e.pointerId); e.preventDefault(); majDepuis(e); });
+  rideau.addEventListener("pointermove", e => { if (glisse) majDepuis(e); });
+  const fin = () => { if (glisse){ glisse = false; ecrireAdresse(); } };
+  rideau.addEventListener("pointerup", fin);
+  rideau.addEventListener("pointercancel", fin);
+  poignee.addEventListener("keydown", e => {
+    const pas = e.shiftKey ? 0.1 : 0.02;
+    const moins = etat.orient === "v" ? "ArrowLeft" : "ArrowUp", plus = etat.orient === "v" ? "ArrowRight" : "ArrowDown";
+    if (e.key === moins){ etat.pos = clamp(etat.pos - pas, 0, 1); }
+    else if (e.key === plus){ etat.pos = clamp(etat.pos + pas, 0, 1); }
+    else return;
+    e.preventDefault(); e.stopPropagation(); majDecoupe(); ecrireAdresse();
+  });
+})();
+
+/* Maj + molette = taille de la loupe */
+$("carte").addEventListener("wheel", e => {
+  if (etat.mode !== "lens" || !e.shiftKey) return;
+  e.preventDefault(); e.stopPropagation();
+  const d = (e.deltaY || e.deltaX) > 0 ? -10 : 10;
+  reglerRayon(etat.rayon + d);
+}, {capture: true, passive: false});
+
+function reglerRayon(v){
+  etat.rayon = clamp(Math.round(v / 10) * 10, 40, 360);
+  $("rayon").value = etat.rayon; $("rayonVal").textContent = etat.rayon + " px";
+  majDecoupe();
+}
+
+/* ---------------- Contrôles du panneau ---------------- */
+function changerMode(m){
+  etat.mode = m;
+  $("modeRideau").setAttribute("aria-pressed", m === "swipe");
+  $("modeLoupe").setAttribute("aria-pressed", m === "lens");
+  $("optRideau").hidden = m !== "swipe";
+  $("optLoupe").hidden = m !== "lens";
+  $("map").style.cursor = m === "lens" && !etat.loupeFixe ? "crosshair" : "";
+  majDecoupe(); ecrireAdresse();
+}
+$("modeRideau").onclick = () => changerMode("swipe");
+$("modeLoupe").onclick = () => changerMode("lens");
+document.querySelectorAll("input[name=orient]").forEach(r => r.onchange = () => { etat.orient = r.value; majDecoupe(); ecrireAdresse(); });
+$("rayon").oninput = e => reglerRayon(+e.target.value);
+$("loupeFixe").onchange = e => { etat.loupeFixe = e.target.checked; changerMode(etat.mode); };
+$("selA").onchange = e => { etat.a = e.target.value; afficherVues(); };
+$("selB").onchange = e => { etat.b = e.target.value; afficherVues(); };
+function inverser(){ [etat.a, etat.b] = [etat.b, etat.a]; $("selA").value = etat.a; $("selB").value = etat.b; afficherVues(); }
+$("btnInverser").onclick = inverser;
+
+document.addEventListener("keydown", e => {
+  if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === "r") changerMode("swipe");
+  else if (k === "l") changerMode("lens");
+  else if (k === "i") inverser();
+});
+
+/* ---------------- Couches superposées ---------------- */
+function majOverlays(){
+  if (ovLimites){ map.removeLayer(ovLimites); ovLimites = null; }
+  if (ovCadastre){ map.removeLayer(ovCadastre); ovCadastre = null; }
+  if ($("ovLimites").checked) ovLimites = coucheTuiles(etat.overlays.limites, "paneOver", {opacity: 0.9}).addTo(map);
+  if ($("ovCadastre").checked) ovCadastre = coucheTuiles(etat.overlays.cadastre, "paneOver", {minZoom: 15, opacity: 0.85}).addTo(map);
+  if (coucheNcpa){ $("ovNcpa").checked ? coucheNcpa.addTo(map) : map.removeLayer(coucheNcpa); }
+  ecrireAdresse();
+}
+["ovLimites", "ovCadastre", "ovNcpa"].forEach(i => $(i).onchange = majOverlays);
+
+async function chargerNcpa(cadrer){
+  try {
+    const r = await fetch(`https://geo.api.gouv.fr/epcis/${NCPA_SIREN}/communes?fields=nom,code&format=geojson&geometry=contour`);
+    if (!r.ok) throw new Error(r.status);
+    const gj = await r.json();
+    coucheNcpa = L.geoJSON(gj, {
+      style: {color: "#ffd84a", weight: 1.8, opacity: 0.95, fill: true, fillOpacity: 0},
+      onEachFeature: (f, l) => l.bindTooltip(f.properties.nom, {sticky: true, className: "nom-commune", direction: "top", offset: [0, -8]}),
+    });
+    if ($("ovNcpa").checked) coucheNcpa.addTo(map);
+    if (cadrer) map.fitBounds(coucheNcpa.getBounds(), {padding: [20, 20]});
+  } catch (e) {
+    console.warn("Communes NCPA indisponibles", e);
+  }
+}
+$("btnNcpa").onclick = () => coucheNcpa ? map.fitBounds(coucheNcpa.getBounds(), {padding: [20, 20]}) : map.setView(NCPA_CENTRE, NCPA_ZOOM);
+
+/* ---------------- Recherche d'adresse (géocodage Géoplateforme) ---------------- */
+(function(){
+  const champ = $("recherche"), liste = $("resultats");
+  let minuterie = null, items = [], actif = -1, requete = 0;
+  const afficher = () => {
+    liste.innerHTML = items.map((it, i) => `<li role="option" data-i="${i}" class="${i === actif ? "actif" : ""}">${echapper(it.label)}<small>${echapper(it.ctx || "")}</small></li>`).join("");
+  };
+  const aller = it => {
+    liste.innerHTML = ""; items = []; champ.value = it.label;
+    const zoom = it.type === "municipality" ? 14 : it.type === "street" ? 17 : 18;
+    map.setView([it.lat, it.lon], zoom);
+    if (repere) map.removeLayer(repere);
+    repere = L.circleMarker([it.lat, it.lon], {radius: 7, color: "#fff", weight: 2, fillColor: "#B91E27", fillOpacity: 1, pane: "markerPane"})
+               .bindTooltip(it.label).addTo(map);
+    $("btnEffacer").hidden = false;
+  };
+  async function chercher(q){
+    const n = ++requete;
+    const coords = q.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[;,\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);
+    if (coords && q.includes(".")){
+      const lat = parseFloat(coords[1].replace(",", ".")), lon = parseFloat(coords[2].replace(",", "."));
+      items = [{label: `${lat.toFixed(5)}, ${lon.toFixed(5)}`, ctx: "Coordonnées WGS84", lat, lon, type: "point"}];
+      actif = 0; afficher(); return;
+    }
+    const urls = [
+      `https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&limit=7&autocomplete=1`,
+      `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=7&autocomplete=1`,
+    ];
+    for (const u of urls){
+      try {
+        const r = await fetch(u); if (!r.ok) continue;
+        const j = await r.json(); if (n !== requete) return;
+        items = (j.features || []).map(f => ({label: f.properties.label, ctx: f.properties.context, type: f.properties.type,
+                                               lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1]}));
+        actif = items.length ? 0 : -1; afficher(); return;
+      } catch (e) { /* on tente le service suivant */ }
+    }
+    items = []; liste.innerHTML = `<li style="cursor:default">Aucun service de recherche joignable.</li>`;
+  }
+  champ.addEventListener("input", () => {
+    clearTimeout(minuterie);
+    const q = champ.value.trim();
+    if (q.length < 3){ liste.innerHTML = ""; items = []; return; }
+    minuterie = setTimeout(() => chercher(q), 250);
+  });
+  champ.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" && items.length){ actif = (actif + 1) % items.length; afficher(); e.preventDefault(); }
+    else if (e.key === "ArrowUp" && items.length){ actif = (actif - 1 + items.length) % items.length; afficher(); e.preventDefault(); }
+    else if (e.key === "Enter" && items[actif]){ aller(items[actif]); e.preventDefault(); }
+    else if (e.key === "Escape"){ liste.innerHTML = ""; items = []; }
+  });
+  liste.addEventListener("click", e => { const li = e.target.closest("li[data-i]"); if (li) aller(items[+li.dataset.i]); });
+  $("btnEffacer").onclick = () => { if (repere) map.removeLayer(repere); repere = null; $("btnEffacer").hidden = true; champ.value = ""; };
+})();
+
+/* ---------------- Lien partageable (état dans l'adresse de la page) ---------------- */
+let ecritureEnAttente = null;
+function ecrireAdresse(){
+  clearTimeout(ecritureEnAttente);
+  ecritureEnAttente = setTimeout(() => {
+    if (!etat.a) return;
+    const c = map.getCenter();
+    const p = new URLSearchParams();
+    p.set("c", `${c.lat.toFixed(5)},${c.lng.toFixed(5)},${map.getZoom()}`);
+    p.set("a", etat.a); p.set("b", etat.b);
+    p.set("m", etat.mode === "lens" ? "loupe" : "rideau");
+    if (etat.mode === "swipe"){ p.set("o", etat.orient); p.set("p", etat.pos.toFixed(3)); }
+    else { p.set("r", etat.rayon); if (etat.loupeFixe) p.set("f", "1"); }
+    const ov = (($("ovLimites").checked ? "l" : "") + ($("ovCadastre").checked ? "c" : "") + ($("ovNcpa").checked ? "n" : "")) || "0";
+    p.set("ov", ov);
+    history.replaceState(null, "", "#" + p.toString());
+  }, 300);
+}
+function lireAdresse(){
+  const p = new URLSearchParams(location.hash.slice(1));
+  const out = {};
+  if (p.get("c")){ const [la, lo, z] = p.get("c").split(",").map(Number); if (!isNaN(la) && !isNaN(lo)) out.vue = [[la, lo], isNaN(z) ? 14 : z]; }
+  if (p.get("a")) etat.a = p.get("a");
+  if (p.get("b")) etat.b = p.get("b");
+  if (p.get("m") === "loupe") etat.mode = "lens";
+  if (p.get("o") === "h") etat.orient = "h";
+  if (p.get("p")) etat.pos = clamp(parseFloat(p.get("p")) || 0.5, 0, 1);
+  if (p.get("r")) etat.rayon = clamp(parseInt(p.get("r"), 10) || 140, 40, 360);
+  if (p.get("f") === "1") etat.loupeFixe = true;
+  if (p.get("ov")){ const ov = p.get("ov"); $("ovLimites").checked = ov.includes("l"); $("ovCadastre").checked = ov.includes("c"); $("ovNcpa").checked = ov.includes("n"); }
+  return out;
+}
+$("btnLien").onclick = async () => {
+  clearTimeout(ecritureEnAttente);
+  const b = $("btnLien");
+  try { await navigator.clipboard.writeText(location.href); b.textContent = "Lien copié"; }
+  catch (e) { prompt("Copiez ce lien :", location.href); }
+  setTimeout(() => b.textContent = "Copier le lien de cette vue", 1800);
+};
+
+/* ---------------- Démarrage ---------------- */
+(async function demarrer(){
+  const depuisLien = lireAdresse();
+  if (depuisLien.vue) map.setView(depuisLien.vue[0], depuisLien.vue[1]); else map.setView(NCPA_CENTRE, NCPA_ZOOM);
+  document.querySelector(`input[name=orient][value=${etat.orient}]`).checked = true;
+  $("loupeFixe").checked = etat.loupeFixe || (!depuisLien.vue && matchMedia("(pointer: coarse)").matches);
+  etat.loupeFixe = $("loupeFixe").checked;
+  reglerRayon(etat.rayon);
+  changerMode(etat.mode);
+
+  // 1. Affichage immédiat : liste en cache (si récente) ou liste de secours
+  let cache = null;
+  try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); } catch (e) {}
+  const cacheFrais = cache && (Date.now() - cache.t) < CACHE_JOURS * 864e5;
+  if (cacheFrais) installerCouches(cache.couches, cache.overlays, "liste IGN en mémoire");
+  else installerCouches(FALLBACK, null, "liste de secours");
+  majOverlays();
+  chargerNcpa(!depuisLien.vue);
+
+  // 2. Mise à jour depuis le GetCapabilities de la Géoplateforme
+  if (!cacheFrais){
+    statut("Lecture du catalogue IGN (quelques secondes)…");
+    try {
+      const r = await fetch(CAPS_URL);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const res = analyserCapabilities(await r.text());
+      installerCouches(res.couches, res.overlays, "catalogue IGN à jour");
+      majOverlays();
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({t: Date.now(), couches: res.couches, overlays: res.overlays})); } catch (e) {}
+    } catch (e) {
+      console.warn(e);
+      statut(`Catalogue IGN injoignable (${e.message}) : liste de secours utilisée (${etat.couches.length} vues).`, true);
+    }
+  }
+})();
+</script>
+</body>
+</html>
