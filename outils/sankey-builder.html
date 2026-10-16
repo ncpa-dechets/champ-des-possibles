@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<!--
+  Tiens, un curieux ! Bienvenue dans les coulisses.
+  Ce site est fait main : Jekyll, HTML, CSS et JavaScript, sans framework.
+  Servez-vous, regardez, copiez, apprenez. C'est exactement fait pour ça.
+  Une question, une idée, une remarque ? Écrivez-moi : https://yvesmarti.fr/#contact
+  PS : il paraît qu'un petit centre de tri se cache quelque part sur l'accueil...
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Générateur de diagrammes de Sankey</title>
+
+<link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png"/>
+<link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png"/>
+
+<!-- SEO -->
+<meta name="description" content="Créez des diagrammes de Sankey pour visualiser des flux (tonnages, budgets, matières) directement dans le navigateur, sans serveur ni transfert de données."/>
+<meta name="author" content="Yves Marti"/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="https://yvesmarti.fr/outils/sankey-builder.html"/>
+<meta name="theme-color" content="#1a3a32" media="(prefers-color-scheme: light)"/>
+<meta name="theme-color" content="#0a1a10" media="(prefers-color-scheme: dark)"/>
+
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Générateur de diagrammes de Sankey - Yves Marti"/>
+<meta property="og:description" content="Créez des diagrammes de Sankey pour visualiser des flux (tonnages, budgets, matières) directement dans le navigateur, sans serveur ni transfert de données."/>
+<meta property="og:url" content="https://yvesmarti.fr/outils/sankey-builder.html"/>
+<meta property="og:locale" content="fr_FR"/>
+<meta property="og:site_name" content="Yves Marti - Chargé de mission déchets &amp; SIG"/>
+<meta property="og:image" content="https://yvesmarti.fr/assets/images/og-image.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Yves Marti - Chargé de mission déchets &amp; SIG, Normandie"/>
+
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Générateur de diagrammes de Sankey - Yves Marti"/>
+<meta name="twitter:description" content="Créez des diagrammes de Sankey pour visualiser des flux (tonnages, budgets, matières) directement dans le navigateur."/>
+<meta name="twitter:image" content="https://yvesmarti.fr/assets/images/og-image.png"/>
+<meta name="twitter:image:alt" content="Yves Marti - Chargé de mission déchets &amp; SIG, Normandie"/>
+<meta name="twitter:creator" content="@yvesmarti"/>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication",
+ "name":"Générateur de diagrammes de Sankey",
+ "url":"https://yvesmarti.fr/outils/sankey-builder.html",
+ "applicationCategory":"BusinessApplication","operatingSystem":"Web",
+ "offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},
+ "author":{"@type":"Person","name":"Yves Marti","url":"https://yvesmarti.fr"}}
+</script>
+
+<script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+<script>(function(){try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t);}else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}}());</script>
+
+<style>
+:root {
+  /* ---- Tokens de la charte (assets/css/style.css) ---- */
+  --color-primary:      #1a3a32;
+  --color-accent:       #3d8b6e;
+  --color-accent-light: #9ed4b8;
+  --color-light:        #f7f9f8;
+  --color-warm:         #e8ded4;
+  --color-text:         #2c2c2c;
+  --color-muted:        #6b7c75;
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body:    'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:    ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+  /* ---- Surfaces ---- */
+  --fond-page: #e7ece9;
+  --fond-panneau: #ffffff;
+  --fond-controle: #ffffff;
+  --fond-doux: var(--color-light);
+  --bordure: #dde3e0;                   /* bordures fines */
+
+  /* ---- Accent ---- */
+  --accent: var(--color-accent);
+  --accent-fort: var(--color-primary);      /* survol du bouton principal */
+  --accent-douce: #e8f4f0;
+  --accent-texte: #1a5c4a;
+  --accent-contraste: #ffffff;              /* texte posé SUR --accent */
+
+  /* ---- Texte ---- */
+  --texte: var(--color-text);
+  --texte-doux: var(--color-muted);
+
+  /* ---- États ---- */
+  --erreur: #b91c1c;
+  --erreur-fond: #fef2f2;
+  --alerte: #b45309;
+  --alerte-fond: #fffbeb;
+
+  /* ---- Sur-couches (toast, infobulle) ---- */
+  --surcouche: rgba(26, 58, 50, 0.94);
+  --surcouche-alerte: rgba(180, 83, 9, 0.95);
+  --surcouche-texte: #f0f6f3;
+
+  /* ---- Damier de transparence ---- */
+  --damier-a: #ffffff;
+  --damier-b: #d7ded9;
+
+  /* ---- Rayons ---- */
+  --r-xs: 4px;
+  --r-s:  6px;
+  --r-m:  10px;
+  --r-l:  14px;
+
+  /* ---- Ombres ---- */
+  --ombre-xs: 0 1px 8px   rgba(26, 58, 50, 0.10);
+  --ombre-s:  0 2px 10px  rgba(26, 58, 50, 0.12);
+  --ombre-m:  0 8px 24px  rgba(26, 58, 50, 0.15);
+  --ombre-l:  0 14px 36px rgba(26, 58, 50, 0.16);
+
+  color-scheme: light dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: var(--font-body);
+  color: var(--texte);
+  background: var(--fond-page);
+  overflow: hidden;
+}
+
+#application {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---------- En-tête ---------- */
+#entete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--fond-panneau);
+  border-bottom: 1px solid var(--bordure);
+  flex-wrap: wrap;
+}
+#entete h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 19px;
+  margin: 0;
+  margin-right: auto; /* pousse les boutons à droite */
+  color: var(--color-primary);
+  letter-spacing: -.01em;
+}
+#entete h1 .fa-diagram-project { color: var(--accent); margin-right: 8px; }
+
+#theme-toggle { padding: 6px 9px; line-height: 1; }
+#theme-toggle i { margin-right: 0; }
+.theme-icon--sun { display: none; }
+.theme-icon--moon { display: inline-block; }
+[data-theme="dark"] .theme-icon--sun { display: inline-block; }
+[data-theme="dark"] .theme-icon--moon { display: none; }
+
+/* Boutons génériques */
+.bouton {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texte);
+  background: var(--fond-controle);
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-s);
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .18s ease, border-color .18s ease, color .18s ease;
+}
+.bouton:hover { background: var(--accent-douce); border-color: var(--accent); color: var(--accent-texte); }
+.bouton i { margin-right: 6px; }
+.bouton.principal { background: var(--accent); color: var(--accent-contraste); border-color: var(--accent); }
+.bouton.principal:hover { background: var(--accent-fort); border-color: var(--accent-fort); color: var(--accent-contraste); }
+
+select.champ-entete {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-s);
+  background: var(--fond-controle);
+  color: var(--texte);
+  max-width: 260px;
+}
+
+/* Menu déroulant des exports */
+.menu-deroulant { position: relative; }
+.menu-deroulant .contenu-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--fond-panneau);
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-m);
+  box-shadow: var(--ombre-m);
+  min-width: 220px;
+  z-index: 50;
+  padding: 4px;
+}
+.menu-deroulant.ouvert .contenu-menu { display: block; }
+.contenu-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: var(--r-s);
+  cursor: pointer;
+  color: var(--texte);
+}
+.contenu-menu button:hover { background: var(--accent-douce); color: var(--accent-texte); }
+.contenu-menu button i { width: 18px; margin-right: 6px; color: var(--accent); }
+
+#corps {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Panneau latéral gauche */
+#panneau {
+  width: 380px;
+  min-width: 280px;
+  max-width: 640px;
+  background: var(--fond-panneau);
+  border-right: 1px solid var(--bordure);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#poignee {
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  flex: none;
+}
+#poignee:hover, #poignee.active { background: var(--accent); opacity: 0.35; }
+
+/* Onglets du panneau */
+#onglets {
+  display: flex;
+  border-bottom: 1px solid var(--bordure);
+  flex: none;
+}
+#onglets button {
+  flex: 1;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--texte-doux);
+}
+#onglets button.actif { color: var(--accent-texte); border-bottom-color: var(--accent); background: var(--accent-douce); }
+#onglets button:hover { color: var(--accent-texte); }
+
+.contenu-onglet {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: none;
+  min-height: 0;
+}
+.contenu-onglet.actif { display: flex; flex-direction: column; }
+
+/* Panneau d'aide repliable */
+details.aide {
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-m);
+  background: var(--accent-douce);
+  margin-bottom: 10px;
+  font-size: 12.5px;
+}
+details.aide summary {
+  cursor: pointer;
+  padding: 8px 10px;
+  font-weight: 600;
+  color: var(--accent-texte);
+}
+details.aide .aide-corps { padding: 0 10px 10px; line-height: 1.5; }
+details.aide code {
+  background: var(--fond-controle);
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-xs);
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+details.aide pre {
+  background: var(--fond-controle);
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-s);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+/* Zone de saisie des flux */
+#zone-texte {
+  flex: 1;
+  min-height: 220px;
+  width: 100%;
+  resize: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-m);
+  padding: 10px;
+  color: var(--texte);
+  background: var(--fond-controle);
+}
+#zone-texte:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+#zone-texte::placeholder, #palette-couleurs::placeholder { color: var(--texte-doux); }
+
+.rangee-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.rangee-actions .bouton { font-size: 12px; padding: 5px 10px; }
+
+/* ---------- Contrôles de mise en forme (générés en JS) ---------- */
+.groupe-controles {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--texte-doux);
+  margin: 16px 0 6px;
+  border-bottom: 1px solid var(--bordure);
+  padding-bottom: 4px;
+}
+.groupe-controles:first-child { margin-top: 0; }
+
+.controle { margin-bottom: 12px; }
+.controle .etiquette {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.controle .etiquette .valeur-courante {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.controle .etiquette .defaut { font-size: 11px; color: var(--texte-doux); font-weight: 400; }
+.icone-aide { color: var(--texte-doux); cursor: help; font-size: 12px; }
+
+.controle input[type="range"] { width: 100%; accent-color: var(--accent); }
+.controle input[type="number"],
+.controle input[type="text"],
+.controle select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-s);
+  width: 100%;
+  background: var(--fond-controle);
+  color: var(--texte);
+}
+.controle input[type="color"] {
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-s);
+  background: var(--fond-controle);
+  cursor: pointer;
+}
+.controle.desactive { opacity: 0.4; pointer-events: none; }
+.controle.case .etiquette { cursor: pointer; }
+.controle.case input { accent-color: var(--accent); width: 15px; height: 15px; }
+.ligne-marges { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+#palette-couleurs {
+  width: 100%;
+  min-height: 90px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-s);
+  padding: 8px;
+  resize: vertical;
+  background: var(--fond-controle);
+  color: var(--texte);
+}
+
+.bouton:focus-visible,
+#onglets button:focus-visible,
+.contenu-menu button:focus-visible,
+select.champ-entete:focus-visible,
+.controle input:focus-visible,
+.controle select:focus-visible,
+#palette-couleurs:focus-visible,
+#editeur-noeud input:focus-visible,
+.back-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Zone de messages (erreurs et avertissements) ---------- */
+#messages {
+  flex: none;
+  max-height: 150px;
+  overflow-y: auto;
+  border-top: 1px solid var(--bordure);
+  padding: 8px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--fond-doux);
+}
+#messages:empty { display: none; }
+.message { padding: 6px 8px; border-radius: var(--r-s); margin-bottom: 4px; }
+.message.erreur { background: var(--erreur-fond); color: var(--erreur); }
+.message.alerte { background: var(--alerte-fond); color: var(--alerte); }
+.message.info { background: var(--accent-douce); color: var(--accent-texte); }
+.message i { margin-right: 6px; }
+
+/* ---------- Zone du diagramme ---------- */
+#zone-diagramme {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#diagramme {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  cursor: grab;
+  box-shadow: var(--ombre-xs);
+}
+#diagramme:active { cursor: grabbing; }
+
+#zone-diagramme.damier #diagramme {
+  background-color: var(--damier-a);
+  background-image:
+    linear-gradient(45deg, var(--damier-b) 25%, transparent 25%, transparent 75%, var(--damier-b) 75%),
+    linear-gradient(45deg, var(--damier-b) 25%, transparent 25%, transparent 75%, var(--damier-b) 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 9px 9px;
+}
+
+#toast {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  background: var(--surcouche);
+  color: var(--surcouche-texte);
+  font-size: 12.5px;
+  padding: 8px 14px;
+  border-radius: var(--r-m);
+  z-index: 90;
+  display: none;
+  box-shadow: var(--ombre-m);
+  max-width: 80%;
+  text-align: center;
+}
+#toast.alerte { background: var(--surcouche-alerte); }
+#toast i { margin-right: 6px; }
+
+#ajuster-fenetre {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  box-shadow: var(--ombre-s);
+}
+
+#diagramme rect.noeud { cursor: move; }
+#diagramme text { user-select: none; }
+
+/* Infobulle flottante */
+#infobulle {
+  position: fixed;
+  pointer-events: none; /* ne bloque jamais la souris */
+  background: var(--surcouche);
+  color: var(--surcouche-texte);
+  font-size: 12.5px;
+  line-height: 1.45;
+  padding: 7px 10px;
+  border-radius: var(--r-s);
+  display: none;
+  z-index: 100;
+  max-width: 320px;
+  box-shadow: var(--ombre-m);
+}
+
+#editeur-noeud {
+  position: fixed;
+  z-index: 120;
+  background: var(--fond-panneau);
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-l);
+  box-shadow: var(--ombre-l);
+  padding: 14px;
+  width: 260px;
+  display: none;
+}
+#editeur-noeud h3 {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--color-primary);
+}
+#editeur-noeud label { display: block; font-size: 12.5px; margin-bottom: 8px; }
+#editeur-noeud input[type="text"] {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--r-s);
+  margin-top: 3px;
+  background: var(--fond-controle);
+  color: var(--texte);
+}
+#editeur-noeud input[type="color"] { width: 100%; height: 30px; border: 1px solid var(--bordure); border-radius: var(--r-s); margin-top: 3px; cursor: pointer; background: var(--fond-controle); }
+#editeur-noeud .rangee-actions { justify-content: flex-end; margin-top: 12px; }
+
+/* ---------- Barre d'état ---------- */
+#barre-etat {
+  flex: none;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 6px 16px;
+  font-size: 12.5px;
+  color: var(--texte-doux);
+  background: var(--fond-panneau);
+  border-top: 1px solid var(--bordure);
+  flex-wrap: wrap;
+}
+#barre-etat .fort { color: var(--texte); font-weight: 700; font-family: var(--font-mono); }
+#barre-etat .alerte { color: var(--alerte); font-weight: 600; }
+
+/* ---------- Lien de retour vers la liste des outils ---------- */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--texte-doux, #6b7c75);
+  text-decoration: none;
+  transition: color .15s;
+}
+.back-link:hover { color: var(--accent, #3d8b6e); }
+
+@media (max-width: 900px) {
+  #corps { flex-direction: column; }
+  #panneau { width: 100% !important; max-width: none; height: 45%; border-right: none; border-bottom: 1px solid var(--bordure); }
+  #poignee { display: none; }
+}
+
+@media screen {
+  [data-theme="dark"] {
+    --color-primary: #b8d8c8;
+    --color-accent:  #5aad8a;
+    --color-light:   #131e17;
+    --color-warm:    #1c2a20;
+    --color-text:    #d4e8dc;
+    --color-muted:   #8aaa9a;
+
+    --fond-page:     #1c2a20;
+    --fond-panneau:  #1a2e24;
+    --fond-controle: #22382c;
+    --fond-doux:     #16241c;
+    --bordure:       #2a3d30;
+
+    --accent-fort:      #6ecba0;
+    --accent-douce:     #1a3028;
+    --accent-texte:     #6ecba0;
+    --accent-contraste: #10231a;
+
+    --erreur:      #ff9c94;
+    --erreur-fond: #3a1e1c;
+    --alerte:      #e6b25c;
+    --alerte-fond: #33280f;
+
+    --surcouche:        rgba(10, 26, 16, 0.94);
+    --surcouche-alerte: rgba(120, 72, 14, 0.96);
+    --surcouche-texte:  #d4e8dc;
+
+    --damier-a: #2a3d30;
+    --damier-b: #1c2a20;
+
+    --ombre-xs: 0 1px 10px  rgba(0, 0, 0, 0.40);
+    --ombre-s:  0 2px 12px  rgba(0, 0, 0, 0.40);
+    --ombre-m:  0 8px 24px  rgba(0, 0, 0, 0.45);
+    --ombre-l:  0 14px 36px rgba(0, 0, 0, 0.50);
+
+    color-scheme: dark;
+  }
+}
+
+body, #entete, #panneau, #barre-etat, #messages, #zone-diagramme,
+.bouton, #zone-texte, #palette-couleurs, .contenu-menu, #editeur-noeud,
+details.aide, #onglets button, .controle input, .controle select,
+select.champ-entete {
+  transition: background-color .35s ease, color .35s ease, border-color .35s ease;
+}
+</style>
+</head>
+<body>
+
+<div id="application">
+
+  <!-- ================= EN-TÊTE ================= -->
+  <header id="entete">
+    <a href="/outils/" class="back-link" title="Retour à la liste des outils">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Retour aux outils
+    </a>
+    <h1><i class="fa-solid fa-diagram-project"></i><span id="titre-outil">Générateur de diagrammes de Sankey</span></h1>
+
+    <!-- Menu des jeux de données d'exemple -->
+    <select id="select-exemples" class="champ-entete" title="Charger un jeu de données d'exemple">
+      <option value="">Exemples…</option>
+    </select>
+
+    <!-- Menu déroulant des exports -->
+    <div class="menu-deroulant" id="menu-export">
+      <button class="bouton principal" id="btn-export"><i class="fa-solid fa-download"></i>Exporter <i class="fa-solid fa-caret-down"></i></button>
+      <div class="contenu-menu">
+        <button id="copier-image"><i class="fa-solid fa-clipboard"></i>Copier l'image (Ctrl+V ailleurs)</button>
+        <button id="export-svg"><i class="fa-solid fa-file-code"></i>SVG (vectoriel)</button>
+        <button id="export-png-1"><i class="fa-solid fa-file-image"></i>PNG, échelle 1×</button>
+        <button id="export-png-2"><i class="fa-solid fa-file-image"></i>PNG, échelle 2×</button>
+        <button id="export-png-3"><i class="fa-solid fa-file-image"></i>PNG, échelle 3×</button>
+        <button id="export-csv"><i class="fa-solid fa-file-csv"></i>CSV des flux (Excel)</button>
+        <button id="copier-texte"><i class="fa-solid fa-copy"></i>Copier le texte</button>
+      </div>
+    </div>
+
+    <button class="bouton" id="btn-reinitialiser" title="Efface la sauvegarde locale et recharge l'exemple par défaut">
+      <i class="fa-solid fa-rotate-left"></i>Réinitialiser
+    </button>
+
+    <button class="bouton" id="theme-toggle" aria-label="Basculer le thème clair ou sombre" title="Basculer le thème clair ou sombre">
+      <i class="fa-solid fa-sun theme-icon theme-icon--sun"></i>
+      <i class="fa-solid fa-moon theme-icon theme-icon--moon"></i>
+    </button>
+  </header>
+
+  <!-- ================= CORPS ================= -->
+  <div id="corps">
+
+    <!-- Panneau latéral gauche -->
+    <aside id="panneau">
+      <nav id="onglets">
+        <button data-onglet="donnees" class="actif"><i class="fa-solid fa-table-list"></i> Données</button>
+        <button data-onglet="forme"><i class="fa-solid fa-sliders"></i> Mise en forme</button>
+        <button data-onglet="couleurs"><i class="fa-solid fa-palette"></i> Couleurs</button>
+      </nav>
+
+      <section class="contenu-onglet actif" id="onglet-donnees">
+        <details class="aide">
+          <summary><i class="fa-solid fa-circle-question"></i> Aide : la syntaxe en 6 lignes</summary>
+          <div class="aide-corps">
+            Un flux par ligne : <code>Source [valeur] Cible</code>.<br/>
+            Commentaires : lignes commençant par <code>//</code> ou <code>'</code>.<br/>
+            Couleur d'un nœud : <code>:Nom #1b9e77</code>.<br/>
+            <code>&lt;&lt;</code> colore les liens entrants, <code>&gt;&gt;</code> les sortants.<br/>
+            Position figée : <code>:Nom x=0.45 y=0.30</code> (entre 0 et 1).<br/>
+            Virgule ou point décimal acceptés, espaces de milliers aussi.<br/>
+            <b>Astuce Excel</b> : copiez 3 colonnes (Source / Cible / Valeur) et collez-les
+            ici avec Ctrl+V, la conversion est automatique.
+            <pre>Ordures ménagères [12 500] Incinération
+:Incinération #d95f02 &lt;&lt;</pre>
+          </div>
+        </details>
+
+        <textarea id="zone-texte" spellcheck="false" placeholder="Saisissez vos flux pour commencer&#10;Exemple : Ordures ménagères [12500] Incinération"></textarea>
+
+        <div class="rangee-actions">
+          <button class="bouton" id="btn-enregistrer-projet" title="Télécharge un fichier .json contenant texte, paramètres et positions">
+            <i class="fa-solid fa-floppy-disk"></i>Enregistrer le projet
+          </button>
+          <button class="bouton" id="btn-ouvrir-projet" title="Recharge un fichier .json précédemment enregistré">
+            <i class="fa-solid fa-folder-open"></i>Ouvrir un projet
+          </button>
+          <input type="file" id="fichier-projet" accept=".json,application/json" style="display:none"/>
+        </div>
+      </section>
+
+      <section class="contenu-onglet" id="onglet-forme"></section>
+
+      <section class="contenu-onglet" id="onglet-couleurs"></section>
+
+      <div id="messages"></div>
+    </aside>
+
+    <div id="poignee" title="Glissez pour redimensionner le panneau"></div>
+
+    <section id="zone-diagramme">
+      <button class="bouton" id="ajuster-fenetre" title="Recadre le diagramme pour qu'il tienne dans la fenêtre">
+        <i class="fa-solid fa-expand"></i>Ajuster à la fenêtre
+      </button>
+      <svg id="diagramme" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="toast"></div>
+    </section>
+  </div>
+
+  <!-- ================= BARRE D'ÉTAT ================= -->
+  <footer id="barre-etat">
+    <span>Nœuds : <span class="fort" id="stat-noeuds">0</span></span>
+    <span>Flux : <span class="fort" id="stat-flux">0</span></span>
+    <span>Total entrant : <span class="fort" id="stat-entrant">0</span></span>
+    <span>Total sortant : <span class="fort" id="stat-sortant">0</span></span>
+    <span id="stat-alertes"></span>
+  </footer>
+</div>
+
+<div id="infobulle"></div>
+<div id="editeur-noeud">
+  <h3><i class="fa-solid fa-pen"></i> Modifier le nœud</h3>
+  <label>Libellé
+    <input type="text" id="edit-libelle"/>
+  </label>
+  <label>Couleur
+    <input type="color" id="edit-couleur"/>
+  </label>
+  <div class="rangee-actions">
+    <button class="bouton" id="edit-annuler">Annuler</button>
+    <button class="bouton principal" id="edit-valider">Valider</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+
+const PALETTE_DEFAUT = ['#1e40af', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2'];
+
+const PALETTES = [
+  { nom: 'Standard (défaut)',      couleurs: PALETTE_DEFAUT },
+  { nom: 'Sûre pour daltoniens',   couleurs: ['#0072b2', '#009e73', '#e69f00', '#cc79a7', '#56b4e9', '#d55e00', '#f0e442'] },
+  { nom: 'Impression noir & blanc', couleurs: ['#1f2937', '#4b5563', '#6b7280', '#9ca3af', '#b9bfc9', '#d1d5db'] },
+  { nom: 'Déchets / valorisation', couleurs: ['#1b9e77', '#66a61e', '#a6761d', '#e6ab02', '#d95f02', '#7570b3', '#666666'] },
+  { nom: 'Pastel doux',            couleurs: ['#8ecae6', '#95d5b2', '#ffd6a5', '#ffadad', '#cdb4db', '#a2d2ff'] }
+];
+
+const FORMATS = [
+  { nom: 'Libre',                        l: null, h: null },
+  { nom: 'Diaporama 16:9 (PowerPoint)',  l: 1280, h: 720 },
+  { nom: 'Diaporama 4:3',                l: 1200, h: 900 },
+  { nom: 'A4 paysage (rapport)',         l: 1750, h: 1240 },
+  { nom: 'Portrait (pleine page)',       l: 1240, h: 1600 },
+  { nom: 'Carré (réseaux sociaux)',      l: 1080, h: 1080 },
+  { nom: 'Bandeau large',                l: 1600, h: 600 }
+];
+
+const PARAMS_DEFAUT = {
+  // Dimensions et disposition
+  largeur: 1200,
+  hauteur: 700,
+  margeHaut: 20,
+  margeBas: 20,
+  margeGauche: 40,
+  margeDroite: 40,
+  epaisseurNoeud: 18,
+  espacementNoeuds: 12,
+  alignement: 'justify',
+  iterations: 6,
+  sens: 'horizontal',       // horizontal / vertical
+  // Liens
+  courbure: 0.5,
+  opaciteLiens: 0.45,
+  opaciteSurvol: 0.8,
+  contourLiens: false,      // liseré sombre autour des liens
+  // Étiquettes et nombres
+  afficherEtiquettes: true,
+  afficherValeurs: true,
+  positionValeurs: 'ligne2', // apres / ligne2 / dedans
+  taillePolice: 13,
+  graisse: '600',
+  couleurTexte: '#1f2937',
+  prefixe: '',
+  suffixe: ' t',
+  sepMilliers: 'espace',
+  sepDecimal: 'virgule',    // virgule / point
+  decimales: 0,
+  afficherPourcent: false,
+  // Fond et titre
+  couleurFond: '#ffffff',
+  fondTransparent: false,
+  titre: '',
+  sousTitre: '',
+  tailleTitre: 20,
+  tailleSousTitre: 13,
+  note: '',
+  tailleNote: 11,
+  regleCouleurLiens: 'source',  // source / cible / fixe / gris
+  couleurLienFixe: '#64748b'
+};
+
+const UNITE_DEFAUT = ' t';
+
+const TITRE_OUTIL = 'Générateur de diagrammes de Sankey';
+
+const POLICE_SVG = "'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+
+const CLE_SAUVEGARDE = 'sankeyBuilder.v1';
+
+const EXEMPLES = [
+  {
+    nom: 'Flux de déchets ménagers',
+    texte: `// Flux de déchets d'une collectivité, tonnages annuels
+Ordures ménagères résiduelles [12500] Incinération
+Emballages [3200] Centre de tri
+Verre [2800] Recyclage verre
+Déchèteries [9400] Tri déchèterie
+
+Centre de tri [2650] Recyclage matière
+Centre de tri [550] Refus de tri
+Refus de tri [550] Incinération
+
+Tri déchèterie [3100] Recyclage matière
+Tri déchèterie [2200] Valorisation bois
+Tri déchèterie [1800] Compostage
+Tri déchèterie [2300] Enfouissement
+
+Incinération [13050] Valorisation énergétique
+
+:Recyclage matière #1b9e77 <<
+:Recyclage verre #1b9e77 <<
+:Valorisation bois #66a61e <<
+:Compostage #a6761d <<
+:Valorisation énergétique #e6ab02 <<
+:Enfouissement #d95f02 <<
+:Refus de tri #d95f02`
+  },
+  {
+    nom: 'Répartition d\u2019un budget',
+    texte: `// Répartition du budget d'une collectivité, en k€
+Fiscalité locale [2600] Budget principal
+Produits des services [1500] Budget principal
+Subventions [900] Budget principal
+Emprunts [800] Budget principal
+
+Budget principal [4200] Fonctionnement
+Budget principal [1600] Investissement
+
+Fonctionnement [1500] Personnel
+Fonctionnement [900] Écoles et petite enfance
+Fonctionnement [700] Voirie et espaces publics
+Fonctionnement [600] Déchets et propreté
+Fonctionnement [500] Culture et sports
+
+Investissement [700] Rénovation bâtiments
+Investissement [600] Voirie
+Investissement [300] Équipements sportifs
+
+:Fonctionnement #1e40af >>
+:Investissement #1b9e77 >>
+:Déchets et propreté #d95f02`
+  },
+  {
+    nom: 'Bilan matière simple (3 nœuds)',
+    texte: `// Un flux simple pour comprendre la syntaxe en 10 secondes
+Collecte porte-à-porte [1200] Centre de tri
+Centre de tri [1200] Recyclage
+
+:Recyclage #1b9e77 <<`
+  }
+];
+
+const etat = {
+  texte: '',                       // contenu de la zone de saisie
+  params: { ...PARAMS_DEFAUT },
+  positionsManuelles: {},
+  positionsTexte: {},
+  graphe: null,
+  palette: [...PALETTE_DEFAUT]
+};
+
+
+function $(id) { return document.getElementById(id); }
+
+function debounce(fonction, delai) {
+  let minuteur = null;
+  return function (...args) {
+    clearTimeout(minuteur);
+    minuteur = setTimeout(() => fonction.apply(this, args), delai);
+  };
+}
+
+function formaterNombre(valeur, p) {
+  const morceaux = Number(valeur).toFixed(p.decimales).split('.');
+  let entiere = morceaux[0];
+  const SEPARATEURS = { espace: '\u202F', point: '.', virgule: ',', aucun: '' };
+  const sep = SEPARATEURS[p.sepMilliers] ?? '\u202F';
+  entiere = entiere.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+  const sepDec = p.sepDecimal === 'point' ? '.' : ',';
+  return morceaux[1] ? entiere + sepDec + morceaux[1] : entiere;
+}
+
+function formaterValeur(valeur, p) {
+  return (p.prefixe || '') + formaterNombre(valeur, p) + (p.suffixe || '');
+}
+
+function formaterPourcent(ratio) {
+  return (ratio * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' %';
+}
+
+function dateDuJour() {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const jj = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${jj}`;
+}
+
+function echapperRegex(texte) {
+  return texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function analyserTexte(texte) {
+  etat.positionsTexte = {};
+  const flux = [];
+  const options = {};
+  const erreurs = [];
+  const avertissements = [];  // anomalies non bloquantes
+  const lignes = texte.split('\n');
+
+  lignes.forEach((ligneBrute, index) => {
+    const numero = index + 1;
+    const ligne = ligneBrute.trim();
+
+    if (!ligne || ligne.startsWith('//') || ligne.startsWith("'")) return;
+
+    if (ligne.startsWith(':')) {
+      const corps = ligne.slice(1).trim();
+      const repere = /(#[0-9a-fA-F]{3,8}\b|<<|>>|\bx\s*=|\by\s*=)/.exec(corps);
+      const nom = (repere ? corps.slice(0, repere.index) : corps).trim();
+      const reste = repere ? corps.slice(repere.index) : '';
+
+      if (!nom) {
+        erreurs.push({ ligne: numero, contenu: ligneBrute.trim(), cause: 'nom de nœud manquant après « : ».' });
+        return;
+      }
+      const opt = options[nom] || (options[nom] = {});
+
+      // Couleur imposée du nœud
+      const mCouleur = /#([0-9a-fA-F]{3,8})\b/.exec(reste);
+      if (mCouleur) opt.couleur = '#' + mCouleur[1];
+
+      if (reste.includes('<<')) opt.entrant = true;
+      if (reste.includes('>>')) opt.sortant = true;
+
+      const mX = /\bx\s*=\s*([0-9]+(?:[.,][0-9]+)?)/.exec(reste);
+      const mY = /\by\s*=\s*([0-9]+(?:[.,][0-9]+)?)/.exec(reste);
+      const lireCoord = (m) => m ? parseFloat(m[1].replace(',', '.')) : null;
+      const x = lireCoord(mX), y = lireCoord(mY);
+      if ((x !== null && (x < 0 || x > 1)) || (y !== null && (y < 0 || y > 1))) {
+        avertissements.push(`Ligne ${numero} : les coordonnées x et y doivent être comprises entre 0 et 1, position ignorée.`);
+      } else {
+        if (x !== null || y !== null) {
+          opt.position = { x, y };
+          etat.positionsTexte[nom] = opt.position; // mémorisée pour les redessins
+        }
+      }
+
+      const resteNettoye = reste
+        .replace(/#[0-9a-fA-F]{3,8}\b/g, '').replace(/<<|>>/g, '')
+        .replace(/\bx\s*=\s*[0-9]+(?:[.,][0-9]+)?/g, '')
+        .replace(/\by\s*=\s*[0-9]+(?:[.,][0-9]+)?/g, '').trim();
+      if (resteNettoye) {
+        avertissements.push(`Ligne ${numero} : « ${resteNettoye} » n'est pas une option reconnue et a été ignoré.`);
+      }
+      return;
+    }
+
+    const mFlux = /^(.+?)\[\s*([^\]]*?)\s*\]\s*(.*)$/.exec(ligne);
+
+    if (!mFlux) {
+      erreurs.push({ ligne: numero, contenu: ligne, cause: 'valeur manquante entre crochets [ ].' });
+      return;
+    }
+    const source = mFlux[1].trim();
+    const valeurBrute = mFlux[2];
+    const cible = mFlux[3].trim();
+
+    if (!source) {
+      erreurs.push({ ligne: numero, contenu: ligne, cause: 'source manquante avant les crochets.' });
+      return;
+    }
+    if (!valeurBrute) {
+      erreurs.push({ ligne: numero, contenu: ligne, cause: 'valeur vide entre crochets [ ].' });
+      return;
+    }
+    if (!cible) {
+      erreurs.push({ ligne: numero, contenu: ligne, cause: 'cible manquante après la valeur.' });
+      return;
+    }
+
+    const valeurNettoyee = valeurBrute.replace(/[\s\u00A0\u202F]/g, '').replace(',', '.');
+    const valeur = parseFloat(valeurNettoyee);
+    if (!isFinite(valeur)) {
+      erreurs.push({ ligne: numero, contenu: ligne, cause: `« ${valeurBrute} » n'est pas une valeur numérique.` });
+      return;
+    }
+    if (valeur <= 0) {
+      avertissements.push(`Ligne ${numero} : valeur nulle ou négative (${formaterNombre(valeur, etat.params)}), ligne ignorée.`);
+      return;
+    }
+
+    flux.push({ source, cible, valeur, ligne: numero });
+  });
+
+  const adjacence = {};
+  const fluxValides = [];
+  function cheminExiste(depart, arrivee, visites) {
+    if (depart === arrivee) return true;
+    if (visites.has(depart)) return false;
+    visites.add(depart);
+    return (adjacence[depart] || []).some(suivant => cheminExiste(suivant, arrivee, visites));
+  }
+  for (const f of flux) {
+    if (cheminExiste(f.cible, f.source, new Set())) {
+      avertissements.push(`Ligne ${f.ligne} : cycle détecté (${f.source} → ${f.cible} → … → ${f.source}) : ce flux n'est pas tracé, un diagramme de Sankey ne peut pas contenir de cycle.`);
+    } else {
+      (adjacence[f.source] = adjacence[f.source] || []).push(f.cible);
+      fluxValides.push(f);
+    }
+  }
+
+  const totaux = {}; // nom -> { entrant, sortant }
+  const noeudsUtilises = new Set();
+  for (const f of fluxValides) {
+    noeudsUtilises.add(f.source);
+    noeudsUtilises.add(f.cible);
+    const tS = totaux[f.source] = totaux[f.source] || { entrant: 0, sortant: 0 };
+    const tC = totaux[f.cible] = totaux[f.cible] || { entrant: 0, sortant: 0 };
+    tS.sortant += f.valeur;
+    tC.entrant += f.valeur;
+  }
+  for (const [nom, t] of Object.entries(totaux)) {
+    if (t.entrant > 0 && t.sortant > 0 && Math.abs(t.entrant - t.sortant) > 1e-9) {
+      avertissements.push(`Déséquilibre sur ${nom} : ${formaterNombre(t.entrant, etat.params)} entrant / ${formaterNombre(t.sortant, etat.params)} sortant, écart de ${formaterNombre(Math.abs(t.entrant - t.sortant), etat.params)}.`);
+    }
+  }
+  for (const nom of Object.keys(options)) {
+    if (!noeudsUtilises.has(nom)) {
+      avertissements.push(`Nœud isolé : « ${nom} » a une option (couleur ou position) mais n'apparaît dans aucun flux.`);
+    }
+  }
+
+  return { flux: fluxValides, options, erreurs, avertissements, totaux, noeudsUtilises };
+}
+</script>
+
+<script>
+'use strict';
+
+const ALIGNEMENTS = {
+  justify: () => d3.sankeyJustify,
+  left:    () => d3.sankeyLeft,
+  right:   () => d3.sankeyRight,
+  center:  () => d3.sankeyCenter
+};
+
+function cheminLienHorizontal(lien, courbure) {
+  const x0 = lien.source.x1, x1 = lien.target.x0;
+  const y0 = lien.y0, y1 = lien.y1;
+  const xc1 = x0 + (x1 - x0) * courbure;
+  const xc2 = x1 - (x1 - x0) * courbure;
+  return `M${x0},${y0}C${xc1},${y0} ${xc2},${y1} ${x1},${y1}`;
+}
+
+function cheminLienVertical(lien, courbure) {
+  const x0 = lien.y0, x1 = lien.y1;              // positions transversales
+  const y0 = lien.source.x1, y1 = lien.target.x0; // positions le long du flux
+  const yc1 = y0 + (y1 - y0) * courbure;
+  const yc2 = y1 - (y1 - y0) * courbure;
+  return `M${x0},${y0}C${x0},${yc1} ${x1},${yc2} ${x1},${y1}`;
+}
+
+function couleurNoeud(nom, index, options) {
+  if (options[nom] && options[nom].couleur) return options[nom].couleur;
+  return etat.palette[index % etat.palette.length];
+}
+
+function couleurLien(lien, options, p) {
+  const optSource = options[lien.source.name] || {};
+  const optCible = options[lien.target.name] || {};
+  if (optCible.entrant) return lien.target.color;
+  if (optSource.sortant) return lien.source.color;
+  switch (p.regleCouleurLiens) {
+    case 'cible': return lien.target.color;
+    case 'fixe':  return p.couleurLienFixe;
+    case 'gris':  return '#9ca3af';
+    default:      return lien.source.color;         // « source » par défaut
+  }
+}
+
+function dessiner() {
+  const p = etat.params;
+  const svg = d3.select('#diagramme');
+  const resultat = analyserTexte(etat.texte);
+
+  afficherMessages(resultat);
+  majBarreEtat(resultat);
+
+  svg.selectAll('*').remove();
+  svg.attr('width', p.largeur)
+     .attr('height', p.hauteur)
+     .attr('viewBox', `0 0 ${p.largeur} ${p.hauteur}`)
+     .attr('preserveAspectRatio', 'xMidYMid meet')
+     .attr('font-family', POLICE_SVG);
+
+  if (!p.fondTransparent) {
+    svg.append('rect')
+      .attr('width', p.largeur).attr('height', p.hauteur)
+      .attr('fill', p.couleurFond);
+  }
+  $('zone-diagramme').classList.toggle('damier', !!p.fondTransparent);
+
+  let decalageTitre = 0;
+  if (p.titre) decalageTitre += p.tailleTitre + 8;
+  if (p.sousTitre) decalageTitre += p.tailleSousTitre + 6;
+  const decalageBas = p.note ? p.tailleNote + 10 : 0;
+
+  const gVue = svg.append('g').attr('class', 'vue');
+
+  if (resultat.flux.length === 0) {
+    etat.graphe = null;
+    if (etat.texte.trim() === '') {
+      gVue.append('text')
+        .attr('x', p.largeur / 2).attr('y', p.hauteur / 2)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', 16).attr('fill', '#6b7c75')
+        .text('Saisissez vos flux pour commencer');
+    }
+    dessinerTitres(svg, p);
+    activerZoom(svg, gVue);
+    return;
+  }
+
+  const noms = [];
+  const indexNoeud = {};
+  for (const f of resultat.flux) {
+    for (const nom of [f.source, f.cible]) {
+      if (!(nom in indexNoeud)) { indexNoeud[nom] = noms.length; noms.push(nom); }
+    }
+  }
+  const noeuds = noms.map((nom, i) => ({
+    name: nom,
+    color: couleurNoeud(nom, i, resultat.options)
+  }));
+  const liens = resultat.flux.map(f => ({
+    source: indexNoeud[f.source],
+    target: indexNoeud[f.cible],
+    value: f.valeur
+  }));
+
+  const X0 = p.margeGauche;
+  const X1 = p.largeur - p.margeDroite;
+  const Y0 = p.margeHaut + decalageTitre;
+  const Y1 = p.hauteur - p.margeBas - decalageBas;
+  const extent = p.sens === 'vertical'
+    ? [[Y0, X0], [Y1, X1]]
+    : [[X0, Y0], [X1, Y1]];
+
+  const generateur = d3.sankey()
+    .nodeWidth(p.epaisseurNoeud)
+    .nodePadding(p.espacementNoeuds)
+    .nodeAlign(ALIGNEMENTS[p.alignement] ? ALIGNEMENTS[p.alignement]() : d3.sankeyJustify)
+    .iterations(p.iterations)
+    .extent(extent);
+
+  let graphe;
+  try {
+    graphe = generateur({ nodes: noeuds, links: liens });
+  } catch (e) {
+    afficherMessages({ ...resultat, erreurs: [...resultat.erreurs, { ligne: 0, contenu: '', cause: 'impossible de calculer la mise en page (' + e.message + ').' }] });
+    return;
+  }
+
+  const positionsEffectives = { ...etat.positionsTexte, ...etat.positionsManuelles };
+  appliquerPositionsManuelles(graphe, positionsEffectives, extent, p);
+  if (Object.keys(positionsEffectives).length) generateur.update(graphe);
+
+  etat.graphe = graphe;
+  etat.generateur = generateur;
+
+  const vertical = p.sens === 'vertical';
+  const cheminLien = l => vertical ? cheminLienVertical(l, p.courbure) : cheminLienHorizontal(l, p.courbure);
+
+  const gLiens = gVue.append('g').attr('class', 'liens');
+  if (p.contourLiens) {
+    gLiens.selectAll('path.contour').data(graphe.links).join('path')
+      .attr('class', 'contour')
+      .attr('d', cheminLien)
+      .attr('fill', 'none')
+      .attr('stroke', 'rgba(26, 58, 50, 0.30)')
+      .attr('stroke-width', l => Math.max(1, l.width) + 2.5);
+  }
+  const selectionLiens = gLiens.selectAll('path.lien').data(graphe.links).join('path')
+    .attr('class', 'lien')
+    .attr('d', cheminLien)
+    .attr('fill', 'none')
+    .attr('stroke', l => couleurLien(l, resultat.options, p))
+    .attr('stroke-width', l => Math.max(1, l.width))
+    .attr('stroke-opacity', p.opaciteLiens)
+    .style('cursor', 'default');
+
+  // ----- Dessin des nœuds (rectangles) -----
+  const gNoeuds = gVue.append('g').attr('class', 'noeuds');
+  const selectionNoeuds = gNoeuds.selectAll('rect.noeud').data(graphe.nodes).join('rect')
+    .attr('class', 'noeud')
+    .attr('x', d => vertical ? d.y0 : d.x0)
+    .attr('y', d => vertical ? d.x0 : d.y0)
+    .attr('width', d => vertical ? d.y1 - d.y0 : d.x1 - d.x0)
+    .attr('height', d => vertical ? d.x1 - d.x0 : d.y1 - d.y0)
+    .attr('rx', 2)
+    .attr('fill', d => d.color);
+
+  // ----- Étiquettes (nom + valeur) -----
+  const gEtiquettes = gVue.append('g').attr('class', 'etiquettes');
+  if (p.afficherEtiquettes) {
+    const selectionTextes = gEtiquettes.selectAll('text').data(graphe.nodes).join('text')
+      .attr('font-size', p.taillePolice)
+      .attr('font-weight', p.graisse)
+      .attr('fill', p.couleurTexte)
+      .style('cursor', 'default');
+    placerEtiquettes(selectionTextes, p, vertical, X0, X1);
+  }
+
+  // ----- Titre et sous-titre dans le SVG -----
+  dessinerTitres(svg, p);
+
+  activerSurvols(selectionLiens, selectionNoeuds, p, resultat);
+  activerDeplacement(selectionNoeuds, selectionLiens, gLiens, cheminLien, p, vertical, extent);
+  activerDoubleClic(selectionNoeuds);
+  activerZoom(svg, gVue);
+}
+
+function positionnerEtiquette(t, d, p, vertical, X0, X1) {
+  const milieu = (X0 + X1) / 2;
+  t.selectAll('tspan').remove();
+  t.text(null);
+
+  const valeurTexte = formaterValeur(d.value, p) +
+    (p.afficherPourcent ? ' (' + formaterPourcent(d.value / (totalEntrantGlobal() || 1)) + ')' : '');
+
+  const dedansAuto = vertical && (d.y1 - d.y0) >= 90;
+  const dedans = p.positionValeurs === 'dedans' || dedansAuto;
+
+  if (dedans) {
+    t.attr('x', vertical ? (d.y0 + d.y1) / 2 : (d.x0 + d.x1) / 2)
+     .attr('y', vertical ? (d.x0 + d.x1) / 2 : (d.y0 + d.y1) / 2)
+     .attr('text-anchor', 'middle')
+     .attr('dominant-baseline', 'middle')
+     .attr('fill', '#ffffff')
+     .attr('paint-order', 'stroke')
+     .attr('stroke', 'rgba(0, 0, 0, 0.35)')
+     .attr('stroke-width', 3);
+  } else if (vertical) {
+    t.attr('x', d.y1 + 6)
+     .attr('y', (d.x0 + d.x1) / 2)
+     .attr('text-anchor', 'start')
+     .attr('dominant-baseline', 'middle')
+     .attr('fill', p.couleurTexte)
+     .attr('stroke', null).attr('stroke-width', null);
+  } else {
+    const aDroite = (d.x0 + d.x1) / 2 <= milieu;
+    t.attr('x', aDroite ? d.x1 + 6 : d.x0 - 6)
+     .attr('y', (d.y0 + d.y1) / 2)
+     .attr('text-anchor', aDroite ? 'start' : 'end')
+     .attr('dominant-baseline', 'middle')
+     .attr('fill', p.couleurTexte)
+     .attr('stroke', null).attr('stroke-width', null);
+  }
+
+  if (!p.afficherValeurs) { t.text(d.name); return; }
+
+  if (p.positionValeurs === 'dedans') {
+    t.text(valeurTexte); // valeur seule dans le nœud
+  } else if (p.positionValeurs === 'apres') {
+    t.text(`${d.name} : ${valeurTexte}`);
+  } else {
+    t.append('tspan').text(d.name);
+    t.append('tspan')
+      .attr('x', t.attr('x'))
+      .attr('dy', p.taillePolice + 2)
+      .attr('font-weight', '400')
+      .attr('opacity', 0.75)
+      .text(valeurTexte);
+  }
+}
+
+function placerEtiquettes(textes, p, vertical, X0, X1) {
+  textes.each(function (d) {
+    positionnerEtiquette(d3.select(this), d, p, vertical, X0, X1);
+  });
+}
+
+function totalEntrantGlobal() {
+  if (!etat.graphe) return 0;
+  return etat.graphe.links
+    .filter(l => l.source.targetLinks.length === 0)
+    .reduce((s, l) => s + l.value, 0);
+}
+
+function dessinerTitres(svg, p) {
+  if (p.titre) {
+    svg.append('text')
+      .attr('x', p.largeur / 2).attr('y', p.margeHaut / 2 + p.tailleTitre / 2 + 4)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', p.tailleTitre).attr('font-weight', '700')
+      .attr('fill', p.couleurTexte)
+      .text(p.titre);
+  }
+  if (p.sousTitre) {
+    const y = p.margeHaut / 2 + (p.titre ? p.tailleTitre + p.tailleSousTitre / 2 + 6 : p.tailleSousTitre / 2 + 4);
+    svg.append('text')
+      .attr('x', p.largeur / 2).attr('y', y)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', p.tailleSousTitre).attr('font-weight', '400')
+      .attr('fill', p.couleurTexte).attr('opacity', 0.75)
+      .text(p.sousTitre);
+  }
+  if (p.note) {
+    svg.append('text')
+      .attr('x', p.margeGauche)
+      .attr('y', p.hauteur - p.margeBas / 2 - 2)
+      .attr('text-anchor', 'start')
+      .attr('font-size', p.tailleNote).attr('font-weight', '400')
+      .attr('fill', p.couleurTexte).attr('opacity', 0.65)
+      .text(p.note);
+  }
+}
+
+function appliquerPositionsManuelles(graphe, positions, extent, p) {
+  const [X0, X1] = [extent[0][0], extent[1][0]];
+  const [Y0, Y1] = [extent[0][1], extent[1][1]];
+  for (const noeud of graphe.nodes) {
+    const pos = positions[noeud.name];
+    if (!pos) continue;
+    const largeurNoeud = noeud.x1 - noeud.x0;
+    const hauteurNoeud = noeud.y1 - noeud.y0;
+    if (pos.x !== null && pos.x !== undefined) {
+      noeud.x0 = X0 + pos.x * Math.max(1, (X1 - X0) - largeurNoeud);
+      noeud.x1 = noeud.x0 + largeurNoeud;
+    }
+    if (pos.y !== null && pos.y !== undefined) {
+      noeud.y0 = Y0 + pos.y * Math.max(1, (Y1 - Y0) - hauteurNoeud);
+      noeud.y1 = noeud.y0 + hauteurNoeud;
+    }
+  }
+}
+
+function afficherMessages(resultat) {
+  const zone = $('messages');
+  zone.innerHTML = '';
+  for (const e of resultat.erreurs) {
+    const div = document.createElement('div');
+    div.className = 'message erreur';
+    div.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+    div.innerHTML += e.ligne > 0
+      ? `Ligne ${e.ligne} : « ${echapperHtml(e.contenu)} » : ${e.cause}`
+      : e.cause;
+    zone.appendChild(div);
+  }
+  for (const a of resultat.avertissements) {
+    const div = document.createElement('div');
+    div.className = 'message alerte';
+    div.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>' + echapperHtml(a);
+    zone.appendChild(div);
+  }
+}
+
+function echapperHtml(texte) {
+  return texte.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function majBarreEtat(resultat) {
+  const p = etat.params;
+  const nbNoeuds = resultat.noeudsUtilises ? resultat.noeudsUtilises.size : 0;
+  $('stat-noeuds').textContent = nbNoeuds;
+  $('stat-flux').textContent = resultat.flux.length;
+
+  let entrant = 0, sortant = 0;
+  for (const f of resultat.flux) {
+    const tS = resultat.totaux[f.source];
+    const tC = resultat.totaux[f.cible];
+    if (tS && tS.entrant === 0) entrant += f.valeur;
+    if (tC && tC.sortant === 0) sortant += f.valeur;
+  }
+  $('stat-entrant').textContent = formaterValeur(entrant, p);
+  $('stat-sortant').textContent = formaterValeur(sortant, p);
+
+  const nb = resultat.avertissements.length;
+  $('stat-alertes').innerHTML = nb
+    ? `<span class="alerte"><i class="fa-solid fa-triangle-exclamation"></i> ${nb} avertissement${nb > 1 ? 's' : ''}</span>`
+    : '';
+}
+</script>
+
+<script>
+'use strict';
+
+function montrerInfobulle(html, evenement) {
+  const bulle = $('infobulle');
+  bulle.innerHTML = html;
+  bulle.style.display = 'block';
+  bulle.style.left = Math.min(evenement.clientX + 14, window.innerWidth - bulle.offsetWidth - 10) + 'px';
+  bulle.style.top = Math.min(evenement.clientY + 14, window.innerHeight - bulle.offsetHeight - 10) + 'px';
+}
+function cacherInfobulle() { $('infobulle').style.display = 'none'; }
+
+function activerSurvols(liens, noeuds, p, resultat) {
+  liens
+    .on('mouseenter', function (evenement, l) {
+      liens.attr('stroke-opacity', autre => autre === l ? p.opaciteSurvol : p.opaciteLiens * 0.4);
+      const part = l.source.value ? l.value / l.source.value : 0;
+      montrerInfobulle(
+        `<strong>${echapperHtml(l.source.name)} → ${echapperHtml(l.target.name)}</strong><br/>` +
+        `${formaterValeur(l.value, p)}<br/>` +
+        `<span style="opacity:.8">${formaterPourcent(part)} du flux sortant de « ${echapperHtml(l.source.name)} »</span>`,
+        evenement);
+    })
+    .on('mousemove', e => { const b = $('infobulle'); if (b.style.display === 'block') montrerInfobulle(b.innerHTML, e); })
+    .on('mouseleave', function () {
+      liens.attr('stroke-opacity', p.opaciteLiens);
+      cacherInfobulle();
+    });
+
+  noeuds
+    .on('mouseenter', function (evenement, n) {
+      noeuds.attr('opacity', autre => autre === n ? 1 : 0.35);
+      d3.select(this).attr('stroke', '#1a3a32').attr('stroke-width', 1.5);
+      liens.attr('stroke-opacity', l =>
+        (l.source === n || l.target === n) ? p.opaciteSurvol : p.opaciteLiens * 0.25);
+      const t = resultat.totaux[n.name] || { entrant: 0, sortant: 0 };
+      montrerInfobulle(
+        `<strong>${echapperHtml(n.name)}</strong><br/>` +
+        `Entrant : ${formaterValeur(t.entrant, p)}<br/>` +
+        `Sortant : ${formaterValeur(t.sortant, p)}`,
+        evenement);
+    })
+    .on('mousemove', e => { const b = $('infobulle'); if (b.style.display === 'block') montrerInfobulle(b.innerHTML, e); })
+    .on('mouseleave', function () {
+      noeuds.attr('opacity', 1).attr('stroke', null).attr('stroke-width', null);
+      liens.attr('stroke-opacity', p.opaciteLiens);
+      cacherInfobulle();
+    });
+}
+
+function activerDeplacement(noeuds, liens, gLiens, cheminLien, p, vertical, extent) {
+  const [X0, X1] = [extent[0][0], extent[1][0]];
+  const [Y0, Y1] = [extent[0][1], extent[1][1]];
+
+  const glisser = d3.drag()
+    .on('start', function (evenement) {
+      evenement.sourceEvent.stopPropagation();
+      d3.select(this).attr('stroke', '#1a3a32').attr('stroke-width', 1.5);
+    })
+    .on('drag', function (evenement, d) {
+      const deplX = vertical ? evenement.dy : evenement.dx; // le long du flux
+      const deplY = vertical ? evenement.dx : evenement.dy; // transversal
+
+      const largeurNoeud = d.x1 - d.x0;
+      const hauteurNoeud = d.y1 - d.y0;
+      d.x0 = Math.min(Math.max(X0, d.x0 + deplX), X1 - largeurNoeud);
+      d.x1 = d.x0 + largeurNoeud;
+      d.y0 = Math.min(Math.max(Y0, d.y0 + deplY), Y1 - hauteurNoeud);
+      d.y1 = d.y0 + hauteurNoeud;
+
+      etat.generateur.update(etat.graphe);
+
+      d3.select(this)
+        .attr('x', vertical ? d.y0 : d.x0)
+        .attr('y', vertical ? d.x0 : d.y0);
+      liens.attr('d', cheminLien);
+      gLiens.selectAll('path.contour').attr('d', cheminLien);
+      const etiquettes = d3.select('#diagramme').select('.etiquettes');
+      if (!etiquettes.empty()) {
+        etiquettes.selectAll('text').filter(t => t === d).each(function (td) {
+          positionnerEtiquette(d3.select(this), td, p, vertical, X0, X1);
+        });
+      }
+    })
+    .on('end', function (evenement, d) {
+      d3.select(this).attr('stroke', null).attr('stroke-width', null);
+      const largeurNoeud = d.x1 - d.x0;
+      const hauteurNoeud = d.y1 - d.y0;
+      etat.positionsManuelles[d.name] = {
+        x: (d.x0 - X0) / Math.max(1, (X1 - X0) - largeurNoeud),
+        y: (d.y0 - Y0) / Math.max(1, (Y1 - Y0) - hauteurNoeud)
+      };
+      sauvegarderEtat();
+    });
+
+  noeuds.call(glisser);
+}
+
+function activerDoubleClic(noeuds) {
+  noeuds.on('dblclick', function (evenement, d) {
+    evenement.stopPropagation();
+    const fenetre = $('editeur-noeud');
+    $('edit-libelle').value = d.name;
+    $('edit-couleur').value = d.color.length === 7 ? d.color : '#1e40af';
+    fenetre.style.display = 'block';
+    fenetre.style.left = Math.min(evenement.clientX, window.innerWidth - 280) + 'px';
+    fenetre.style.top = Math.min(evenement.clientY, window.innerHeight - 220) + 'px';
+    $('edit-libelle').focus();
+    $('editeur-noeud').dataset.nomOriginal = d.name;
+  });
+}
+
+function renommerNoeud(ancien, nouveau, couleur) {
+  const lignes = etat.texte.split('\n').map(ligneBrute => {
+    const ligne = ligneBrute.trim();
+    if (!ligne || ligne.startsWith('//') || ligne.startsWith("'")) return ligneBrute;
+
+    if (ligne.startsWith(':')) {
+      const corps = ligne.slice(1);
+      const repere = /(#[0-9a-fA-F]{3,8}\b|<<|>>|\bx\s*=|\by\s*=)/.exec(corps);
+      const nom = (repere ? corps.slice(0, repere.index) : corps).trim();
+      const reste = repere ? corps.slice(repere.index) : '';
+      if (nom !== ancien) return ligneBrute;
+      const indent = ligneBrute.slice(0, ligneBrute.indexOf(':'));
+      let nouvelleReste = reste;
+      if (couleur) {
+        nouvelleReste = /#[0-9a-fA-F]{3,8}\b/.test(nouvelleReste)
+          ? nouvelleReste.replace(/#[0-9a-fA-F]{3,8}\b/, couleur)
+          : couleur + ' ' + nouvelleReste;
+      }
+      return indent + ':' + nouveau + (nouvelleReste ? ' ' + nouvelleReste.trim() : '');
+    }
+
+    const mFlux = /^(.+?)\[\s*([^\]]*?)\s*\]\s*(.*)$/.exec(ligne);
+    if (!mFlux) return ligneBrute;
+    const source = mFlux[1].trim() === ancien ? nouveau : mFlux[1].trim();
+    const cible = mFlux[3].trim() === ancien ? nouveau : mFlux[3].trim();
+    return `${source} [${mFlux[2]}] ${cible}`;
+  });
+  etat.texte = lignes.join('\n');
+
+  if (couleur && !new RegExp('^\\s*:' + echapperRegex(nouveau) + '\\b', 'm').test(etat.texte)) {
+    etat.texte += `\n:${nouveau} ${couleur}`;
+  }
+
+  if (ancien !== nouveau && etat.positionsManuelles[ancien]) {
+    etat.positionsManuelles[nouveau] = etat.positionsManuelles[ancien];
+    delete etat.positionsManuelles[ancien];
+  }
+
+  $('zone-texte').value = etat.texte;
+  sauvegarderEtat();
+  dessiner();
+}
+
+let comportementZoom = null;
+function activerZoom(svg, gVue) {
+  comportementZoom = d3.zoom()
+    .scaleExtent([0.5, 3])
+    .on('zoom', evenement => gVue.attr('transform', evenement.transform));
+  svg.call(comportementZoom)
+    .on('dblclick.zoom', null);
+  gVue.attr('transform', d3.zoomTransform(svg.node()));
+}
+
+function ajusterALaFenetre() {
+  const svg = d3.select('#diagramme');
+  const gVue = svg.select('.vue');
+  if (gVue.empty() || !etat.graphe) return;
+  const p = etat.params;
+  const cadre = gVue.node().getBBox();
+  if (!cadre.width || !cadre.height) return;
+  const marge = 24;
+  const echelle = Math.min(
+    (p.largeur - 2 * marge) / cadre.width,
+    (p.hauteur - 2 * marge) / cadre.height,
+    3
+  );
+  const tx = (p.largeur - cadre.width * echelle) / 2 - cadre.x * echelle;
+  const ty = (p.hauteur - cadre.height * echelle) / 2 - cadre.y * echelle;
+  svg.transition().duration(350)
+    .call(comportementZoom.transform, d3.zoomIdentity.translate(tx, ty).scale(echelle));
+}
+</script>
+
+<script>
+'use strict';
+const CONTROLS_FORME = [
+  { groupe: 'Dimensions et disposition' },
+  { id: 'format',           label: 'Format prédéfini',      type: 'formats',
+    aide: 'Règle d\'un coup la largeur et la hauteur pour coller à un support (diapositive, page A4, publication). « Libre » laisse les deux curseurs à votre main.' },
+  { id: 'largeur',          label: 'Largeur du diagramme',  type: 'curseur', min: 600, max: 2400, pas: 10, unite: ' px' },
+  { id: 'hauteur',          label: 'Hauteur du diagramme',  type: 'curseur', min: 400, max: 1600, pas: 10, unite: ' px' },
+  { id: 'marges',           label: 'Marges',                type: 'marges' },
+  { id: 'epaisseurNoeud',   label: 'Épaisseur des nœuds',   type: 'curseur', min: 4, max: 60, pas: 1, unite: ' px' },
+  { id: 'espacementNoeuds', label: 'Espacement vertical entre nœuds', type: 'curseur', min: 0, max: 60, pas: 1, unite: ' px' },
+  { id: 'alignement',       label: 'Alignement des nœuds',  type: 'menu',
+    options: [['justify', 'Justifié'], ['left', 'Gauche'], ['right', 'Droite'], ['center', 'Centré']],
+    aide: 'Justifié : les nœuds sont répartis sur toute la largeur. Gauche/Droite : les nœuds sans parent/enfant se collent d\'un côté. Centré : les nœuds isolés se placent au milieu.' },
+  { id: 'iterations',       label: 'Itérations de l\u2019algorithme', type: 'curseur', min: 0, max: 32, pas: 1,
+    aide: 'Nombre de passes d\'optimisation du placement vertical. Plus il y en a, plus le dessin est ordonné (et lent). 0 = placement brut.' },
+  { id: 'sens',             label: 'Sens du diagramme',     type: 'menu',
+    options: [['horizontal', 'Horizontal'], ['vertical', 'Vertical']] },
+
+  { groupe: 'Liens' },
+  { id: 'courbure',      label: 'Courbure des liens',   type: 'curseur', min: 0, max: 1, pas: 0.05,
+    aide: '0 = liens presque droits, 1 = virage très arrondi. La valeur classique est 0,5.' },
+  { id: 'opaciteLiens',  label: 'Opacité des liens',    type: 'curseur', min: 0.1, max: 1, pas: 0.05 },
+  { id: 'opaciteSurvol', label: 'Opacité au survol',    type: 'curseur', min: 0.1, max: 1, pas: 0.05 },
+  { id: 'contourLiens',  label: 'Contour des liens',    type: 'case' },
+
+  { groupe: 'Étiquettes et nombres' },
+  { id: 'afficherEtiquettes', label: 'Afficher les étiquettes', type: 'case' },
+  { id: 'afficherValeurs',    label: 'Afficher les valeurs',    type: 'case' },
+  { id: 'positionValeurs',    label: 'Position des valeurs',    type: 'menu',
+    options: [['apres', 'Après le nom'], ['ligne2', 'Sur une 2e ligne'], ['dedans', 'Dans le nœud']] },
+  { id: 'taillePolice',  label: 'Taille de police',   type: 'curseur', min: 8, max: 28, pas: 1, unite: ' px' },
+  { id: 'graisse',       label: 'Graisse de police',  type: 'menu',
+    options: [['400', 'Normal'], ['600', 'Semi-gras'], ['700', 'Gras']] },
+  { id: 'couleurTexte',  label: 'Couleur du texte',   type: 'couleur' },
+  { id: 'prefixe',       label: 'Préfixe des valeurs', type: 'texte' },
+  { id: 'suffixe',       label: 'Suffixe / unité',     type: 'texte' },
+  { id: 'sepMilliers',   label: 'Séparateur de milliers', type: 'menu',
+    options: [['espace', 'Espace'], ['point', 'Point'], ['virgule', 'Virgule'], ['aucun', 'Aucun']] },
+  { id: 'sepDecimal',    label: 'Séparateur décimal', type: 'menu',
+    options: [['virgule', 'Virgule'], ['point', 'Point']] },
+  { id: 'decimales',     label: 'Décimales',          type: 'curseur', min: 0, max: 3, pas: 1 },
+  { id: 'afficherPourcent', label: 'Afficher le % du total', type: 'case' },
+
+  { groupe: 'Fond et titre' },
+  { id: 'fondTransparent', label: 'Fond transparent (SVG et PNG)',  type: 'case',
+    aide: 'Coché : aucun fond n\'est dessiné, le PNG et le SVG exportés se posent directement sur la couleur de votre diapositive ou de votre document. Le damier gris à l\'écran signale simplement le vide, il n\'est pas exporté.' },
+  { id: 'couleurFond',     label: 'Couleur de fond',   type: 'couleur' },
+  { id: 'titre',           label: 'Titre du diagramme', type: 'texte' },
+  { id: 'sousTitre',       label: 'Sous-titre',         type: 'texte' },
+  { id: 'tailleTitre',     label: 'Taille du titre',    type: 'curseur', min: 10, max: 40, pas: 1, unite: ' px' },
+  { id: 'tailleSousTitre', label: 'Taille du sous-titre', type: 'curseur', min: 8, max: 24, pas: 1, unite: ' px' },
+  { id: 'note',            label: 'Mention de source (bas de dessin)', type: 'texte',
+    aide: 'Petite ligne en bas à gauche, par exemple « Source : SINOE 2025, traitement NCPA ». L\'espace nécessaire est réservé automatiquement.' },
+  { id: 'tailleNote',      label: 'Taille de la mention', type: 'curseur', min: 7, max: 18, pas: 1, unite: ' px' }
+];
+
+function libelleDefaut(controle) {
+  const defaut = PARAMS_DEFAUT[controle.id];
+  if (controle.type === 'menu') {
+    const trouve = controle.options.find(o => o[0] === defaut);
+    return trouve ? trouve[1] : defaut;
+  }
+  if (controle.type === 'case') return defaut ? 'coché' : 'décoché';
+  if (controle.type === 'texte') return defaut === '' ? 'vide' : `« ${defaut} »`;
+  return String(defaut).replace('.', ',') + (controle.unite || '');
+}
+
+function construireOngletForme() {
+  const conteneur = $('onglet-forme');
+  conteneur.innerHTML = '';
+
+  for (const controle of CONTROLS_FORME) {
+    // Titre de groupe de réglages
+    if (controle.groupe) {
+      const h = document.createElement('div');
+      h.className = 'groupe-controles';
+      h.textContent = controle.groupe;
+      conteneur.appendChild(h);
+      continue;
+    }
+
+    const boite = document.createElement('div');
+    boite.className = 'controle' + (controle.type === 'case' ? ' case' : '');
+    boite.id = 'controle-' + controle.id;
+
+    if (controle.type === 'formats') {
+      boite.innerHTML = `<div class="etiquette"><span>${controle.label}</span>
+        <i class="fa-solid fa-circle-question icone-aide" title="${controle.aide}"></i></div>`;
+      const menu = document.createElement('select');
+      FORMATS.forEach((fmt, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = fmt.l ? `${fmt.nom}, ${fmt.l} × ${fmt.h}` : fmt.nom;
+        menu.appendChild(opt);
+      });
+      menu.addEventListener('change', () => {
+        const fmt = FORMATS[Number(menu.value)];
+        if (!fmt || !fmt.l) return;
+        appliquerDimensions(fmt.l, fmt.h);
+        menu.value = '0';                      // le menu revient sur « Libre »
+      });
+      boite.appendChild(menu);
+      conteneur.appendChild(boite);
+      continue;
+    }
+
+    if (controle.type === 'marges') {
+      boite.innerHTML = `<div class="etiquette">${controle.label}
+        <span class="defaut">(défaut : ${PARAMS_DEFAUT.margeHaut} / ${PARAMS_DEFAUT.margeBas} / ${PARAMS_DEFAUT.margeGauche} / ${PARAMS_DEFAUT.margeDroite})</span></div>
+        <div class="ligne-marges">
+          ${[['margeHaut', 'Haut'], ['margeBas', 'Bas'], ['margeGauche', 'Gauche'], ['margeDroite', 'Droite']]
+            .map(([id, nom]) => `<label style="font-size:12px">${nom}
+              <input type="number" min="0" max="400" data-param="${id}" value="${etat.params[id]}"/></label>`).join('')}
+        </div>`;
+      boite.querySelectorAll('input').forEach(champ => {
+        champ.addEventListener('input', () => {
+          etat.params[champ.dataset.param] = Math.max(0, parseFloat(champ.value) || 0);
+          sauvegarderEtat();
+          dessiner();
+        });
+      });
+      conteneur.appendChild(boite);
+      continue;
+    }
+
+    const etiquette = document.createElement('div');
+    etiquette.className = 'etiquette';
+    etiquette.innerHTML = `<span>${controle.label}</span>` +
+      (controle.aide ? ` <i class="fa-solid fa-circle-question icone-aide" title="${controle.aide}"></i>` : '') +
+      `<span class="defaut">(défaut : ${libelleDefaut(controle)})</span>` +
+      (controle.type === 'curseur' ? '<span class="valeur-courante"></span>' : '');
+    boite.appendChild(etiquette);
+
+    // --- Le contrôle lui-même, selon son type ---
+    let champ;
+    if (controle.type === 'curseur') {
+      champ = document.createElement('input');
+      champ.type = 'range';
+      champ.min = controle.min; champ.max = controle.max; champ.step = controle.pas;
+      champ.value = etat.params[controle.id];
+      const affichage = etiquette.querySelector('.valeur-courante');
+      const majAffichage = () => affichage.textContent = String(champ.value).replace('.', ',') + (controle.unite || '');
+      majAffichage();
+      champ.addEventListener('input', () => {
+        etat.params[controle.id] = parseFloat(champ.value);
+        majAffichage();
+        sauvegarderEtat();
+        dessiner();
+      });
+    } else if (controle.type === 'menu') {
+      champ = document.createElement('select');
+      for (const [val, nom] of controle.options) {
+        const opt = document.createElement('option');
+        opt.value = val; opt.textContent = nom;
+        champ.appendChild(opt);
+      }
+      champ.value = etat.params[controle.id];
+      champ.addEventListener('change', () => {
+        etat.params[controle.id] = champ.value;
+        sauvegarderEtat();
+        dessiner();
+      });
+    } else if (controle.type === 'case') {
+      champ = document.createElement('input');
+      champ.type = 'checkbox';
+      champ.checked = !!etat.params[controle.id];
+      champ.addEventListener('change', () => {
+        etat.params[controle.id] = champ.checked;
+        majControlesLies();
+        sauvegarderEtat();
+        dessiner();
+      });
+      boite.classList.add('case');
+      champ.dataset.param = controle.id;
+      etiquette.prepend(champ);
+      conteneur.appendChild(boite);
+      continue;
+    } else if (controle.type === 'couleur') {
+      champ = document.createElement('input');
+      champ.type = 'color';
+      champ.value = etat.params[controle.id];
+      champ.addEventListener('input', () => {
+        etat.params[controle.id] = champ.value;
+        sauvegarderEtat();
+        dessiner();
+      });
+    } else {
+      champ = document.createElement('input');
+      champ.type = 'text';
+      champ.value = etat.params[controle.id];
+      champ.addEventListener('input', debounce(() => {
+        etat.params[controle.id] = champ.value;
+        sauvegarderEtat();
+        dessiner();
+      }, 400));
+    }
+    champ.dataset.param = controle.id;
+    boite.appendChild(champ);
+    conteneur.appendChild(boite);
+  }
+
+  majControlesLies();
+
+  const actions = document.createElement('div');
+  actions.className = 'rangee-actions';
+  actions.innerHTML = `
+    <button class="bouton" id="btn-reinit-positions" title="Oublie les déplacements faits à la souris et retrouve la mise en page automatique">
+      <i class="fa-solid fa-arrows-up-down-left-right"></i>Réinitialiser les positions
+    </button>
+    <button class="bouton" id="btn-copier-positions" title="Ajoute les lignes « :Nom x=… y=… » dans le texte pour figer la mise en page">
+      <i class="fa-solid fa-thumbtack"></i>Copier les positions dans le texte
+    </button>`;
+  conteneur.appendChild(actions);
+
+  $('btn-reinit-positions').addEventListener('click', () => {
+    etat.positionsManuelles = {};
+    sauvegarderEtat();
+    dessiner();
+  });
+  $('btn-copier-positions').addEventListener('click', copierPositionsDansTexte);
+}
+
+function appliquerDimensions(largeur, hauteur) {
+  const conteneur = $('onglet-forme');
+  [['largeur', largeur], ['hauteur', hauteur]].forEach(([id, valeur]) => {
+    const curseur = conteneur.querySelector(`input[data-param="${id}"]`);
+    if (!curseur) { etat.params[id] = valeur; return; }
+    curseur.value = Math.min(Number(curseur.max), Math.max(Number(curseur.min), valeur));
+    curseur.dispatchEvent(new Event('input'));
+  });
+}
+
+function majControlesLies() {
+  const boite = $('controle-couleurFond');
+  if (boite) boite.classList.toggle('desactive', !!etat.params.fondTransparent);
+}
+
+function copierPositionsDansTexte() {
+  if (!etat.graphe) return;
+  const p = etat.params;
+  let decalageTitre = 0;
+  if (p.titre) decalageTitre += p.tailleTitre + 8;
+  if (p.sousTitre) decalageTitre += p.tailleSousTitre + 6;
+  const decalageBas = p.note ? p.tailleNote + 10 : 0;
+  const X0 = p.margeGauche, X1 = p.largeur - p.margeDroite;
+  const Y0 = p.margeHaut + decalageTitre, Y1 = p.hauteur - p.margeBas - decalageBas;
+  const vertical = p.sens === 'vertical';
+  const [BX0, BX1, BY0, BY1] = vertical ? [Y0, Y1, X0, X1] : [X0, X1, Y0, Y1];
+
+  let lignes = etat.texte.split('\n');
+  const nomsTraites = new Set();
+
+  lignes = lignes.map(ligne => {
+    const m = /^\s*:(.+?)\s+(?:x\s*=\s*[0-9.,]+\s+y\s*=\s*[0-9.,]+|y\s*=\s*[0-9.,]+\s+x\s*=\s*[0-9.,]+)\s*$/.exec(ligne);
+    if (!m) return ligne;
+    const nom = m[1].trim();
+    const noeud = etat.graphe.nodes.find(n => n.name === nom);
+    if (!noeud) return ligne;
+    nomsTraites.add(nom);
+    const { rx, ry } = positionRelative(noeud, BX0, BX1, BY0, BY1);
+    return `:${nom} x=${rx} y=${ry}`;
+  });
+
+  for (const noeud of etat.graphe.nodes) {
+    if (nomsTraites.has(noeud.name)) continue;
+    if (!etat.positionsManuelles[noeud.name]) continue;
+    const { rx, ry } = positionRelative(noeud, BX0, BX1, BY0, BY1);
+    lignes.push(`:${noeud.name} x=${rx} y=${ry}`);
+  }
+
+  etat.texte = lignes.join('\n');
+  $('zone-texte').value = etat.texte;
+  sauvegarderEtat();
+  dessiner();
+}
+
+function positionRelative(noeud, BX0, BX1, BY0, BY1) {
+  const rx = (noeud.x0 - BX0) / Math.max(1, (BX1 - BX0) - (noeud.x1 - noeud.x0));
+  const ry = (noeud.y0 - BY0) / Math.max(1, (BY1 - BY0) - (noeud.y1 - noeud.y0));
+  return { rx: rx.toFixed(2), ry: ry.toFixed(2) };
+}
+
+function construireOngletCouleurs() {
+  const conteneur = $('onglet-couleurs');
+  const p = etat.params;
+  conteneur.innerHTML = `
+    <div class="groupe-controles">Couleur des liens</div>
+    <div class="controle">
+      <div class="etiquette"><span>Règle globale</span>
+        <i class="fa-solid fa-circle-question icone-aide" title="Définit la couleur des liens, sauf pour les nœuds marqués « &lt;&lt; » ou « &gt;&gt; » dans le texte."></i>
+        <span class="defaut">(défaut : Couleur de la source)</span></div>
+      <select id="regle-liens">
+        <option value="source">Couleur de la source</option>
+        <option value="cible">Couleur de la cible</option>
+        <option value="fixe">Couleur fixe ci-dessous</option>
+        <option value="gris">Gris neutre</option>
+      </select>
+    </div>
+    <div class="controle">
+      <div class="etiquette"><span>Couleur fixe des liens</span> <span class="defaut">(défaut : ${PARAMS_DEFAUT.couleurLienFixe})</span></div>
+      <input type="color" id="couleur-lien-fixe" value="${p.couleurLienFixe}"/>
+    </div>
+    <div class="groupe-controles">Palette des nœuds</div>
+    <div class="controle">
+      <div class="etiquette"><span>Palette prédéfinie</span>
+        <i class="fa-solid fa-circle-question icone-aide" title="Remplace la liste de couleurs ci-dessous. « Sûre pour daltoniens » reste lisible pour environ 8 % des hommes ; « Impression noir &amp; blanc » garde des nuances distinctes une fois photocopié."></i></div>
+      <select id="palette-predefinie">
+        ${PALETTES.map((pal, i) => `<option value="${i}">${pal.nom}</option>`).join('')}
+      </select>
+      <div id="apercu-palette" style="display:flex;gap:3px;margin-top:6px;height:14px"></div>
+    </div>
+    <div class="controle">
+      <div class="etiquette"><span>Couleurs automatiques</span>
+        <i class="fa-solid fa-circle-question icone-aide" title="Une couleur par ligne, au format #hex. Elles sont attribuées aux nœuds dans leur ordre d'apparition. Une ligne « :Nom #hex » dans le texte a toujours priorité."></i></div>
+      <textarea id="palette-couleurs" spellcheck="false">${etat.palette.join('\n')}</textarea>
+    </div>
+    <div class="rangee-actions">
+      <button class="bouton" id="btn-palette-defaut"><i class="fa-solid fa-rotate-left"></i>Palette par défaut</button>
+    </div>`;
+
+  const dessinerApercu = () => {
+    $('apercu-palette').innerHTML = etat.palette
+      .map(c => `<span style="flex:1;background:${c};border-radius:2px"></span>`).join('');
+  };
+  dessinerApercu();
+
+  $('palette-predefinie').addEventListener('change', e => {
+    const pal = PALETTES[Number(e.target.value)];
+    if (!pal) return;
+    etat.palette = [...pal.couleurs];
+    $('palette-couleurs').value = etat.palette.join('\n');
+    dessinerApercu();
+    sauvegarderEtat(); dessiner();
+  });
+
+  $('regle-liens').value = p.regleCouleurLiens;
+  $('regle-liens').addEventListener('change', e => {
+    etat.params.regleCouleurLiens = e.target.value;
+    sauvegarderEtat(); dessiner();
+  });
+  $('couleur-lien-fixe').addEventListener('input', e => {
+    etat.params.couleurLienFixe = e.target.value;
+    sauvegarderEtat(); dessiner();
+  });
+  $('palette-couleurs').addEventListener('input', debounce(e => {
+    const couleurs = e.target.value.split('\n')
+      .map(l => l.trim())
+      .filter(l => /^#[0-9a-fA-F]{6}$/.test(l) || /^#[0-9a-fA-F]{3}$/.test(l));
+    if (couleurs.length) {
+      etat.palette = couleurs;
+      dessinerApercu();
+      sauvegarderEtat();
+      dessiner();
+    }
+  }, 400));
+  $('btn-palette-defaut').addEventListener('click', () => {
+    etat.palette = [...PALETTE_DEFAUT];
+    $('palette-couleurs').value = etat.palette.join('\n');
+    $('palette-predefinie').value = '0';
+    dessinerApercu();
+    sauvegarderEtat(); dessiner();
+  });
+}
+</script>
+
+<script>
+'use strict';
+
+let minuteurToast = null;
+function afficherToast(message, estAlerte) {
+  const zone = $('toast');
+  zone.innerHTML = (estAlerte ? '<i class="fa-solid fa-triangle-exclamation"></i>' : '<i class="fa-solid fa-circle-check"></i>') + message;
+  zone.classList.toggle('alerte', !!estAlerte);
+  zone.style.display = 'block';
+  clearTimeout(minuteurToast);
+  minuteurToast = setTimeout(() => { zone.style.display = 'none'; }, 4500);
+}
+
+function telecharger(nomFichier, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomFichier;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function serialiserSVG() {
+  const p = etat.params;
+  const svg = $('diagramme').cloneNode(true);
+  svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  svg.setAttribute('viewBox', `0 0 ${p.largeur} ${p.hauteur}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svg.removeAttribute('style');
+  const groupeVue = svg.querySelector('.vue');
+  if (groupeVue) groupeVue.removeAttribute('transform');
+  return new XMLSerializer().serializeToString(svg);
+}
+
+// Export SVG vectoriel
+function exporterSVG() {
+  if (!etat.graphe) return;
+  const blob = new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + serialiserSVG()], { type: 'image/svg+xml;charset=utf-8' });
+  telecharger(`sankey_${dateDuJour()}.svg`, blob);
+}
+
+function construirePNG(echelle, quandPret) {
+  if (!etat.graphe) return;
+  const p = etat.params;
+  const image = new Image();
+  const url = URL.createObjectURL(new Blob([serialiserSVG()], { type: 'image/svg+xml;charset=utf-8' }));
+  image.onload = () => {
+    const toile = document.createElement('canvas');
+    toile.width = p.largeur * echelle;
+    toile.height = p.hauteur * echelle;
+    const pinceau = toile.getContext('2d');
+    if (!p.fondTransparent) {
+      pinceau.fillStyle = p.couleurFond;
+      pinceau.fillRect(0, 0, toile.width, toile.height);
+    }
+    pinceau.drawImage(image, 0, 0, toile.width, toile.height);
+    URL.revokeObjectURL(url);
+    toile.toBlob(blob => { if (blob) quandPret(blob); }, 'image/png');
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    const zone = $('messages');
+    const div = document.createElement('div');
+    div.className = 'message erreur';
+    div.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>La génération du PNG a échoué (SVG illisible par le navigateur).';
+    zone.appendChild(div);
+  };
+  image.src = url;
+}
+
+// Téléchargement du PNG
+function exporterPNG(echelle) {
+  construirePNG(echelle, blob => telecharger(`sankey_${dateDuJour()}_${echelle}x.png`, blob));
+}
+
+function copierImage() {
+  if (!etat.graphe) return;
+  const possible = navigator.clipboard && window.ClipboardItem && navigator.clipboard.write;
+  if (!possible) {
+    afficherToast('Votre navigateur refuse la copie d\u2019image : utilisez « PNG 2× » puis insérez le fichier.', true);
+    return;
+  }
+  construirePNG(2, blob => {
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      .then(() => afficherToast('Image copiée, collez-la avec Ctrl+V dans Word ou PowerPoint.'))
+      .catch(() => afficherToast('Copie refusée par le navigateur : utilisez « PNG 2× » à la place.', true));
+  });
+}
+
+function exporterCSV() {
+  const resultat = analyserTexte(etat.texte);
+  if (!resultat.flux.length) return;
+  const lignes = ['Source;Cible;Valeur'];
+  for (const f of resultat.flux) {
+    const valeur = String(f.valeur).replace('.', ',');
+    lignes.push(`${f.source};${f.cible};${valeur}`);
+  }
+  const blob = new Blob(['\uFEFF' + lignes.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  telecharger(`sankey_flux_${dateDuJour()}.csv`, blob);
+}
+
+function copierTexte() {
+  const texte = $('zone-texte').value;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(texte);
+  } else {
+    $('zone-texte').select();
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+  }
+}
+
+
+function sauvegarderEtat() {
+  try {
+    localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify({
+      texte: etat.texte,
+      params: etat.params,
+      positions: etat.positionsManuelles,
+      palette: etat.palette
+    }));
+  } catch (e) {
+  }
+}
+
+function restaurerEtat() {
+  try {
+    const brut = localStorage.getItem(CLE_SAUVEGARDE);
+    if (!brut) return false;
+    const donnees = JSON.parse(brut);
+    if (typeof donnees.texte === 'string') etat.texte = donnees.texte;
+    if (donnees.params) etat.params = { ...PARAMS_DEFAUT, ...donnees.params };
+    if (donnees.positions) etat.positionsManuelles = donnees.positions;
+    if (Array.isArray(donnees.palette) && donnees.palette.length) etat.palette = donnees.palette;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function enregistrerProjet() {
+  const projet = {
+    texte: etat.texte,
+    parametres: etat.params,
+    positions: etat.positionsManuelles,
+    palette: etat.palette
+  };
+  const blob = new Blob([JSON.stringify(projet, null, 2)], { type: 'application/json;charset=utf-8' });
+  telecharger(`sankey_projet_${dateDuJour()}.json`, blob);
+}
+
+function ouvrirProjet(fichier) {
+  const lecteur = new FileReader();
+  lecteur.onload = () => {
+    try {
+      const projet = JSON.parse(lecteur.result);
+      if (typeof projet.texte !== 'string') throw new Error('champ « texte » absent');
+      etat.texte = projet.texte;
+      etat.params = { ...PARAMS_DEFAUT, ...(projet.parametres || {}) };
+      etat.positionsManuelles = projet.positions || {};
+      if (Array.isArray(projet.palette) && projet.palette.length) etat.palette = projet.palette;
+      $('zone-texte').value = etat.texte;
+      construireOngletForme();
+      construireOngletCouleurs();
+      sauvegarderEtat();
+      dessiner();
+    } catch (e) {
+      const div = document.createElement('div');
+      div.className = 'message erreur';
+      div.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>Fichier de projet illisible : ' + echapperHtml(e.message) + '.';
+      $('messages').appendChild(div);
+    }
+  };
+  lecteur.readAsText(fichier);
+}
+
+
+function celluleNumerique(texte) {
+  if (!texte) return false;
+  const v = parseFloat(String(texte).replace(/[\s\u00A0\u202F]/g, '').replace(',', '.'));
+  return isFinite(v);
+}
+
+function convertirTableur(texteBrut) {
+  const lignes = texteBrut.replace(/\r/g, '').split('\n').filter(l => l.trim() !== '');
+  if (!lignes.length) return null;
+
+  const sep = lignes[0].includes('\t') ? '\t' : (lignes[0].includes(';') ? ';' : null);
+  if (!sep) return null;
+
+  const cellules = lignes.map(l => l.split(sep).map(c => c.trim()));
+  const debut = (!celluleNumerique(cellules[0][1]) && !celluleNumerique(cellules[0][2])) ? 1 : 0;
+  const donnees = cellules.slice(debut).filter(c => c.length >= 3);
+  if (!donnees.length) return null;
+
+  const score1 = donnees.filter(c => celluleNumerique(c[1])).length;
+  const score2 = donnees.filter(c => celluleNumerique(c[2])).length;
+  if (Math.max(score1, score2) === 0) return null;
+  const iValeur = score2 >= score1 ? 2 : 1;
+  const iCible  = iValeur === 2 ? 1 : 2;
+
+  const nettoyerValeur = t => String(t).replace(/[\s\u00A0\u202F]/g, '').replace(/[^0-9.,-]/g, '');
+  const sortie = donnees
+    .filter(c => c[0] && c[iCible] && celluleNumerique(c[iValeur]))
+    .map(c => `${c[0]} [${nettoyerValeur(c[iValeur])}] ${c[iCible]}`);
+  if (!sortie.length) return null;
+
+  return { lignes: sortie, ignorees: donnees.length - sortie.length, colonneValeur: iValeur + 1 };
+}
+
+function activerCollageTableur() {
+  $('zone-texte').addEventListener('paste', evenement => {
+    const presse = evenement.clipboardData || window.clipboardData;
+    if (!presse) return;
+    const resultat = convertirTableur(presse.getData('text'));
+    if (!resultat) return;
+
+    evenement.preventDefault();
+    const zone = $('zone-texte');
+    const avant = zone.value.slice(0, zone.selectionStart);
+    const apres = zone.value.slice(zone.selectionEnd);
+    const saut = (avant === '' || avant.endsWith('\n')) ? '' : '\n';
+    zone.value = avant + saut + resultat.lignes.join('\n') + '\n' + apres;
+
+    etat.texte = zone.value;
+    sauvegarderEtat();
+    dessiner();
+    afficherToast(`${resultat.lignes.length} flux convertis depuis le tableur ` +
+      `(valeurs lues en colonne ${resultat.colonneValeur})` +
+      (resultat.ignorees ? `, ${resultat.ignorees} ligne(s) incomplète(s) ignorée(s).` : '.'));
+  });
+}
+
+
+function activerOnglets() {
+  document.querySelectorAll('#onglets button').forEach(bouton => {
+    bouton.addEventListener('click', () => {
+      document.querySelectorAll('#onglets button').forEach(b => b.classList.remove('actif'));
+      document.querySelectorAll('.contenu-onglet').forEach(s => s.classList.remove('actif'));
+      bouton.classList.add('actif');
+      $('onglet-' + bouton.dataset.onglet).classList.add('actif');
+    });
+  });
+}
+
+function activerPoignee() {
+  const poignee = $('poignee');
+  const panneau = $('panneau');
+  poignee.addEventListener('mousedown', e => {
+    e.preventDefault();
+    poignee.classList.add('active');
+    const bouger = ev => {
+      const largeur = Math.min(640, Math.max(280, ev.clientX));
+      panneau.style.width = largeur + 'px';
+    };
+    const lacher = () => {
+      poignee.classList.remove('active');
+      document.removeEventListener('mousemove', bouger);
+      document.removeEventListener('mouseup', lacher);
+    };
+    document.addEventListener('mousemove', bouger);
+    document.addEventListener('mouseup', lacher);
+  });
+}
+
+function activerMenuExport() {
+  const menu = $('menu-export');
+  $('btn-export').addEventListener('click', e => {
+    e.stopPropagation();
+    menu.classList.toggle('ouvert');
+  });
+  document.addEventListener('click', () => menu.classList.remove('ouvert'));
+  $('export-svg').addEventListener('click', exporterSVG);
+  $('export-png-1').addEventListener('click', () => exporterPNG(1));
+  $('export-png-2').addEventListener('click', () => exporterPNG(2));
+  $('export-png-3').addEventListener('click', () => exporterPNG(3));
+  $('export-csv').addEventListener('click', exporterCSV);
+  $('copier-image').addEventListener('click', copierImage);
+  $('copier-texte').addEventListener('click', copierTexte);
+}
+
+function activerEditeurNoeud() {
+  const fermer = () => { $('editeur-noeud').style.display = 'none'; };
+  $('edit-annuler').addEventListener('click', fermer);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+  $('edit-valider').addEventListener('click', () => {
+    const ancien = $('editeur-noeud').dataset.nomOriginal;
+    const nouveau = $('edit-libelle').value.trim();
+    const couleur = $('edit-couleur').value;
+    if (!nouveau) { $('edit-libelle').focus(); return; }
+    renommerNoeud(ancien, nouveau, couleur);
+    fermer();
+  });
+}
+
+function activerBasculeTheme() {
+  const bouton = $('theme-toggle');
+  if (!bouton) return;
+  bouton.addEventListener('click', () => {
+    const actuel = document.documentElement.getAttribute('data-theme');
+    const suivant = actuel === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', suivant);
+    try { localStorage.setItem('theme', suivant); } catch (e) {}
+  });
+}
+
+function initialiser() {
+  activerBasculeTheme();
+
+  if (typeof d3 === 'undefined' || typeof d3.sankey === 'undefined') {
+    $('messages').innerHTML = '<div class="message erreur"><i class="fa-solid fa-circle-xmark"></i>' +
+      'Les bibliothèques graphiques n\u2019ont pas pu être chargées (réseau restreint ?). ' +
+      'Vérifiez votre connexion puis rechargez la page.</div>';
+    return;
+  }
+
+  $('titre-outil').textContent = TITRE_OUTIL;
+  document.title = TITRE_OUTIL + ' - Yves Marti';
+
+  // Menu des exemples
+  const select = $('select-exemples');
+  EXEMPLES.forEach((ex, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = ex.nom;
+    select.appendChild(opt);
+  });
+  select.addEventListener('change', () => {
+    if (select.value === '') return;
+    etat.texte = EXEMPLES[parseInt(select.value, 10)].texte;
+    etat.positionsManuelles = {};
+    $('zone-texte').value = etat.texte;
+    select.value = '';
+    sauvegarderEtat();
+    dessiner();
+  });
+
+  if (!restaurerEtat()) {
+    etat.texte = EXEMPLES[0].texte;
+  }
+  $('zone-texte').value = etat.texte;
+
+  $('zone-texte').addEventListener('input', debounce(() => {
+    etat.texte = $('zone-texte').value;
+    sauvegarderEtat();
+    dessiner();
+  }, 400));
+
+  $('btn-reinitialiser').addEventListener('click', () => {
+    if (!confirm('Réinitialiser l\u2019outil ? Votre texte et vos réglages seront remplacés par l\u2019exemple par défaut.')) return;
+    localStorage.removeItem(CLE_SAUVEGARDE);
+    etat.texte = EXEMPLES[0].texte;
+    etat.params = { ...PARAMS_DEFAUT };
+    etat.positionsManuelles = {};
+    etat.palette = [...PALETTE_DEFAUT];
+    $('zone-texte').value = etat.texte;
+    construireOngletForme();
+    construireOngletCouleurs();
+    sauvegarderEtat();
+    dessiner();
+  });
+  $('btn-enregistrer-projet').addEventListener('click', enregistrerProjet);
+  $('btn-ouvrir-projet').addEventListener('click', () => $('fichier-projet').click());
+  $('fichier-projet').addEventListener('change', e => {
+    if (e.target.files.length) ouvrirProjet(e.target.files[0]);
+    e.target.value = '';
+  });
+  $('ajuster-fenetre').addEventListener('click', ajusterALaFenetre);
+
+  construireOngletForme();
+  construireOngletCouleurs();
+  activerOnglets();
+  activerPoignee();
+  activerMenuExport();
+  activerEditeurNoeud();
+  activerCollageTableur();
+
+  dessiner();
+}
+
+document.addEventListener('DOMContentLoaded', initialiser);
+</script>
+</body>
+</html>
