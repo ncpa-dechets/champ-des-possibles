@@ -103,6 +103,26 @@ a.logiciel .ouvrir{margin-top:12px;padding-top:0;border-top:0;justify-content:fl
 a.logiciel .ouvrir span:last-child{color:var(--c)}
 a.logiciel:hover .ouvrir span:last-child{transform:translateX(4px)}
 
+/* ---------- Ressources utiles (sites externes) ---------- */
+.ressources{margin-top:64px;padding-top:36px;border-top:1px solid var(--trait)}
+.ressources-tete{display:flex;flex-direction:column;gap:2px;margin-bottom:20px}
+.ressources-tete h2{margin:0;font-size:21px;font-weight:700}
+.ressources-tete p{margin:0;color:var(--gris);font-size:14.5px;max-width:720px}
+.ressources-liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px}
+a.ressource{display:flex;flex-direction:column;text-decoration:none;padding:20px 22px 18px;background:var(--carte);border:1px solid var(--trait);border-left:3px solid var(--c);border-radius:14px;transition:transform .2s,background .2s,border-color .2s}
+a.ressource:hover{transform:translateY(-2px);background:var(--carte-haut);border-color:color-mix(in srgb,var(--c) 45%,transparent);border-left-color:var(--c)}
+.ressource .rubrique{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--c);margin-bottom:8px}
+.ressource .rubrique::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--c)}
+.ressource h3{margin:0 0 2px;font-size:18px;line-height:1.3}
+.ressource .editeur{margin:0 0 10px;font-size:13px;color:var(--gris2)}
+.ressource .desc{margin:0 0 12px;color:var(--gris);font-size:14.5px}
+.ressource .usage{margin:0 0 14px;font-size:14px;color:var(--encre)}
+.ressource .usage b{color:var(--c);font-weight:700}
+.ressource .tags{margin:0 0 14px}
+.ressource .ouvrir{font-size:14.5px}
+.ressource .ouvrir .domaine{font-weight:400;color:var(--gris);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+a.ressource:hover .ouvrir span:last-child{transform:translate(2px,-2px)}
+
 /* ---------- Guides pratiques ---------- */
 .guides{margin-top:64px;padding-top:36px;border-top:1px solid var(--trait)}
 .guides-tete{display:flex;flex-direction:column;gap:2px;margin-bottom:18px}
@@ -129,6 +149,7 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
   .grille{grid-template-columns:1fr}
   .logiciels{padding:24px 16px 20px}
   .logiciels-liste{grid-template-columns:1fr}
+  .ressources-liste{grid-template-columns:1fr}
   a.logiciel{flex-direction:column;gap:12px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -162,6 +183,10 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
       <div class="logiciels-tete"><h2 id="h-logiciels">Mini-logiciels</h2><p>Des outils de création plutôt que de consultation : on y saisit ses propres données, on obtient un visuel prêt à insérer dans un rapport ou une présentation. Tout reste dans le navigateur, rien n'est transmis.</p></div>
       <div class="logiciels-liste" id="logiciels-liste"></div>
     </section>
+    <section class="ressources" id="ressources" aria-labelledby="h-ressources">
+      <div class="ressources-tete"><h2 id="h-ressources">Ressources utiles</h2><p>Des sites publics, extérieurs à NCPA, qui complètent ces outils : services en lien avec nos thématiques ou ressources plus générales pour le travail au quotidien. Ils s'ouvrent dans un nouvel onglet.</p></div>
+      <div class="ressources-liste" id="ressources-liste"></div>
+    </section>
     <section class="guides" id="guides" aria-labelledby="h-guides">
       <div class="guides-tete"><h2 id="h-guides">Guides pratiques</h2><p>Pour utiliser les outils qui ne s'ouvrent pas dans un navigateur</p></div>
       <div class="guides-liste" id="guides-liste"></div>
@@ -185,7 +210,8 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
 const THEMES = [
   { id: "dechets",   nom: "Déchets",                  couleur: "#8cbf8f", accroche: "Collecte, déchèteries et prévention" },
   { id: "mobilite",  nom: "Mobilité & accessibilité", couleur: "#8fb0d8", accroche: "Temps de parcours et accès aux services" },
-  { id: "eau",       nom: "Cycle de l'eau",           couleur: "#6cc3cf", accroche: "Rivières, crues, submersion et nappes" },
+  { id: "amenagement", nom: "Aménagement & foncier", couleur: "#d9a27e", accroche: "Occupation du sol, évolution des paysages et sobriété foncière" },
+  { id: "eau",       nom: "Cycle de l'eau",          couleur: "#6cc3cf", accroche: "Rivières, crues, submersion et nappes" },
   { id: "tourisme",  nom: "Tourisme & cadre de vie",  couleur: "#cfc089", accroche: "Valoriser le territoire auprès des habitants et visiteurs" },
   { id: "economie",  nom: "Économie & emploi",        couleur: "#b79fd9", accroche: "Emploi, employeurs et recrutements" }
 ];
@@ -247,6 +273,15 @@ const OUTILS = [
     description: "On trace un itinéraire à vélo (adresses, étapes, ou trace GPX importée) : profil altimétrique, dénivelé, durée estimée et liste des montées classées par difficulté, calculés sur le relief IGN.",
     interet: "Préparer un trajet du quotidien ou une sortie à vélo en repérant à l'avance les montées, et comparer plusieurs variantes d'itinéraire.",
     tags: ["Profil altimétrique", "Relief IGN RGE ALTI", "Import GPX"]
+  },
+  {
+    theme: "amenagement",
+    titre: "Comparateur d'orthophotos",
+    fichier: "outils/comparateur_ortho.html",
+    apercu: "rideau",
+    description: "Deux millésimes de photographies aériennes de l'IGN superposés sur la même carte, des années 1950 à la dernière BD ORTHO : on les compare au rideau ou à la loupe, avec en option les limites communales et le cadastre.",
+    interet: "Montrer en un geste l'évolution d'un secteur (urbanisation, trait de côte, haies, zones humides) et appuyer un dossier, une réunion ou une réponse à un habitant.",
+    tags: ["Photos 1950 → aujourd'hui", "Rideau · loupe", "Lien de vue partageable"]
   },
   {
     theme: "eau",
@@ -347,6 +382,28 @@ const ICONES = {
     </svg>`
 };
 
+/* Sites externes recommandés. theme : id d'une thématique ci-dessus, ou null pour une ressource générale. */
+const RESSOURCES = [
+  {
+    theme: "amenagement",
+    titre: "Mon Diagnostic Artificialisation",
+    lien: "https://mondiagartif.beta.gouv.fr/diagnostic/epci/200065563-cc-normandie-cabourg-pays-d-auge/",
+    editeur: "Ministère de la Transition écologique · beta.gouv.fr",
+    description: "Service public gratuit qui dresse le diagnostic foncier d'un territoire : consommation d'espaces naturels, agricoles et forestiers depuis 2011, artificialisation des sols mesurée par l'OCS GE de l'IGN, et trajectoire au regard de l'objectif « zéro artificialisation nette ». Le lien ouvre directement le diagnostic de NCPA.",
+    usage: "Suivre la trajectoire ZAN de NCPA et de ses communes, préparer le rapport triennal local de l'artificialisation, nourrir un PLUi ou un SCoT.",
+    tags: ["Fichiers fonciers · OCS GE", "Échelle EPCI et commune", "Rapport téléchargeable"]
+  },
+  {
+    theme: null,
+    titre: "SILL – Socle interministériel de logiciels libres",
+    lien: "https://code.gouv.fr/sill/",
+    editeur: "DINUM · code.gouv.fr",
+    description: "Catalogue des logiciels libres recommandés par l'État depuis 2013. Chaque fiche présente le logiciel, les logiciels propriétaires qu'il peut remplacer, les agents publics référents qui l'utilisent et, parfois, des services en ligne publics déjà prêts à l'emploi.",
+    usage: "Chercher une alternative libre et éprouvée avant un achat de licence, ou trouver un interlocuteur dans une autre administration qui utilise déjà l'outil.",
+    tags: ["Logiciels libres", "Référents dans l'administration", "Alternatives aux logiciels propriétaires"]
+  }
+];
+
 const GUIDES = [
   {
     titre: "Lancer un outil écrit en Python",
@@ -446,6 +503,26 @@ const APERCUS = {
       </g>
       <circle cx="170" cy="40" r="7" class="marq"/>
     </svg>`,
+  rideau: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="1.5" opacity=".22">
+        <path d="M0 42 C60 38 120 50 180 44"/><path d="M0 92 C70 86 120 98 180 90"/>
+        <path d="M58 0 L64 132"/><path d="M122 0 L114 132"/>
+      </g>
+      <g fill="currentColor" opacity=".1"><rect x="8" y="50" width="48" height="34" rx="3"/><rect x="68" y="4" width="44" height="34" rx="3"/><rect x="120" y="98" width="52" height="30" rx="3"/></g>
+      <g fill="none" stroke="currentColor" stroke-width="1.5" opacity=".22">
+        <path d="M180 44 C240 38 300 50 360 42"/><path d="M180 90 C250 86 300 98 360 90"/>
+        <path d="M240 0 L246 132"/><path d="M304 0 L296 132"/>
+      </g>
+      <g fill="currentColor" opacity=".4">
+        <rect x="192" y="54" width="12" height="10" rx="1.5"/><rect x="210" y="56" width="10" height="12" rx="1.5"/><rect x="192" y="70" width="14" height="10" rx="1.5"/>
+        <rect x="256" y="8" width="12" height="12" rx="1.5"/><rect x="274" y="10" width="14" height="10" rx="1.5"/><rect x="258" y="26" width="10" height="10" rx="1.5"/><rect x="276" y="26" width="12" height="12" rx="1.5"/>
+        <rect x="312" y="56" width="14" height="12" rx="1.5"/><rect x="332" y="58" width="12" height="10" rx="1.5"/><rect x="316" y="74" width="12" height="10" rx="1.5"/>
+        <rect x="200" y="100" width="12" height="12" rx="1.5"/><rect x="256" y="104" width="14" height="10" rx="1.5"/>
+      </g>
+      <line x1="180" y1="0" x2="180" y2="132" stroke="#e0767a" stroke-width="3"/>
+      <circle cx="180" cy="66" r="9" class="marq"/>
+    </svg>`,
   mobilite: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <rect x="30" y="16" width="300" height="130" rx="8" fill="currentColor" opacity=".06" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5"/>
@@ -518,6 +595,21 @@ document.getElementById("logiciels-liste").innerHTML = LOGICIELS.map(l => `
       <div class="ouvrir"><span>Ouvrir le logiciel</span><span aria-hidden="true">→</span></div></div>
   </a>`).join("");
 
+document.getElementById("ressources-liste").innerHTML = RESSOURCES.map(r => {
+  const t = THEMES.find(x => x.id === r.theme);
+  const domaine = new URL(r.lien).hostname;
+  return `
+  <a class="ressource" href="${esc(r.lien)}" target="_blank" rel="noopener noreferrer" style="--c:${t ? t.couleur : "#9fd0c8"}">
+    <span class="rubrique">${esc(t ? t.nom : "Ressource générale")}</span>
+    <h3>${esc(r.titre)}</h3>
+    <p class="editeur">${esc(r.editeur)}</p>
+    <p class="desc">${esc(r.description)}</p>
+    <p class="usage"><b>Utile pour</b> · ${esc(r.usage)}</p>
+    <ul class="tags">${(r.tags || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+    <div class="ouvrir"><span class="domaine">${esc(domaine)}</span><span aria-hidden="true">↗</span></div>
+  </a>`;
+}).join("");
+
 const filtres = document.getElementById("filtres");
 filtres.innerHTML =
   `<button class="chip" data-f="tous" aria-pressed="true">Tous les outils <span class="n">${OUTILS.length}</span></button>` +
@@ -550,7 +642,7 @@ filtres.addEventListener("click", e => {
 })();
 
 document.getElementById("compte").textContent =
-  `${OUTILS.length} outils · ${themesActifs.length} thématiques · ${LOGICIELS.length} mini-logiciels`;
+  `${OUTILS.length} outils · ${themesActifs.length} thématiques · ${LOGICIELS.length} mini-logiciels · ${RESSOURCES.length} ressources externes`;
 </script>
 </body>
 </html>
