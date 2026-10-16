@@ -86,6 +86,23 @@ a.carte:hover{transform:translateY(-3px);background:var(--carte-haut);border-col
 a.carte:hover .ouvrir span:last-child{transform:translateX(4px)}
 
 
+/* ---------- Mini-logiciels ---------- */
+.logiciels{margin-top:64px;padding:32px 28px 28px;border:1px dashed var(--trait-fort);border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.025),transparent)}
+.logiciels-tete{display:flex;flex-direction:column;gap:2px;margin-bottom:20px}
+.logiciels-tete h2{margin:0;font-size:21px;font-weight:700}
+.logiciels-tete p{margin:0;color:var(--gris);font-size:14.5px;max-width:720px}
+.logiciels-liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+a.logiciel{display:flex;gap:18px;align-items:flex-start;text-decoration:none;padding:20px 22px;background:var(--carte);border:1px solid var(--trait);border-radius:14px;transition:transform .2s,background .2s,border-color .2s}
+a.logiciel:hover{transform:translateY(-2px);background:var(--carte-haut);border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+a.logiciel .ico{flex:0 0 auto;width:76px;height:56px;border-radius:10px;background:color-mix(in srgb,var(--c) 12%,var(--carte));border:1px solid var(--trait);color:var(--c)}
+a.logiciel .ico svg{display:block;width:100%;height:100%}
+a.logiciel h3{margin:0 0 4px;font-size:18px;line-height:1.3}
+a.logiciel p{margin:0;color:var(--gris);font-size:14.5px}
+a.logiciel .tags{margin:10px 0 0}
+a.logiciel .ouvrir{margin-top:12px;padding-top:0;border-top:0;justify-content:flex-start;gap:8px;font-size:14.5px}
+a.logiciel .ouvrir span:last-child{color:var(--c)}
+a.logiciel:hover .ouvrir span:last-child{transform:translateX(4px)}
+
 /* ---------- Guides pratiques ---------- */
 .guides{margin-top:64px;padding-top:36px;border-top:1px solid var(--trait)}
 .guides-tete{display:flex;flex-direction:column;gap:2px;margin-bottom:18px}
@@ -110,6 +127,9 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
   header .page{padding-top:44px;padding-bottom:36px}
   .intro{font-size:16px}
   .grille{grid-template-columns:1fr}
+  .logiciels{padding:24px 16px 20px}
+  .logiciels-liste{grid-template-columns:1fr}
+  a.logiciel{flex-direction:column;gap:12px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -138,6 +158,10 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
 <main>
   <div class="page">
     <div id="catalogue"></div>
+    <section class="logiciels" id="logiciels" aria-labelledby="h-logiciels">
+      <div class="logiciels-tete"><h2 id="h-logiciels">Mini-logiciels</h2><p>Des outils de création plutôt que de consultation : on y saisit ses propres données, on obtient un visuel prêt à insérer dans un rapport ou une présentation. Tout reste dans le navigateur, rien n'est transmis.</p></div>
+      <div class="logiciels-liste" id="logiciels-liste"></div>
+    </section>
     <section class="guides" id="guides" aria-labelledby="h-guides">
       <div class="guides-tete"><h2 id="h-guides">Guides pratiques</h2><p>Pour utiliser les outils qui ne s'ouvrent pas dans un navigateur</p></div>
       <div class="guides-liste" id="guides-liste"></div>
@@ -275,6 +299,53 @@ const OUTILS = [
     tags: ["Urssaf · Insee · France Travail", "Comparaison aux EPCI", "Excel · synthèse · carte"]
   }
 ];
+
+const LOGICIELS = [
+  {
+    titre: "Diagrammes de Sankey",
+    fichier: "outils/sankey-builder.html",
+    icone: "sankey",
+    couleur: "#8cbf8f",
+    description: "Visualiser des flux (tonnages de déchets, budgets, matières) sous forme de diagramme de Sankey : on saisit les flux entre étapes et le diagramme se construit sous les yeux.",
+    tags: ["Export SVG · PNG", "Export CSV", "Sans serveur"]
+  },
+  {
+    titre: "Frises et rétroplannings",
+    fichier: "outils/frise-chronologique.html",
+    icone: "frise",
+    couleur: "#cfc089",
+    description: "Construire la frise chronologique d'un projet ou un rétroplanning : pistes, périodes, jalons et libellés positionnables, pour partager un calendrier lisible.",
+    tags: ["Pistes · périodes · jalons", "Export SVG · PNG", "Sans serveur"]
+  }
+];
+
+const ICONES = {
+  sankey: `
+    <svg viewBox="0 0 76 56" aria-hidden="true">
+      <g fill="currentColor">
+        <rect x="6" y="8" width="6" height="40" rx="1.5"/>
+        <rect x="35" y="8" width="6" height="14" rx="1.5" opacity=".7"/><rect x="35" y="30" width="6" height="18" rx="1.5" opacity=".7"/>
+        <rect x="64" y="8" width="6" height="8" rx="1.5"/><rect x="64" y="22" width="6" height="12" rx="1.5"/><rect x="64" y="40" width="6" height="8" rx="1.5"/>
+      </g>
+      <g fill="currentColor" opacity=".22">
+        <path d="M12 8 C26 8 26 8 35 8 L35 22 C26 22 26 26 12 26Z"/>
+        <path d="M12 30 C26 30 26 30 35 30 L35 48 C26 48 26 48 12 48Z"/>
+        <path d="M41 8 C52 8 52 8 64 8 L64 16 C52 16 52 16 41 16Z"/>
+        <path d="M41 16 C52 18 52 22 64 22 L64 34 C52 34 52 24 41 22Z"/>
+        <path d="M41 30 C52 34 52 40 64 40 L64 48 C52 48 52 48 41 48Z"/>
+      </g>
+    </svg>`,
+  frise: `
+    <svg viewBox="0 0 76 56" aria-hidden="true">
+      <g stroke="currentColor" stroke-width="1" opacity=".3"><line x1="6" y1="12" x2="70" y2="12"/><line x1="6" y1="28" x2="70" y2="28"/><line x1="6" y1="44" x2="70" y2="44"/></g>
+      <g fill="currentColor">
+        <rect x="8" y="8" width="26" height="8" rx="4" opacity=".75"/>
+        <rect x="26" y="24" width="30" height="8" rx="4" opacity=".5"/>
+        <rect x="46" y="40" width="22" height="8" rx="4" opacity=".75"/>
+        <path d="M62 6 l5 6 l-5 6 l-5 -6Z"/>
+      </g>
+    </svg>`
+};
 
 const GUIDES = [
   {
@@ -439,6 +510,14 @@ document.getElementById("guides-liste").innerHTML = GUIDES.map(g => `
     <div><h3>${esc(g.titre)}</h3><p>${esc(g.description)}</p><span class="duree">${esc(g.duree)}</span></div>
   </a>`).join("");
 
+document.getElementById("logiciels-liste").innerHTML = LOGICIELS.map(l => `
+  <a class="logiciel" href="${esc(l.fichier)}" style="--c:${l.couleur}">
+    <span class="ico">${ICONES[l.icone] || ""}</span>
+    <div><h3>${esc(l.titre)}</h3><p>${esc(l.description)}</p>
+      <ul class="tags">${(l.tags || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+      <div class="ouvrir"><span>Ouvrir le logiciel</span><span aria-hidden="true">→</span></div></div>
+  </a>`).join("");
+
 const filtres = document.getElementById("filtres");
 filtres.innerHTML =
   `<button class="chip" data-f="tous" aria-pressed="true">Tous les outils <span class="n">${OUTILS.length}</span></button>` +
@@ -471,7 +550,7 @@ filtres.addEventListener("click", e => {
 })();
 
 document.getElementById("compte").textContent =
-  `${OUTILS.length} outils · ${themesActifs.length} thématiques`;
+  `${OUTILS.length} outils · ${themesActifs.length} thématiques · ${LOGICIELS.length} mini-logiciels`;
 </script>
 </body>
 </html>
