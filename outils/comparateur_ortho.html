@@ -308,9 +308,16 @@ function couvreNcpa(c){
   }
   return true;
 }
+/* Services écartés de l'affichage */
+const EXCLUS = new Set([
+  ...[2002, 2003, 2006, 2007, 2008, 2010, 2011, 2013, 2014, 2015, 2017, 2018, 2019, 2021, 2022, 2024]
+     .map(a => "ORTHOIMAGERY.ORTHOPHOTOS" + a),
+  "ORTHOIMAGERY.ORTHOPHOTOS.RAPIDEYE",
+]);
 /* Version présentable : BD ORTHO (actuelle + millésimes) et photos historiques couvrant NCPA */
 function retenue(c){
   return ["Actuelle", "Millésimes BD ORTHO", "Photos historiques"].includes(c.cat)
+      && !EXCLUS.has(c.id)
       && !/SPOT|PLEIADES|PLÉIADES|SAT|IRC|INFRAROUGE/i.test(c.id + " " + c.title)
       && couvreNcpa(c);
 }
