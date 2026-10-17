@@ -210,6 +210,7 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
 const THEMES = [
   { id: "dechets",   nom: "Déchets",                  couleur: "#8cbf8f", accroche: "Collecte, déchèteries et prévention" },
   { id: "mobilite",  nom: "Mobilité & accessibilité", couleur: "#8fb0d8", accroche: "Temps de parcours et accès aux services" },
+  { id: "sante",     nom: "Santé & accès aux soins",  couleur: "#d98fa8", accroche: "Offre de soins de proximité et territoires sous-dotés" },
   { id: "amenagement", nom: "Aménagement & foncier", couleur: "#d9a27e", accroche: "Occupation du sol, évolution des paysages et sobriété foncière" },
   { id: "eau",       nom: "Cycle de l'eau",          couleur: "#6cc3cf", accroche: "Eau potable, rivières, crues, submersion et nappes" },
   { id: "tourisme",  nom: "Tourisme & cadre de vie",  couleur: "#cfc089", accroche: "Valoriser le territoire auprès des habitants et visiteurs" },
@@ -273,6 +274,15 @@ const OUTILS = [
     description: "On trace un itinéraire à vélo (adresses, étapes, ou trace GPX importée) : profil altimétrique, dénivelé, durée estimée et liste des montées classées par difficulté, calculés sur le relief IGN.",
     interet: "Préparer un trajet du quotidien ou une sortie à vélo en repérant à l'avance les montées, et comparer plusieurs variantes d'itinéraire.",
     tags: ["Profil altimétrique", "Relief IGN RGE ALTI", "Import GPX"]
+  },
+  {
+    theme: "sante",
+    titre: "Offre de soins du territoire",
+    fichier: "outils/carte_soins_ncpa.html",
+    apercu: "soins",
+    description: "Carte des professionnels et structures de santé du territoire et des communes voisines (médecins, pharmacies, centres de santé…), avec filtres par profession, analyse commune par commune et distance aux soins depuis la mairie.",
+    interet: "Repérer les communes sans médecin généraliste ou éloignées des soins, et nourrir les réflexions sur l'attractivité, les projets de santé et l'accueil de nouveaux praticiens.",
+    tags: ["Annuaire santé Ameli · OpenStreetMap", "Analyse par commune", "Export CSV"]
   },
   {
     theme: "amenagement",
@@ -511,6 +521,22 @@ const APERCUS = {
       <path d="M0 104 L34 96 L62 84 L90 88 L122 64 L154 56 L182 70 L214 42 L246 50 L278 76 L310 70 L360 92" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
       <line x1="214" y1="42" x2="214" y2="132" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4" opacity=".6"/>
       <circle cx="214" cy="42" r="6" class="marq"/>
+    </svg>`,
+  soins: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="none" stroke="currentColor" opacity=".18" stroke-width="1.5">
+        <path d="M0 100 C70 90 130 108 210 88 S310 66 360 72"/>
+        <path d="M0 40 C90 50 180 30 360 28"/>
+        <path d="M120 0 C130 44 120 90 140 132"/>
+      </g>
+      <g fill="currentColor">
+        <circle cx="96" cy="64" r="30" opacity=".12"/><circle cx="270" cy="44" r="36" opacity=".12"/>
+        <circle cx="204" cy="86" r="20" opacity=".12"/><circle cx="40" cy="98" r="14" opacity=".12"/>
+        <path d="M91 52h10v8h8v10h-8v8H91v-8h-8V60h8z" opacity=".75"/>
+        <path d="M265 30h10v8h8v10h-8v8h-10v-8h-8V38h8z" opacity=".75"/>
+        <path d="M200 76h8v6h6v8h-6v6h-8v-6h-6v-8h6z" opacity=".75"/>
+      </g>
+      <circle cx="160" cy="40" r="7" class="marq"/>
     </svg>`,
   hebergements: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
