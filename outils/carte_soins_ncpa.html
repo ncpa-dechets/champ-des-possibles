@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offre de soins — NCPA</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+<style>
+:root{--rouge:#B91E27;--rouge-clair:#fbecec;--vert:#B1B993;--txt:#1d2228;--mut:#626a73;--bord:#e4e6e9;--fond:#f4f4f1;--blanc:#fff;--ok:#2e7d32;--warn:#c27c0e;--ombre:0 4px 18px rgba(20,25,35,.14)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--txt);background:var(--fond);display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:14px}
+button,select,input{font-family:inherit;font-size:13.5px;color:inherit}
+a{color:var(--rouge)}
+
+/* ---------- En-tête ---------- */
+header.top{position:relative;background:var(--blanc);border-bottom:3px solid var(--rouge);padding:7px 16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;z-index:1100}
+.eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--rouge);font-weight:700}
+header h1{margin:0;font-size:19px;font-weight:700;line-height:1.15}
+nav.tabs{display:flex;background:#f1f1ef;border-radius:10px;padding:3px}
+nav.tabs button{border:0;background:transparent;border-radius:8px;padding:6px 14px;cursor:pointer;color:var(--mut);font-weight:600}
+nav.tabs button.on{background:#fff;color:var(--rouge);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.statut{margin-left:auto;display:flex;align-items:center;gap:8px}
+.puce{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--bord);border-radius:20px;padding:5px 12px;background:#fff;cursor:pointer;font-size:13px;white-space:nowrap}
+.puce .p{width:9px;height:9px;border-radius:50%;background:#bbb;flex:0 0 9px}
+.puce.ok .p{background:var(--ok)}.puce.cache .p{background:var(--warn)}.puce.err .p{background:var(--rouge)}
+.puce.run .p{background:#1e88e5;animation:clig 1s infinite}
+@keyframes clig{50%{opacity:.25}}
+.btn{border:1px solid var(--bord);background:#fff;border-radius:8px;padding:6px 11px;cursor:pointer;line-height:1.2}
+.btn:hover{border-color:var(--rouge)}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.prim{background:var(--rouge);border-color:var(--rouge);color:#fff}
+.btn.on{background:var(--rouge-clair);border-color:var(--rouge);color:var(--rouge)}
+#barre{position:absolute;left:0;right:0;bottom:-3px;height:3px;overflow:hidden;display:none}
+#barre.on{display:block}
+#barre::after{content:"";position:absolute;top:0;height:3px;width:30%;background:#ffb4b8;animation:glisse 1.2s ease-in-out infinite}
+@keyframes glisse{0%{left:-30%}100%{left:100%}}
+
+/* ---------- Vues ---------- */
+main{flex:1 1 auto;min-height:0;position:relative}
+.vue{display:none;position:absolute;inset:0}
+.vue.on{display:block}
+#vue-analyse,#vue-sources{overflow:auto;padding:20px 26px 40px}
+#map{position:absolute;inset:0;background:#e9ebe6}
+
+/* ---------- Panneaux flottants ---------- */
+.panneau{position:absolute;z-index:900;background:var(--blanc);border-radius:14px;box-shadow:var(--ombre);display:flex;flex-direction:column;overflow:hidden}
+.panneau .tete{display:flex;align-items:center;gap:8px;padding:10px 12px 8px 14px;border-bottom:1px solid var(--bord)}
+.panneau .tete b{font-size:14.5px}
+.panneau .tete .btn{margin-left:auto;padding:3px 8px}
+.panneau .corps{overflow:auto;padding:4px 14px 14px}
+#p-gauche{left:12px;top:12px;bottom:12px;width:330px}
+#p-droite{right:12px;top:12px;width:300px;max-height:calc(100% - 210px)}
+#p-gauche.replie~#tiroir{left:12px}
+.panneau.replie{bottom:auto!important;width:auto!important}
+.panneau.replie .corps{display:none}
+.panneau.replie .tete{border-bottom:0}
+details.sec{border-bottom:1px solid var(--bord);padding:2px 0}
+details.sec:last-child{border-bottom:0}
+details.sec>summary{list-style:none;cursor:pointer;padding:10px 0 8px;font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--rouge);display:flex;align-items:center;gap:6px}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::after{content:"›";margin-left:auto;font-size:18px;color:#999;transform:rotate(90deg);transition:transform .15s}
+details.sec:not([open])>summary::after{transform:rotate(0)}
+details.sec>summary .badge{background:var(--rouge-clair);color:var(--rouge);border-radius:10px;padding:0 7px;font-size:11px;letter-spacing:0;text-transform:none}
+.champ{width:100%;padding:7px 9px;border:1px solid #d3d7dc;border-radius:8px;margin-bottom:7px;background:#fff}
+.champ:focus{outline:none;border-color:var(--rouge);box-shadow:0 0 0 2px #f6d5d7}
+.aide{font-size:12px;color:var(--mut);margin:3px 0 8px;line-height:1.4}
+.seg{display:flex;background:#f1f1ef;border-radius:8px;padding:3px;margin-bottom:5px}
+.seg button{flex:1;border:0;background:transparent;border-radius:6px;padding:5px 4px;cursor:pointer;font-size:12.5px;color:var(--mut);font-weight:600}
+.seg button.on{background:#fff;color:var(--rouge);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.groupe-cat{margin:4px 0 8px}
+.groupe-cat .gt{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);font-weight:700;margin:6px 0 2px}
+.cat{display:flex;align-items:center;gap:7px;padding:3px 4px;border-radius:6px;cursor:pointer;font-size:13.5px}
+.cat:hover{background:#f5f5f3}
+.cat input,.gt input,#f-voisins{margin:0;accent-color:var(--rouge)}
+.cat .pin{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex:0 0 20px;color:#fff}
+.cat .n{margin-left:auto;color:var(--mut);font-variant-numeric:tabular-nums;font-size:12.5px}
+.cat.vide{opacity:.42}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.chips label{border:1px solid #d3d7dc;border-radius:14px;padding:3px 10px;cursor:pointer;font-size:12.5px;background:#fff}
+.chips input{display:none}.chips label:has(input:checked){background:var(--rouge);border-color:var(--rouge);color:#fff}
+.ligne{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.ligne>*{flex:1}
+.legende-choro{font-size:12.5px;margin:2px 0 6px}.legende-choro .r{display:flex;align-items:center;gap:7px;margin:2px 0}.legende-choro i{width:20px;height:12px;display:inline-block;border:1px solid #ccc;border-radius:2px}
+#suggestions div{padding:5px 7px;cursor:pointer;font-size:12.5px;border-bottom:1px solid #eee}#suggestions div:hover{background:#f5f5f3}
+
+/* Chiffres clés */
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px dashed #eceae6;gap:10px}
+.kv:last-child{border-bottom:0}
+.kv .l{color:var(--mut);font-size:13px}
+.kv .v{font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;text-align:right}
+.kv .v small{font-weight:400;color:var(--mut);font-size:11.5px;display:block}
+.attente{display:inline-block;width:46px;height:14px;border-radius:4px;background:linear-gradient(90deg,#eee 25%,#f8f8f8 50%,#eee 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;vertical-align:middle}
+@keyframes shimmer{to{background-position:-200% 0}}
+.res-iso table{width:100%;border-collapse:collapse;font-size:12.5px}.res-iso td,.res-iso th{padding:3px 4px;border-bottom:1px solid #f0f0f0;text-align:right}
+.res-iso td:first-child,.res-iso th:first-child{text-align:left}
+
+/* Fenêtre de chargement */
+#chargement{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:1000;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(20,25,35,.22);width:min(460px,calc(100% - 40px));padding:14px 18px 12px;transition:opacity .4s}
+#chargement.cache{opacity:0;pointer-events:none}
+#chargement h3{margin:0 0 2px;font-size:16px;display:flex;align-items:center;gap:8px}
+#chargement .sous{font-size:12.5px;color:var(--mut);margin-bottom:8px}
+.etape{display:grid;grid-template-columns:22px 1fr auto;gap:4px 8px;align-items:center;padding:7px 0;border-top:1px solid #f1f1f1}
+.etape .ic{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.etape .t{font-weight:600}.etape .d{grid-column:2/4;font-size:12px;color:var(--mut)}
+.etape .s{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums}
+.etape .prog{grid-column:2/4;height:5px;background:#f0f0ee;border-radius:3px;overflow:hidden}
+.etape .prog i{display:block;height:100%;background:var(--rouge);border-radius:3px;transition:width .3s}
+.etape.err .t{color:var(--rouge)}
+.rond{width:15px;height:15px;border:2.5px solid #f3c7ca;border-top-color:var(--rouge);border-radius:50%;animation:tour .8s linear infinite}
+@keyframes tour{to{transform:rotate(360deg)}}
+
+/* Liste (tiroir bas) */
+#b-liste{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;z-index:950;box-shadow:var(--ombre);border-radius:20px;padding:8px 16px;font-weight:600}
+#tiroir{position:absolute;left:354px;right:12px;bottom:12px;height:42%;z-index:960;display:none}
+#tiroir.on{display:flex}
+#tiroir .corps{padding:0}
+table.t{border-collapse:collapse;width:100%;font-size:12.8px}
+table.t th{position:sticky;top:0;background:#f6f5f2;text-align:left;padding:7px 9px;cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--bord);z-index:1}
+table.t td{padding:5px 9px;border-bottom:1px solid #f1f1f1}
+table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums}
+table.t tr:hover td{background:#fcf8f8}
+table.t tr.sel td{background:#fbe3e4}
+table.t tr.total td{font-weight:700;background:#f6f5f2}
+th.tri-asc::after{content:" ▲";font-size:9px}th.tri-desc::after{content:" ▼";font-size:9px}
+#t-analyse td:first-child{white-space:nowrap}
+
+/* Marqueurs et fiches */
+.mk{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.mk span{transform:rotate(45deg);font-size:12px;line-height:1}
+.mk.ext{opacity:.55;border-style:dashed}
+.mk.approx{border-color:#ffca28}
+.mk.comp{border-color:#111;border-style:dotted}
+.leaflet-popup-content-wrapper{border-radius:12px}
+.leaflet-popup-content{font-size:13px;line-height:1.45;min-width:230px}
+.pp h4{margin:0 0 5px;font-size:15px}
+.pp .cat-l{font-size:12px;color:#fff;border-radius:10px;padding:1px 9px;display:inline-block;margin-bottom:6px}
+.pp .l{color:var(--mut);display:inline-block;min-width:84px}
+.pp .src{font-size:11px;color:var(--mut);margin-top:7px}
+.pp .act{margin-top:9px;display:flex;gap:6px}
+.lbl-iso{background:#fff;border:1.5px solid #333;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:700;white-space:nowrap}
+.origine{width:16px;height:16px;border-radius:50%;background:#111;border:3px solid #fff;box-shadow:0 0 0 2px #111}
+.mode-pose #map{cursor:crosshair}
+/* Clic sur une commune : le navigateur encadre la forme « active » d'un rectangle (contour de focus). On le supprime. */
+.leaflet-interactive:focus,.leaflet-container path:focus{outline:none}
+.leaflet-bottom.leaflet-right{margin-bottom:4px}
+
+/* Pages Analyse / Sources */
+.page{max-width:1250px;margin:0 auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0 18px}
+.kpi{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid var(--rouge);padding:11px 15px}
+.kpi .l{font-size:12.5px;color:var(--mut)}.kpi .v{font-size:25px;font-weight:700;margin:2px 0}.kpi .s{font-size:12px;color:var(--mut)}
+.bloc{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:14px 18px;margin-bottom:16px}
+.bloc h3{margin:0 0 6px;font-size:16px}
+.note{font-size:13px;color:var(--mut);line-height:1.5}
+.alerte{background:#fff6e5;border:1px solid #f0d49b;border-radius:8px;padding:8px 10px;font-size:12.5px;margin:8px 0}
+.mauvais{color:var(--rouge);font-weight:700}
+code{background:#f2f2f0;padding:1px 5px;border-radius:4px;font-size:12px}
+
+@media (max-width:860px){
+  #p-gauche,#p-droite{left:8px;right:8px;width:auto}
+  #p-gauche{bottom:auto;max-height:calc(100% - 70px)}
+  #p-droite{top:auto;bottom:62px;max-height:45%}
+  #tiroir{left:8px;right:8px}
+  .statut .puce span.txt{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <div class="eyebrow">NCPA · Santé et accès aux soins</div>
+    <h1>Offre de soins du territoire</h1>
+  </div>
+  <nav class="tabs">
+    <button data-vue="carte" class="on">Carte</button>
+    <button data-vue="analyse">Analyse par commune</button>
+    <button data-vue="sources">Sources et méthode</button>
+  </nav>
+  <div class="statut">
+    <span class="puce run" id="puce" title="Voir le détail des sources"><span class="p"></span><span class="txt" id="puce-txt">Chargement…</span></span>
+    <button class="btn" id="b-actualiser" title="Interroger à nouveau toutes les sources">↻ Actualiser</button>
+  </div>
+  <div id="barre" class="on"></div>
+</header>
+
+<main>
+<!-- ===================== VUE CARTE ===================== -->
+<section class="vue on" id="vue-carte">
+  <div id="map"></div>
+
+  <div id="chargement">
+    <h3><span class="rond" id="ch-rond"></span><span id="ch-titre">Chargement des données…</span></h3>
+    <div class="sous" id="ch-sous">Les données sont interrogées en direct. Comptez de 10 à 40 secondes à la première ouverture.</div>
+    <div id="ch-etapes"></div>
+  </div>
+
+  <div class="panneau" id="p-gauche">
+    <div class="tete"><b>Filtres et outils</b><button class="btn" data-replier="p-gauche" title="Replier">⟨</button></div>
+    <div class="corps">
+      <details class="sec" open><summary>Rechercher</summary>
+        <input class="champ" id="q" type="search" placeholder="Nom, profession, adresse…">
+        <select class="champ" id="f-commune"><option value="">Toutes les communes</option></select>
+      </details>
+
+      <details class="sec" open><summary>Source des professionnels</summary>
+        <div class="seg" id="seg-source">
+          <button data-m="ameli">Annuaire Ameli</button>
+          <button data-m="mix">Ameli + compléments</button>
+          <button data-m="osm">OSM seul</button>
+        </div>
+        <p class="aide" id="aide-source"></p>
+      </details>
+
+      <details class="sec" open><summary>Catégories <span class="badge" id="nb-visibles">…</span></summary>
+        <div id="cats"></div>
+        <label class="cat"><input type="checkbox" id="f-voisins"> Montrer l'offre des communes voisines</label>
+        <p class="aide">Utile pour l'accès réel : l'hôpital ou la pharmacie la plus proche est parfois hors NCPA.</p>
+      </details>
+
+      <details class="sec"><summary>Colorer les communes</summary>
+        <select class="champ" id="f-choro">
+          <option value="">Aucune coloration</option>
+          <option value="dens_mg">Généralistes pour 10 000 hab.</option>
+          <option value="d_mg">Distance au généraliste le plus proche</option>
+          <option value="d_ph">Distance à la pharmacie la plus proche</option>
+          <option value="d_urg">Distance aux urgences les plus proches</option>
+        </select>
+        <div class="legende-choro" id="leg-choro"></div>
+      </details>
+
+      <details class="sec"><summary>Temps d'accès (IGN)</summary>
+        <div class="ligne">
+          <select class="champ" id="iso-profil" style="margin:0"><option value="car">🚗 Voiture</option><option value="pedestrian">🚶 À pied</option></select>
+          <select class="champ" id="iso-sens" style="margin:0"><option value="departure">depuis le point</option><option value="arrival">vers le point</option></select>
+        </div>
+        <div class="chips" id="iso-durees">
+          <label><input type="checkbox" value="5">5 min</label>
+          <label><input type="checkbox" value="10" checked>10 min</label>
+          <label><input type="checkbox" value="15">15 min</label>
+          <label><input type="checkbox" value="20" checked>20 min</label>
+          <label><input type="checkbox" value="30">30 min</label>
+        </div>
+        <div class="ligne"><button class="btn" id="b-pose" style="flex:3">📍 Choisir un point sur la carte</button><button class="btn" id="b-iso-eff" title="Effacer" style="flex:0 0 auto">✕</button></div>
+        <input class="champ" id="adresse" type="search" placeholder="…ou taper une adresse puis Entrée">
+        <div id="suggestions"></div>
+        <p class="aide">Le bouton « Temps d'accès » d'une fiche part de cet établissement. Le point noir se déplace à la souris.</p>
+      </details>
+
+      <details class="sec"><summary>Exporter</summary>
+        <div class="ligne"><button class="btn" id="b-geojson">GeoJSON (QGIS)</button><button class="btn" id="b-csv">CSV (Excel)</button></div>
+        <p class="aide">Les lieux actuellement affichés, filtres compris.</p>
+      </details>
+    </div>
+  </div>
+
+  <div class="panneau" id="p-droite">
+    <div class="tete"><b id="cc-titre">Chiffres clés · NCPA</b><button class="btn" data-replier="p-droite" title="Replier">⟩</button></div>
+    <div class="corps">
+      <div id="cc"></div>
+      <div class="res-iso" id="iso-res"></div>
+    </div>
+  </div>
+
+  <button class="btn" id="b-liste">☰ Liste des lieux</button>
+  <div class="panneau" id="tiroir">
+    <div class="tete"><b id="tiroir-titre">Lieux affichés</b><button class="btn" id="b-liste-fermer">Fermer ✕</button></div>
+    <div class="corps"><table class="t" id="t-liste"></table></div>
+  </div>
+</section>
+
+<!-- ===================== VUE ANALYSE ===================== -->
+<section class="vue" id="vue-analyse"><div class="page">
+  <div class="eyebrow">Analyse</div>
+  <h2 style="margin:2px 0 0">Offre de soins par commune</h2>
+  <p class="note" id="analyse-intro"></p>
+  <div class="kpis" id="kpis"></div>
+  <div class="bloc"><h3>Communes sans médecin généraliste</h3><div id="sans-mg" class="note"></div></div>
+  <div class="bloc">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 style="margin:0">Tableau par commune</h3>
+      <button class="btn" id="b-csv-analyse" style="margin-left:auto">Exporter en CSV</button>
+    </div>
+    <p class="note">Distances à vol d'oiseau depuis la mairie, offre des communes voisines comprise. Clic sur un en-tête pour trier, sur une ligne pour voir la commune sur la carte.</p>
+    <div style="overflow:auto"><table class="t" id="t-analyse"></table></div>
+  </div>
+</div></section>
+
+<!-- ===================== VUE SOURCES ===================== -->
+<section class="vue" id="vue-sources"><div class="page">
+  <div class="eyebrow">Transparence</div>
+  <h2 style="margin:2px 0 12px">Sources et méthode</h2>
+  <div class="bloc"><h3>État des sources</h3><div id="etat-sources"></div></div>
+  <div class="bloc"><h3>Annuaire Ameli : contrôle de lecture</h3><div id="controle-ameli"></div></div>
+  <div class="bloc"><h3>Méthode</h3><div class="note" id="methode"></div></div>
+</div></section>
+</main>
+
+<script id="instantane" type="application/json">{"date":"2026-10-16T20:11:38.833877+00:00","elements":[{"type":"node","id":467732139,"lat":49.364765,"lon":0.082658,"tags":{"amenity":"pharmacy","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie du Port","opening_hours":"Mo-Sa 09:00-13:00,14:00-19:30; Su 09:00-13:00","phone":"+33 2 31 88 10 59","ref:FR:FINESS":"140010950","ref:FR:SIRET":"88047874800010","source":"Local survey 29 Aug 2009","website":"https://www.pharmacieduport14.fr/"}},{"type":"node","id":467732142,"lat":49.363899,"lon":0.08378,"tags":{"amenity":"pharmacy","contact:city":"Trouville-sur-Mer","contact:housenumber":"96","contact:postcode":"14360","contact:street":"Boulevard Fernand Moureaux","dispensing":"yes","healthcare":"pharmacy","name":"Grande Pharmacie Trouvillaise","opening_hours":"Mo-Sa 08:45-19:30; Su 09:00-13:00","phone":"+33 2 31 88 15 50","ref:FR:FINESS":"140010935","ref:FR:SIRET":"51915658200016","source":"survey;Celtipharm - 10/2014","website":"https://www.grandepharmacietrouvillaise.fr/"}},{"type":"node","id":467732155,"lat":49.36166,"lon":0.086491,"tags":{"alt_name":"Pharmacie Brin-Michel","amenity":"pharmacy","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie du Pont","opening_hours":"Mo 09:00-19:00; Tu-Th,Sa 09:00-19:00,14:00-18:30; Fr 09:00-19:30; Su 09:00-13:00","phone":"+33 2 31 88 10 69","ref:FR:FINESS":"140010927","ref:FR:SIRET":"82210119200018","source":"Local survey 29 Aug 2009;Celtipharm - 10/2014"}},{"type":"node","id":484262843,"lat":49.177963,"lon":-0.222313,"tags":{"amenity":"pharmacy","contact:facebook":"https://www.facebook.com/profile.php?id=100057085014666","contact:housenumber":"1","contact:street":"Rue du Maréchal Leclerc","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie de Sannerville","opening_hours":"Sa 09:00-12:30; Mo-Fr 09:00-12:00,14:00-19:00","phone":"+33 2 31 23 20 57","ref:FR:FINESS":"140010844","ref:FR:SIRET":"84501381200019","source":"Le ministère des solidarités et de la santé - 10/2018","website":"https://www.pharmacie-sannerville.fr/"}},{"type":"node","id":730793225,"lat":49.23228,"lon":-0.191033,"tags":{"amenity":"pharmacy","contact:housenumber":"18","contact:street":"Rue de la Petite Justice","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Jardin","opening_hours":"Mo 10:00-12:00,14:15-19:30; Tu-Fr 09:00-12:00,14:15-19:30; Sa 09:00-12:00","phone":"+33 2 31 78 89 02","ref:FR:FINESS":"140014432","ref:FR:SIRET":"33477192000017","source":"Le ministère des solidarités et de la santé - 08/2018"}},{"type":"node","id":937060433,"lat":49.127022,"lon":-0.165038,"tags":{"amenity":"pharmacy","contact:city":"Argences","contact:housenumber":"7","contact:postcode":"14370","contact:street":"Boulevard Deléan","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Decoutère","opening_hours":"Mo-Fr 09:00-12:30,14:00-19:30; Sa 09:00-12:30,14:00-19:00","phone":"+33 2 31 23 60 35","ref:FR:FINESS":"140009085","ref:FR:SIRET":"47937428200016","source":"Le ministère des solidarités et de la santé - 08/2018","website":"https://decoutere.aprium-pharmacie.fr/accueil"}},{"type":"node","id":1388688874,"lat":49.321959,"lon":-0.005023,"tags":{"amenity":"pharmacy","contact:housenumber":"5","contact:street":"Avenue des Belges","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie du Méridien","ref:FR:FINESS":"140010992","ref:FR:SIRET":"87965505800011","source":"Le ministère des solidarités et de la santé - 08/2018","wheelchair":"yes"}},{"type":"node","id":1769468862,"lat":49.355916,"lon":0.069757,"tags":{"amenity":"pharmacy","check_date":"2023-07-19","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie de l'Église","opening_hours":"Mo-Sa 09:00-12:30,14:00-19:30","phone":"+33 2 31 88 79 49","ref:FR:FINESS":"140009937","ref:FR:SIRET":"43994172500012","source":"Le ministère des solidarités et de la santé - 08/2018"}},{"type":"node","id":1857866684,"lat":49.338495,"lon":0.028073,"tags":{"amenity":"pharmacy","contact:housenumber":"49","contact:street":"Avenue Michel d'Ornano","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Centrale","phone":"+33 2 31 87 92 22","ref:FR:FINESS":"140011065","ref:FR:SIRET":"48875142100014","source":"survey"}},{"type":"node","id":1923788796,"lat":49.283719,"lon":0.182992,"tags":{"AUCAME:ID_Source":"140000308","AUCAME:ID_Unique":"03010102 0006","AUCAME:addr":"9 RUE DE BROSSARD","AUCAME:commune":"Pont-l'Évêque","AUCAME:name":"CENTRE HOSPITALIER DE PONT L'EVEQUE","AUCAME:postcode":"14130","AUCAME:ref:INSEE":"14514","amenity":"hospital","name":"Centre Hospitalier de Pont-l'Évêque","ref:FR:FINESS":"140000308","source":"Le ministère des solidarités et de la santé - 03/2019"}},{"type":"node","id":1923798207,"lat":49.286486,"lon":0.18607,"tags":{"amenity":"pharmacy","contact:city":"Pont-l'Évêque","contact:housenumber":"15","contact:postcode":"14130","contact:street":"Quai des Gabarres","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie des Gabarres","opening_hours":"Mo-Sa 09:00-12:15,14:00-20:00; Su 09:45-12:30","phone":"+33 2 31 64 10 95","ref:FR:FINESS":"140010703","ref:FR:SIRET":"50394656800014","source":"Le ministère des solidarités et de la santé - 08/2018","website":"https://pharmaciedesgabarres.pharminfo.fr/about#opening"}},{"type":"node","id":1923798212,"lat":49.287111,"lon":0.187185,"tags":{"amenity":"pharmacy","contact:housenumber":"7","contact:street":"Rue Hamelin","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Héron","opening_hours":"Mo-Sa 09:00-12:15,14:00-19:00; Su 09:30-12:30","ref:FR:FINESS":"140010695","ref:FR:SIRET":"53482740700014","source":"Le ministère des solidarités et de la santé - 08/2018"}},{"type":"node","id":1992856562,"lat":49.249855,"lon":-0.233865,"tags":{"addr:city":"Amfreville","addr:housenumber":"11","addr:postcode":"14860","addr:street":"Route de Sallenelles","amenity":"doctors","emergency":"no","healthcare":"centre","name":"Maison médicale","ref:FR:SIRET":"21140009800052","type:FR:FINESS":"603","website":"https://www.amfreville.fr/vivre-a-amfreville/la-maison-medicale/"}},{"type":"node","id":2291324809,"lat":49.204618,"lon":0.07813,"tags":{"amenity":"pharmacy","contact:housenumber":"28","contact:street":"Rue du centre","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Samyn","ref:FR:FINESS":"140009283","ref:FR:SIRET":"79345857100015","source":"Celtipharm - 10/2014"}},{"type":"node","id":2368160698,"lat":49.151117,"lon":0.047348,"tags":{"amenity":"pharmacy","check_date":"2025-03-06","contact:housenumber":"1","contact:street":"Rue du Commerce","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie des pommiers","opening_hours":"Mo-Sa 09:00-12:00,14:00-19:00","ref:FR:FINESS":"140009762","ref:FR:SIRET":"90130759500016","source":"Le ministère des solidarités et de la santé - 08/2018"}},{"type":"node","id":2431087625,"lat":49.019044,"lon":-0.032552,"tags":{"addr:housenumber":"38","addr:street":"Rue de Falaise","amenity":"pharmacy","dispensing":"yes","healthcare":"pharmacy","opening_hours":"Mo-Sa 09:00-12:00; Mo-Fr 14:00-19:00; Sa 14:00-18:00","ref:FR:FINESS":"140010802","source":"Le ministère des solidarités et de la santé - 08/2018","wheelchair":"yes"}},{"type":"node","id":2431087650,"lat":49.019659,"lon":-0.031852,"tags":{"amenity":"pharmacy","contact:city":"Saint-Pierre-en-Auge","contact:housenumber":"12","contact:postcode":"14170","contact:street":"Rue de Falaise","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Saint-Pierre","opening_hours":"Mo-Fr 09:00-12:00,14:00-19:00; Sa[1],Sa[3] 09:00-12:00,14:00-18:00","phone":"+33 2 31 20 71 20","ref:FR:FINESS":"140011131","ref:FR:SIRET":"87944893400015","source":"Le ministère des solidarités et de la santé - 08/2018","website":"https://st-pierre-en-auge.normandiepharma.fr/"}},{"type":"node","id":2431350184,"lat":49.056898,"lon":-0.215036,"tags":{"amenity":"pharmacy","contact:city":"Saint-Sylvain","contact:facebook":"https://www.facebook.com/people/Pharmacie-de-Saint-Sylvain/100063601088842","contact:housenumber":"7bis","contact:postcode":"14190","contact:street":"Rue Saint-Martin des Bois","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie de Saint-Sylvain","phone":"+332 31 78 10 41","ref:FR:FINESS":"140011149","ref:FR:SIREN":"819531948","ref:FR:SIRET":"81953194800027","source":"Le ministère des solidarités et de la santé - 08/2018"}},{"type":"node","id":2967132768,"lat":49.359919,"lon":0.076983,"tags":{"amenity":"pharmacy","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie de l'Horloge","phone":"+33 2 31 88 20 47","ref:FR:FINESS":"140009945","ref:FR:SIRET":"49291513700037","source":"Le ministère des solidarités et de la santé - 08/2018"}},{"type":"node","id":3064801929,"lat":49.134932,"lon":-0.081325,"tags":{"addr:city":"Méry-Corbon","addr:postcode":"14370","amenity":"doctors","healthcare":"doctor","name":"Dr Chantreuil"}},{"type":"node","id":3617801137,"lat":49.118189,"lon":0.017102,"tags":{"amenity":"pharmacy","check_date":"2025-02-19","contact:housenumber":"14","contact:street":"Route de Paris","dispensing":"yes","fax":"+33 2 31 63 43 42","healthcare":"pharmacy","phone":"+33 2 31 63 03 02","ref:FR:FINESS":"140009929","ref:FR:SIRET":"91249298000012","source":"Le ministère des solidarités et de la santé - 2023-05","type:FR:FINESS":"620"}},{"type":"node","id":3974303473,"lat":49.153541,"lon":0.047175,"tags":{"addr:city":"Cambremer","addr:housenumber":"17","addr:postcode":"14340","addr:street":"Rue du Coteau","amenity":"doctors","name":"Riviere Patrick","phone":"+332 31 62 92 33"}},{"type":"node","id":4513341024,"lat":49.289853,"lon":-0.11223,"tags":{"addr:city":"Cabourg","addr:postcode":"14390","addr:street":"Avenue des Frères Hurtaud","amenity":"doctors","healthcare":"doctor","name":"Cabinet Médical","phone":"+33231915651"}},{"type":"node","id":4513351144,"lat":49.289383,"lon":-0.115982,"tags":{"addr:city":"Cabourg","addr:postcode":"14390","addr:street":"Avenue Commandant Bertaux Levillain","amenity":"dentist","healthcare":"dentist","name":"Cabinet Dentaire","phone":"+33231910181"}},{"type":"node","id":4513364018,"lat":49.291635,"lon":-0.116098,"tags":{"amenity":"pharmacy","check_date:opening_hours":"2025-09-02","contact:city":"Cabourg","contact:housenumber":"8","contact:postcode":"14390","contact:street":"Avenue de la Mer","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie du XXIème Siècle","opening_hours":"Mo-Sa 09:00-12:30,14:00-19:30","phone":"+33 2 31 91 01 44","ref:FR:FINESS":"140009325","source":"Le ministère des solidarités et de la santé - 08/2018","wheelchair":"yes"}},{"type":"node","id":4578950694,"lat":49.285761,"lon":-0.10782,"tags":{"addr:housenumber":"4","addr:street":"Rue de la Libération","amenity":"doctors","healthcare":"doctor","name":"Cabinet Médical Houldicab","name:fr":"Cabinet Médical Houldicab","phone":"+33231060013"}},{"type":"node","id":5011948710,"lat":49.116758,"lon":-0.165904,"tags":{"amenity":"pharmacy","contact:housenumber":"42","contact:street":"Route de Paris","dispensing":"yes","drive_through":"no","healthcare":"pharmacy","name":"Pharmacie de l'Envol","opening_hours":"Mo-Fr 09:00-12:15,14:00-19:30; Sa 09:00-12:15,14:00-19:00","phone":"+33 2 31 23 68 87","ref:FR:FINESS":"140010604","ref:FR:SIRET":"32838691700012","source":"Le ministère des solidarités et de la santé - 10/2018","website":"https://www.pharmacie-moult.fr/"}},{"type":"node","id":5033073207,"lat":49.279641,"lon":-0.25102,"tags":{"addr:city":"Ouistreham","addr:housenumber":"1","addr:postcode":"14150","addr:street":"Place du Général de Gaulle","amenity":"pharmacy","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie du Port","opening_hours":"Mo-Sa 09:00-12:30,14:30-19:30","ref:FR:FINESS":"140011115","ref:FR:SIRET":"34131982000013","source":"Le ministère des solidarités et de la santé - 10/2018"}},{"type":"node","id":5033073698,"lat":49.276448,"lon":-0.258819,"tags":{"amenity":"pharmacy","contact:housenumber":"11","contact:street":"Place Albert Lemarignier","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie du Bourg","phone":"+33 2 31 97 19 15","ref:FR:FINESS":"140010679","ref:FR:SIRET":"42133559700017","source":"Le ministère des solidarités et de la santé - 10/2018"}},{"type":"node","id":5257634127,"lat":49.286463,"lon":-0.26084,"tags":{"amenity":"dentist","contact:housenumber":"16","contact:street":"Avenue Andry","healthcare":"dentist"}},{"type":"node","id":6631718289,"lat":49.144596,"lon":-0.251725,"tags":{"amenity":"pharmacy","contact:housenumber":"50","contact:street":"Avenue de Paris","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie de la Plaine","opening_hours":"Mo-Sa 09:00-19:30; Su 09:00-18:00","ref:FR:FINESS":"140009754","ref:FR:SIRET":"44813665500017","source":"Le ministère des solidarités et de la santé - 03/2019","website":"https://pharmacie-de-la-plaine-cagny.pharmacorp.fr"}},{"type":"node","id":6690671125,"lat":49.28416,"lon":-0.202709,"tags":{"amenity":"pharmacy","check_date:opening_hours":"2026-06-09","contact:housenumber":"59 bis","contact:street":"Avenue de Paris","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie de la Plage","opening_hours":"Mo-Fr 09:00-12:30,14:30-19:30; Sa 09:00-12:30,14:30-19:00","ref:FR:FINESS":"140010521","ref:FR:SIRET":"43509078200010","source":"Le ministère des solidarités et de la santé - 03/2019","wheelchair":"yes"}},{"type":"node","id":8205316085,"lat":49.382027,"lon":0.128684,"tags":{"addr:city":"Cricquebœuf","addr:postcode":"14110","addr:street":"La bréche du Bois, RD 62","amenity":"doctors","healthcare":"doctor","healthcare:speciality":"emergency","healthcare:speciality:FR":"SMUR","name":"SMUR Cricqueboeuf","opening_hours":"24/7","operator":"CH Cricquebœuf"}},{"type":"node","id":8545815075,"lat":49.289072,"lon":-0.116223,"tags":{"amenity":"pharmacy","contact:phone":"+33 2 31 91 31 46","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Marine","opening_hours":"Mo-Sa 09:00-13:00,14:00-19:00","ref:FR:FINESS":"140009333","ref:FR:SIRET":"50380848700014"}},{"type":"node","id":8983767352,"lat":49.362449,"lon":0.085826,"tags":{"amenity":"dentist","healthcare":"dentist","source":"survey"}},{"type":"node","id":10215308504,"lat":49.286121,"lon":0.183489,"tags":{"amenity":"doctors","contact:city":"Pont-l'Évêque","contact:housenumber":"11","contact:postcode":"14130","contact:street":"Allée du Général Daugan","healthcare":"doctor","name":"Dechamps Loc"}},{"type":"node","id":10215308505,"lat":49.286168,"lon":0.183589,"tags":{"contact:city":"Pont-l'Évêque","contact:housenumber":"8a","contact:postcode":"14130","contact:street":"Rue de la Vicomté","healthcare":"midwife","name":"Corinne Bazire - Sage-femme","opening_hours":"Mo-Sa 09:00-20:00","phone":"+33 6 83 34 05 04","website":"https://www.doctolib.fr/sage-femme/pont-l-eveque/corinne-bazire"}},{"type":"node","id":10316967132,"lat":49.007438,"lon":0.149257,"tags":{"amenity":"clinic","healthcare":"clinic","name":"Pôle Médical"}},{"type":"node","id":10733260174,"lat":49.286333,"lon":-0.25833,"tags":{"amenity":"dentist","healthcare":"dentist"}},{"type":"node","id":10931168002,"lat":49.005335,"lon":0.149669,"tags":{"amenity":"pharmacy","contact:housenumber":"1","contact:street":"Place Pasteur","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Vallée de la Vie","opening_hours":"Mo-Fr 09:00-12:15,14:00-19:00; Sa 09:00-12:15,14:00-18:00","phone":"+33 2 31 63 51 81","ref:FR:FINESS":"140010471","ref:FR:SIRET":"50127396500019","source":"Le ministère des solidarités et de la santé - 2023-07","type:FR:FINESS":"620"}},{"type":"node","id":11078928363,"lat":49.281983,"lon":-0.10181,"tags":{"amenity":"doctors","healthcare":"doctor","name":"Centre Médico-Psychologique","phone":"+33 2 31 91 16 38","ref:FR:FINESS":"140021924","ref:FR:SIRET":"26140127700619","type:FR:FINESS":"292"}},{"type":"node","id":11078928364,"lat":49.385411,"lon":0.203344,"tags":{"amenity":"doctors","healthcare":"doctor","name":"Centre Médico-Psychologique","phone":"+33 2 31 49 09 20"}},{"type":"node","id":11078928367,"lat":49.287562,"lon":0.186912,"tags":{"amenity":"doctors","healthcare":"doctor","name":"Centre d'Accueil Thérapeutique à temps partiel","phone":"+33 2 31 64 65 00"}},{"type":"node","id":11253822284,"lat":49.288708,"lon":-0.101096,"tags":{"addr:city":"Dives sur Mer","addr:housenumber":"18","addr:postcode":"14160","addr:street":"Avenue Secrétan","amenity":"doctors","email":"enf-ado.cmp3@epsm-caen.fr","healthcare":"doctor","healthcare:speciality":"child_psychiatry","name":"CMP Enfant et Adolescent","opening_hours":"Mo-Th 09:00-16:30","phone":"+33 2 31 28 65 98","website":"https://www.epsm-caen.fr/"}},{"type":"node","id":11462388269,"lat":49.358788,"lon":0.076995,"tags":{"amenity":"doctors","contact:housenumber":"61","contact:street":"Rue Gambetta","healthcare":"doctor","name":"Bruno de la Provôté","phone":"+33 2 31 88 11 11","ref:FR:SIRET":"39448906600032"}},{"type":"node","id":11470721833,"lat":49.285188,"lon":-0.262017,"tags":{"amenity":"doctors","healthcare":"doctor"}},{"type":"node","id":11516289084,"lat":49.071664,"lon":-0.074955,"tags":{"addr:city":"Mézidon Vallée d'Auge","addr:housenumber":"9 d","addr:postcode":"14270","addr:street":"Rue Jules Ferry","amenity":"clinic","healthcare":"clinic","name":"CMP - CATTP Adultes"}},{"type":"node","id":11949949156,"lat":49.120597,"lon":-0.166179,"tags":{"amenity":"doctors","healthcare":"doctor"}},{"type":"node","id":12331070145,"lat":49.383559,"lon":0.202702,"tags":{"amenity":"hospital","healthcare":"hospital","phone":"+33231490930","ref:FR:FINESS":"140028754","source":"Le ministère des solidarités et de la santé - 2024-09","type:FR:FINESS":"292"}},{"type":"node","id":12331070151,"lat":49.348598,"lon":0.186211,"tags":{"amenity":"pharmacy","dispensing":"yes","fax":"+33231652172","phone":"+33231652949","ref:FR:FINESS":"140015629","ref:FR:SIRET":"80219123900028","source":"Le ministère des solidarités et de la santé - 2024-09","type:FR:FINESS":"620"}},{"type":"node","id":12395882501,"lat":49.287832,"lon":-0.114785,"tags":{"addr:housenumber":"6","addr:postcode":"14399","addr:street":"Avenue des Dunettes","amenity":"doctors","name":"Recours médical","opening_hours":"Mo, We-Sa 14:00-20:00; Su 14:00-18:00","website":"https://recoursmedicalcabourg.fr/"}},{"type":"node","id":12625248501,"lat":49.285091,"lon":-0.251455,"tags":{"amenity":"clinic","contact:city":"Ouistreham","contact:housenumber":"40","contact:linkedin":"https://www.linkedin.com/company/sante-inicea/","contact:phone":"+33 2 31 36 42 00","contact:postcode":"14150","contact:street":"Boulevard Boivin Champeaux","contact:website":"https://www.inicea.fr/smr/clinique-thalatta-ouistreham-14150","contact:youtube":"https://www.youtube.com/@groupeinicea","healthcare":"clinic","name":"Clinique Thalatta | Inicea","opening_hours":"Mo-Su 09:00-12:00, 14:00-18:00","ref:FR:SIRET":"40027910500011","toilets:wheelchair":"yes"}},{"type":"node","id":12842183891,"lat":49.286607,"lon":-0.097419,"tags":{"amenity":"pharmacy","contact:housenumber":"17","contact:street":"Place de la République","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie des Halles","opening_hours":"Mo-Sa 09:00-12:30,14:00-19:30","ref:FR:FINESS":"140009978","ref:FR:SIRET":"48186645700015","source":"Le ministère des solidarités et de la santé - 08/2018"}},{"type":"node","id":12843432977,"lat":49.343749,"lon":0.101918,"tags":{"amenity":"pharmacy","contact:housenumber":"70","contact:street":"Rue Louvel et Brière","dispensing":"yes","healthcare":"pharmacy","ref:FR:FINESS":"140011156","ref:FR:SIRET":"89136251900011"}},{"type":"node","id":12992809305,"lat":49.288821,"lon":-0.115411,"tags":{"amenity":"doctors","check_date":"2024-09-01","contact:city":"Cabourg","contact:housenumber":"15","contact:postcode":"14390","contact:street":"Avenue de Bavent","description":"Marielle Lorfeuvre, Karine de la Fuente, Melaine Baglin Bagliniere, Valérie Martin, Séverine Guyot","healthcare":"nurse","name":"Soins infirmiers","survey:date":"2025-07-08"}},{"type":"node","id":13017675163,"lat":49.286918,"lon":-0.255494,"tags":{"amenity":"doctors"}},{"type":"node","id":13167373451,"lat":49.286335,"lon":-0.259148,"tags":{"amenity":"pharmacy","check_date":"2026-08-01","contact:facebook":"100077346040372","contact:housenumber":"61","contact:street":"Avenue de la Mer","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie de la Plage","phone":"+33 2 31 97 18 28","ref:FR:FINESS":"140010661","ref:FR:SIRET":"50036930100022","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011;Celtipharm - 10/2014","wheelchair":"no"}},{"type":"node","id":13204703238,"lat":49.303466,"lon":-0.077258,"tags":{"amenity":"pharmacy","contact:city":"Houlgate","contact:housenumber":"42","contact:postcode":"14510","contact:street":"Rue des Bains","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie des Bains","opening_hours":"Mo-Fr 09:00-12:30,14:00-19:30; Sa 09:00-12:30,14:30-19:30","phone":"+33 2 31 28 70 52","ref:FR:FINESS":"140010224","ref:FR:SIRET":"44003618400016","source":"Le ministère des solidarités et de la santé - 2021-01","type:FR:FINESS":"620"}},{"type":"node","id":13230349610,"lat":49.231253,"lon":-0.044463,"tags":{"amenity":"pharmacy","check_date":"2025-11-10","contact:housenumber":"111","contact:street":"Grande Rue","dispensing":"yes","fax":"+33 2 31 79 20 05","healthcare":"pharmacy","level":"0","name":"Pharmacie de Dozulé","opening_hours":"Mo-Sa 09:00-12:30, 14:00-19:30","phone":"+33 2 31 79 20 64","ref:FR:FINESS":"140010000","ref:FR:SIRET":"88047864900010","type:FR:FINESS":"620"}},{"type":"node","id":13235824445,"lat":49.231885,"lon":-0.041509,"tags":{"amenity":"clinic","contact:city":"Dozulé","contact:housenumber":"52","contact:postcode":"14430","contact:street":"Grande Rue","healthcare":"physiotherapist","healthcare:speciality":"ostheopathy","name":"Cabinet d'Osthéopathie"}},{"type":"node","id":13442416837,"lat":49.359873,"lon":0.077909,"tags":{"amenity":"pharmacy","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Anglaise","phone":"+33 2 31 88 20 28","ref:FR:FINESS":"140009952","ref:FR:SIRET":"38152214300019","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010"}},{"type":"node","id":13446882153,"lat":49.276376,"lon":-0.266802,"tags":{"amenity":"doctors","name":"Cabinet médical Caprice","website":"https://www.cabinetmedical-caprice.fr/"}},{"type":"node","id":13532419994,"lat":49.296096,"lon":0.19035,"tags":{"amenity":"dentist","contact:city":"Pont-l'Évêque","contact:housenumber":"3b","contact:postcode":"14130","contact:street":"Rue des Artificiers","healthcare":"dentist","healthcare:speciality":"orthodontics","level":"1","name":"Orthodontie Artificiers"}},{"type":"node","id":13611805054,"lat":49.073892,"lon":-0.069428,"tags":{"amenity":"pharmacy","contact:housenumber":"72","contact:street":"Avenue Jean Jaurès","dispensing":"yes","healthcare":"pharmacy","name":"Lenfant-Zerger","ref:FR:FINESS":"140010539","ref:FR:SIRET":"50436410000017","source":"Le ministère des solidarités et de la santé - 03/2019"}},{"type":"node","id":13611805069,"lat":49.07299,"lon":-0.073411,"tags":{"amenity":"pharmacy","contact:housenumber":"106","contact:street":"Avenue Jean Jaurès","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Le Chevalier","ref:FR:FINESS":"140010547","ref:FR:SIRET":"82453394700019"}},{"type":"node","id":13922431346,"lat":49.282261,"lon":-0.2032,"tags":{"healthcare":"midwife","name":"Cabinet Medical Normaïa"}},{"type":"node","id":14087383035,"lat":49.302316,"lon":-0.077828,"tags":{"amenity":"doctors","healthcare":"doctor","name":"Cabinet Docteur Dary"}},{"type":"way","id":63612382,"lat":49.353897,"lon":0.069011,"tags":{"amenity":"hospital","building":"yes","healthcare":"hospital","name":"Polyclinique Deauville","ref:FR:FINESS":"140000258","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2010","type:FR:FINESS":"365"}},{"type":"way","id":108809935,"lat":49.302187,"lon":-0.077414,"tags":{"amenity":"doctors","building":"yes","name":"Cabinet d'Infirmieres","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"}},{"type":"way","id":112219724,"lat":49.284734,"lon":-0.260688,"tags":{"addr:city":"Ouistreham","addr:housenumber":"10","addr:postcode":"14150","addr:street":"Avenue Pasteur","amenity":"doctors","building":"yes","healthcare":"doctor","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"}},{"type":"way","id":112226554,"lat":49.285446,"lon":-0.251802,"tags":{"building":"yes","healthcare":"centre","healthcare:speciality":"radiology","name":"Centre de Radiologie et d'Echographie","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"}},{"type":"way","id":112230026,"lat":49.282097,"lon":-0.261066,"tags":{"addr:city":"Ouistreham","addr:housenumber":"1","addr:postcode":"14150","addr:street":"Rue Jean Mermoz","amenity":"doctors","building":"yes","building:levels":"1","healthcare":"doctor","roof:levels":"1","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"}},{"type":"way","id":112230869,"lat":49.285857,"lon":-0.266172,"tags":{"addr:city":"Ouistreham","addr:housenumber":"13","addr:postcode":"14150","addr:street":"Boulevard Léon Gautier","amenity":"clinic","building":"yes","healthcare":"clinic","old_addr:housenumber":"71","old_addr:street":"Route de Lion","source":"Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2017"}},{"type":"way","id":112231414,"lat":49.286905,"lon":-0.260479,"tags":{"addr:city":"Ouistreham","addr:housenumber":"16","addr:postcode":"14150","addr:street":"Boulevard de France","amenity":"doctors","building":"yes","healthcare":"doctor","name":"Stéphane Caillet","ref:FR:SIRET":"39435223100051","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011"}},{"type":"way","id":155279946,"lat":49.23164,"lon":-0.045725,"tags":{"addr:city":"Dozulé","addr:housenumber":"10","addr:postcode":"14430","addr:street":"Place du Monument","amenity":"clinic","building":"hospital","name":"Centre Médico-Social","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2012"}},{"type":"way","id":155409019,"lat":49.279055,"lon":-0.103172,"tags":{"amenity":"pharmacy","building":"yes","building:colour":"lightyellow","dispensing":"yes","fax":"+33231916752","healthcare":"pharmacy","phone":"+33231910508","ref:FR:FINESS":"140009986","ref:FR:SIRET":"38801266800025","source":"cadastre-dgi-fr source : Direction Générale des Impôts - Cadastre. Mise à jour : 2011","type:FR:FINESS":"620"}},{"type":"way","id":161898956,"lat":49.020514,"lon":-0.033878,"tags":{"addr:city":"Saint-Pierre-en-Auge","addr:housenumber":"7","addr:postcode":"14170","addr:street":"Rue de l'Abbatiale","alt_name":"Pôle santé de l'Abbaye","building":"public","contact:addr":"9 Rue Marcel Maizeret, 14170, Saint-Pierre-en-Auge","contact:phone":"+33 2 31 20 84 74","contact:website":"https://www.saint-pierre-en-auge.fr/sante/","healthcare":"centre","name":"Pôle de Santé Libéral et Ambulatoire","note":"l'entrée (addr) est rue de l'abbatiale, mais les boîtes aux lettes (contact) sont rue Maizeret","ref:FR:FINESS":"140030495","ref:FR:SIRET":"89935170400015","short_name":"PSLA","source":"BDOrtho IGN","type:FR:FINESS":"603"}},{"type":"way","id":287041691,"lat":49.178482,"lon":-0.190728,"tags":{"addr:city":"Troarn","addr:postcode":"14670","addr:street":"Route de Rouen","amenity":"pharmacy","building":"yes","contact:facebook":"100076244108166","contact:instagram":"grande_pharma_troarn","dispensing":"yes","email":"pharmatroarn@gmail.com","healthcare":"pharmacy","name":"Grande Pharmacie de Troarn","opening_hours":"Mo-Sa 09:00-12:30,14:00-19:30; Sa 14:00-19:00","operator":"Welcome Pharmacie","phone":"+33 2 31 23 31 18","ref:FR:SIRET":"52221130900029","source":"cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2014","website":"https://welcome-pharmacie.com/pharmacie/grande-pharmacie-de-troarn/"}},{"type":"way","id":324874810,"lat":49.231811,"lon":-0.191271,"tags":{"amenity":"doctors","building":"yes","name":"Maison médicale de Bavent","opening_hours":"\"Horaires en fonction de chaque praticien\"","source":"cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2015"}},{"type":"way","id":329802379,"lat":49.150655,"lon":0.047144,"tags":{"amenity":"doctors","building":"yes","source":"cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2015"}},{"type":"way","id":331924463,"lat":49.134446,"lon":-0.083324,"tags":{"amenity":"pharmacy","building":"yes","check_date":"2025-02-11","contact:housenumber":"13","contact:street":"Rue Mary Tavy","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie Genillon","note":"SIRET introuvable","ref:FR:FINESS":"140013954","source":"cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2015"}},{"type":"way","id":484931177,"lat":49.355918,"lon":0.085709,"tags":{"addr:city":"Deauville","addr:postcode":"14800","addr:street":"Créactive Place","building":"yes","email":"contact@maisonmedicale-deauville.fr","healthcare":"doctor","name":"Maison Médicale Universitaire Deauville Côte Fleurie","source":"BDOrtho IGN","website":"https://maisonmedicale-deauville.fr/"}},{"type":"way","id":578239671,"lat":49.382629,"lon":0.129171,"tags":{"AUCAME:ID_Source":"140026717","AUCAME:ID_Unique":"03010300 0009","addr:place":"La Brèche du Bois","addr:street":"La Brèche du Bois","amenity":"hospital","emergency":"yes","fax":"+33 2 31 89 88 81","healthcare":"hospital","name":"Centre Hospitalier de la Côte Fleurie","operator:type":"public","phone":"+33 2 31 89 89 89","ref:FR:FINESS":"140026410","type:FR:FINESS":"355","website":"http://ch-cotefleurie.com/","wikidata":"Q65155782"}},{"type":"way","id":681053679,"lat":49.122496,"lon":-0.172011,"tags":{"amenity":"dentist","building":"yes","contact:housenumber":"35","contact:street":"Rue de la Gare","healthcare":"dentist","name":"Cabinet dentaire d'Argences","source":"cadastre-dgi-fr source : Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2019"}},{"type":"way","id":814338112,"lat":49.233177,"lon":-0.255913,"tags":{"amenity":"pharmacy","building":"retail","contact:facebook":"https://www.facebook.com/PharmacieDeRanville/","contact:housenumber":"3bis","contact:street":"Rue du Stade","dispensing":"yes","healthcare":"pharmacy","name":"Pharmacie de Ranville","phone":"+33 2 31 78 76 87","ref:FR:FINESS":"140011123","ref:FR:SIRET":"52962784600023","source":"Le ministère des solidarités et de la santé - 08/2018"}},{"type":"way","id":814338113,"lat":49.23299,"lon":-0.255606,"tags":{"addr:city":"Ranville","addr:housenumber":"1bis","addr:postcode":"14860","addr:street":"Rue du Stade","amenity":"doctors","building":"yes","healthcare":"centre","name":"Maison de santé","ref:FR:FINESS":"140035171","ref:FR:SIRET":"92411780700017","source":"Direction Générale des Finances Publiques - Cadastre. Mise à jour : 2020","type:FR:FINESS":"603"}},{"type":"way","id":883099765,"lat":49.057441,"lon":-0.215318,"tags":{"amenity":"doctors","building":"yes","contact:city":"Saint-Sylvain","contact:housenumber":"1","contact:postcode":"14190","contact:street":"Impasse des Semences","healthcare":"centre","healthcare:speciality":"general","name":"Maison médicale","phone":"+33 2 31 78 12 94","ref:FR:FINESS":"140034265","ref:FR:SIREN":"922719018","ref:FR:SIRET":"92271901800017","type:FR:FINESS":"603"}},{"type":"way","id":930996396,"lat":49.301276,"lon":-0.075364,"tags":{"amenity":"clinic","healthcare":"clinic","name":"Centre Médical Temporaire"}},{"type":"way","id":1092095312,"lat":49.074436,"lon":-0.064429,"tags":{"building":"yes","healthcare":"centre","name":"Pôle santé Simon Veil","phone":"+33231902896","ref:FR:FINESS":"140030537","ref:FR:SIRET":"84475917500012","source":"Le ministère des solidarités et de la santé - 2022-07","type:FR:FINESS":"603"}}]}</script>
+<script>
+'use strict';
+// =====================================================================
+// 1. RÉGLAGES
+// =====================================================================
+const CONFIG = {
+  siren: '200065563',
+  marge: 0.07,              // degrés autour de NCPA pour l'offre des communes voisines (~6-8 km)
+  overpass: ['https://overpass-api.de/api/interpreter',
+             'https://overpass.kumi.systems/api/interpreter',
+             'https://overpass.private.coffee/api/interpreter'],
+  tabular: 'https://tabular-api.data.gouv.fr/api',
+  ameliPS: '432983b9-2e6f-473a-b35a-20403c300a5f',   // Annuaire santé Ameli – professionnels
+  ameliCDS: '767470ac-dcf9-4110-97b6-cb2be3b59ba2',  // Annuaire santé Ameli – centres de santé
+  geocodeurs: ['https://data.geopf.fr/geocodage/search', 'https://api-adresse.data.gouv.fr/search/'],
+  isochrone: 'https://data.geopf.fr/navigation/isochrone',
+  cache: 'ncpa-carte-soins-v4',
+  cacheGeo: 'ncpa-carte-soins-geocodage-v1',
+  doublonKm: 0.1,           // un point OSM à moins de 100 m d'un professionnel Ameli de même catégorie = doublon
+};
+
+// Colonnes du fichier Ameli (constatées en octobre 2026). Si le fichier change,
+// l'outil retombe sur une reconnaissance automatique des colonnes.
+const SCHEMA_AMELI = {
+  nom: 'ps_activite_nom', prenom: 'ps_activite_prenom', raison: 'ps_activite_raison_sociale',
+  profession: 'type_ps_libelle', specialite: 'specialite_libelle', activite: 'activite_particuliere_libelle',
+  cp: 'coordonnees_code_postal', commune: 'coordonnees_ville', tel: 'coordonnees_num_tel',
+  adresse: ['coordonnees_voie', 'coordonnees_complement', 'coordonnees_lieu_dit'],
+  extras: ['secteur_conventionnel_libelle', 'option_tarifaire_libelle', 'nature_exercice_libelle', 'ps_activite_carte_vitale'],
+};
+const LIB_EXTRAS = { secteur_conventionnel_libelle: 'Secteur', option_tarifaire_libelle: 'Option tarifaire',
+  nature_exercice_libelle: 'Exercice', ps_activite_carte_vitale: 'Carte Vitale', ps_activite_apcv: 'Appli carte Vitale' };
+
+const CATS = {
+  urgences:            { l: 'Urgences / SMUR',                g: 'etab', c: '#c62828', i: '🚑' },
+  hopital:             { l: 'Hôpital',                        g: 'etab', c: '#7b1f2a', i: '🏥' },
+  clinique:            { l: 'Clinique, centre de soins',      g: 'etab', c: '#ef6c00', i: '🏨' },
+  centre_sante:        { l: 'Maison / centre de santé',       g: 'etab', c: '#283593', i: '⚕' },
+  sante_mentale:       { l: 'Santé mentale (CMP…)',           g: 'etab', c: '#6d4c41', i: '🧠' },
+  pharmacie:           { l: 'Pharmacie',                      g: 'etab', c: '#2e7d32', i: '💊' },
+  laboratoire:         { l: 'Laboratoire, prélèvements',      g: 'etab', c: '#546e7a', i: '🧪' },
+  imagerie:            { l: 'Imagerie médicale',              g: 'etab', c: '#37474f', i: '🩻' },
+  medecin_generaliste: { l: 'Médecin généraliste',            g: 'pro',  c: '#1565c0', i: '🩺', pro: 1 },
+  specialiste:         { l: 'Médecin spécialiste',            g: 'pro',  c: '#0097a7', i: '🔬', pro: 1 },
+  dentiste:            { l: 'Chirurgien-dentiste',            g: 'pro',  c: '#00897b', i: '🦷', pro: 1 },
+  sage_femme:          { l: 'Sage-femme',                     g: 'pro',  c: '#ad1457', i: '🤰', pro: 1 },
+  infirmier:           { l: 'Infirmier',                      g: 'pro',  c: '#7e57c2', i: '💉', pro: 1 },
+  kine:                { l: 'Masseur-kinésithérapeute',       g: 'pro',  c: '#e0a100', i: '🦴', pro: 1 },
+  paramedical:         { l: 'Autres paramédicaux',            g: 'pro',  c: '#8d6e63', i: '👣', pro: 1 },
+  autre:               { l: 'Autres (ostéopathie…)',          g: 'autre', c: '#9e9e9e', i: '•' },
+};
+const GROUPES = { etab: 'Établissements', pro: 'Professionnels libéraux', autre: 'Divers' };
+
+// =====================================================================
+// 2. ÉTAT DE L'APPLICATION
+// =====================================================================
+const S = {
+  communes: [], parCode: {},
+  feats: [], osm: [], ameli: [],
+  src: { geo: {}, osm: {}, ameli: {} },
+  etapes: {}, enCours: false,
+  controle: null,
+  modePro: 'osm', modeChoisi: false,
+  actives: new Set(Object.keys(CATS).filter(k => k !== 'autre')),
+  voisins: false, commune: '', q: '', choro: '',
+  analyse: null,
+  iso: { origine: null, couches: null, pose: false },
+  tri: { liste: { k: 'nom', s: 1 }, analyse: { k: 'nom', s: 1 } },
+};
+
+// =====================================================================
+// 3. OUTILS
+// =====================================================================
+const $ = id => document.getElementById(id);
+const esc = s => s == null ? '' : String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const norm = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const cle = s => norm(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+const nf = (v, d = 0) => v == null || isNaN(v) ? '–' : Number(v).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const titre = s => String(s || '').toLowerCase().replace(/(^|[\s\-'])([a-zàâäéèêëîïôöùûüç])/g, (m, a, b) => a + b.toUpperCase());
+const dateFR = d => d ? new Date(d).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+// nom de commune comparable : accents, tirets, « St » / « Saint », « Cedex » ignorés
+const cleCommune = s => cle(s).replace(/\bst\b/g, 'saint').replace(/\bste\b/g, 'sainte').replace(/_cedex.*$/, '').replace(/_/g, '');
+
+async function fetchJSON(url, ms = 30000, opts = {}) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { ...opts, signal: ctl.signal });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) {
+    throw new Error(e.name === 'AbortError' ? 'délai dépassé' : e.message);
+  } finally { clearTimeout(t); }
+}
+async function pool(items, n, fn) {
+  const res = new Array(items.length); let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while (i < items.length) { const k = i++; try { res[k] = await fn(items[k], k); } catch (e) { res[k] = null; } }
+  }));
+  return res;
+}
+function distKm(a, b) {
+  const R = 6371, r = Math.PI / 180;
+  const dLat = (b[0] - a[0]) * r, dLon = (b[1] - a[1]) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function dansAnneau(x, y, ring) {
+  let dedans = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) dedans = !dedans;
+  }
+  return dedans;
+}
+function dansGeom(lat, lon, g) {
+  if (!g) return false;
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+  return polys.some(p => dansAnneau(lon, lat, p[0]) && !p.slice(1).some(h => dansAnneau(lon, lat, h)));
+}
+function bboxGeom(g) {
+  let w = 180, s = 90, e = -180, n = -90;
+  const parcourir = c => typeof c[0] === 'number' ? (w = Math.min(w, c[0]), e = Math.max(e, c[0]), s = Math.min(s, c[1]), n = Math.max(n, c[1])) : c.forEach(parcourir);
+  parcourir(g.coordinates);
+  return { w, s, e, n };
+}
+function communeDuPoint(lat, lon) {
+  for (const c of S.communes) {
+    const b = c.bb;
+    if (lat < b.s || lat > b.n || lon < b.w || lon > b.e) continue;
+    if (dansGeom(lat, lon, c.geom)) return c;
+  }
+  return null;
+}
+function telecharger(nom, contenu, type) {
+  const blob = new Blob([contenu], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nom;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const csvCel = v => { const s = v == null ? '' : String(v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+const csv = (entetes, lignes) => '\ufeff' + [entetes, ...lignes].map(l => l.map(csvCel).join(';')).join('\r\n');
+
+const memoire = {
+  lire(k) { try { return JSON.parse(localStorage.getItem(k) || 'null') || {}; } catch (e) { return {}; } },
+  ecrire(k, part) { try { localStorage.setItem(k, JSON.stringify({ ...memoire.lire(k), ...part })); } catch (e) { console.warn('Mémoire locale pleine ou indisponible :', e.message); } },
+};
+
+// =====================================================================
+// 4. AFFICHAGE DU CHARGEMENT
+// =====================================================================
+const ETAPES = [['geo', 'Communes de NCPA', 'API Géo'], ['osm', 'Établissements de santé', 'OpenStreetMap'],
+                ['ameli', 'Professionnels libéraux', 'Annuaire Ameli'], ['geocodage', 'Localisation des adresses', 'Géoplateforme IGN']];
+let chrono = null;
+function etape(id, etat, detail, prog) {
+  const e = S.etapes[id] || (S.etapes[id] = {});
+  if (etat && etat !== e.etat) { e.etat = etat; if (etat === 'run') e.t0 = Date.now(); else e.t1 = Date.now(); }
+  if (detail !== undefined) e.detail = detail;
+  e.prog = prog;
+  rendreChargement();
+}
+function rendreChargement() {
+  const ic = { run: '<span class="rond"></span>', ok: '✅', cache: '🟠', err: '⚠️', attente: '<span style="color:#bbb">○</span>', saut: '–' };
+  $('ch-etapes').innerHTML = ETAPES.map(([id, t, s]) => {
+    const e = S.etapes[id] || { etat: 'attente' };
+    const sec = e.t0 ? Math.round(((e.etat === 'run' ? Date.now() : e.t1 || Date.now()) - e.t0) / 1000) : null;
+    return `<div class="etape ${e.etat || ''}"><span class="ic">${ic[e.etat] || ic.attente}</span><span class="t">${t} <span style="font-weight:400;color:#999">· ${s}</span></span>
+      <span class="s">${sec != null && e.etat !== 'attente' ? sec + ' s' : ''}</span>
+      ${e.detail ? `<span class="d">${esc(e.detail)}</span>` : ''}
+      ${e.etat === 'run' && e.prog != null ? `<span class="prog"><i style="width:${Math.round(e.prog * 100)}%"></i></span>` : ''}</div>`;
+  }).join('');
+  const enCours = Object.values(S.etapes).some(e => e.etat === 'run');
+  const erreurs = Object.values(S.etapes).filter(e => e.etat === 'err' || e.etat === 'cache').length;
+  $('ch-rond').style.display = enCours ? '' : 'none';
+  $('barre').classList.toggle('on', enCours);
+  $('ch-titre').textContent = enCours ? 'Chargement des données…' : erreurs ? 'Données chargées, avec des réserves' : 'Données à jour ✓';
+  $('ch-sous').innerHTML = enCours ? 'Les données sont interrogées en direct. Comptez de 10 à 40 secondes à la première ouverture ; la carte se complète au fur et à mesure.'
+    : erreurs ? 'Une source n\'a pas répondu : l\'outil utilise une copie. <a href="#" onclick="afficherVue(\'sources\');return false">Voir le détail</a> · <a href="#" onclick="masquerChargement();return false">Fermer</a>' : '';
+  // pastille de l'en-tête
+  const p = $('puce');
+  p.className = 'puce ' + (enCours ? 'run' : erreurs ? 'cache' : 'ok');
+  const t0 = Math.min(...Object.values(S.etapes).filter(e => e.t0).map(e => e.t0));
+  $('puce-txt').textContent = enCours ? `Chargement… ${isFinite(t0) ? Math.round((Date.now() - t0) / 1000) + ' s' : ''}`
+    : erreurs ? 'Données partielles' : 'Données à jour · ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (enCours && !chrono) chrono = setInterval(rendreChargement, 500);
+  if (!enCours && chrono) { clearInterval(chrono); chrono = null; }
+}
+function montrerChargement() { $('chargement').classList.remove('cache'); }
+function masquerChargement() { $('chargement').classList.add('cache'); }
+window.masquerChargement = masquerChargement;
+
+// =====================================================================
+// 5. SOURCE 1 — TERRITOIRE (API Géo)
+// =====================================================================
+async function chargerTerritoire() {
+  // « contour » doit figurer dans fields, sinon l'API Géo ne renvoie pas le vrai tracé (rectangles).
+  const liste = await fetchJSON(`https://geo.api.gouv.fr/epcis/${CONFIG.siren}/communes?fields=nom,code,population,codesPostaux,centre,mairie,contour`);
+  const out = liste.map(c => {
+    const p = (c.mairie && c.mairie.coordinates) || (c.centre && c.centre.coordinates);
+    return { code: c.code, nom: c.nom, pop: c.population || 0, cps: c.codesPostaux || [], pt: p ? [p[1], p[0]] : null, geom: c.contour };
+  });
+  const douteuses = out.filter(c => !contourValide(c.geom));
+  if (!out.length || douteuses.length) throw new Error(`contours absents ou simplifiés (${douteuses.map(c => c.nom).slice(0, 3).join(', ')}…)`);
+  return out;
+}
+function contourValide(g) {
+  if (!g || !/Polygon$/.test(g.type)) return false;
+  const anneaux = g.type === 'Polygon' ? [g.coordinates[0]] : g.coordinates.map(p => p[0]);
+  return anneaux.reduce((n, a) => n + a.length, 0) > 8;
+}
+function installerTerritoire(liste) {
+  S.communes = liste.map(c => ({ ...c, bb: bboxGeom(c.geom) })).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  S.communes.forEach(c => { if (!c.pt) { const b = c.bb; c.pt = [(b.s + b.n) / 2, (b.w + b.e) / 2]; } c.cleNom = cleCommune(c.nom); });
+  S.parCode = Object.fromEntries(S.communes.map(c => [c.code, c]));
+  $('f-commune').innerHTML = `<option value="">Toutes les communes (${S.communes.length})</option>` +
+    S.communes.map(c => `<option value="${c.code}">${esc(c.nom)}</option>`).join('');
+  dessinerCommunes();
+}
+function emprise(marge = 0) {
+  if (!S.communes.length) return { s: 48.98, w: -0.30, n: 49.42, e: 0.25 };
+  const b = { w: 180, s: 90, e: -180, n: -90 };
+  S.communes.forEach(c => { b.w = Math.min(b.w, c.bb.w); b.e = Math.max(b.e, c.bb.e); b.s = Math.min(b.s, c.bb.s); b.n = Math.max(b.n, c.bb.n); });
+  return { w: b.w - marge, e: b.e + marge, s: b.s - marge, n: b.n + marge };
+}
+
+// =====================================================================
+// 6. SOURCE 2 — OPENSTREETMAP (Overpass, en direct)
+// =====================================================================
+async function chargerOSM() {
+  const b = emprise(CONFIG.marge);
+  const bb = [b.s, b.w, b.n, b.e].map(v => v.toFixed(4)).join(',');
+  const q = `[out:json][timeout:90];(` +
+    `nwr["amenity"~"^(hospital|clinic|doctors|dentist|pharmacy)$"](${bb});` +
+    `nwr["healthcare"](${bb});nwr["emergency"="ambulance_station"](${bb}););out center tags;`;
+  let derniere;
+  for (const [i, url] of CONFIG.overpass.entries()) {
+    try {
+      etape('osm', 'run', `Interrogation du serveur ${new URL(url).host}` + (i ? ` (serveur de secours n° ${i})` : '') + '…');
+      const j = await fetchJSON(url, 75000, { method: 'POST', body: 'data=' + encodeURIComponent(q),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      if (!j.elements) throw new Error('réponse vide');
+      return { elements: j.elements.map(e => ({ type: e.type, id: e.id, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon, tags: e.tags || {} })),
+               serveur: new URL(url).host };
+    } catch (e) { derniere = e; }
+  }
+  throw derniere || new Error('aucun serveur Overpass disponible');
+}
+function classerOSM(t) {
+  const a = t.amenity, h = t.healthcare, sp = norm(t['healthcare:speciality'] || ''), n = norm(t.name || '');
+  if (t.emergency === 'ambulance_station' || /\bsmur\b|\bsamu\b/.test(n) || /emergency/.test(sp)) return 'urgences';
+  if (a === 'hospital' || h === 'hospital') return t.emergency === 'yes' ? 'urgences' : 'hopital';
+  if (a === 'pharmacy' || h === 'pharmacy') return 'pharmacie';
+  if (['laboratory', 'sample_collection', 'blood_donation'].includes(h) || /laboratoire|biolog/.test(n)) return 'laboratoire';
+  if (/radiolog|imagerie|echograph|\birm\b|scanner/.test(n + ' ' + sp)) return 'imagerie';
+  if (/\bcmp\b|medico.psycho|cattp|psychiatr|sante mentale/.test(n) || /psychiatr/.test(sp)) return 'sante_mentale';
+  if (/osteo|osth/.test(n + ' ' + sp) || h === 'alternative') return 'autre';
+  if (h === 'centre' || /maison (de )?sante|maison medicale|pole (de )?sante|\bmsp\b|\bpsla\b|centre (de )?sante|centre medical/.test(n)) return 'centre_sante';
+  if (h === 'nurse' || /infirmi/.test(n)) return 'infirmier';
+  if (h === 'physiotherapist' || /kine/.test(n)) return 'kine';
+  if (h === 'midwife' || /sage.femme/.test(n)) return 'sage_femme';
+  if (a === 'dentist' || h === 'dentist' || /dentaire|dentiste|orthodont/.test(n)) return 'dentiste';
+  if (['podiatrist', 'speech_therapist', 'optometrist', 'occupational_therapist', 'dietitian', 'psychotherapist', 'audiologist', 'counselling'].includes(h)) return 'paramedical';
+  if (a === 'clinic' || h === 'clinic') return 'clinique';
+  if (a === 'doctors' || h === 'doctor') return (!sp || /general|famil/.test(sp)) ? 'medecin_generaliste' : 'specialiste';
+  if (a || h) return 'autre';
+  return null;
+}
+function adresseOSM(t) {
+  const g = k => t['addr:' + k] || t['contact:' + k] || '';
+  const rue = [g('housenumber'), g('street') || g('place')].filter(Boolean).join(' ');
+  const ville = [g('postcode'), g('city')].filter(Boolean).join(' ');
+  return [rue, ville].filter(Boolean).join(', ');
+}
+function normaliserOSM(elements) {
+  const out = [];
+  for (const e of elements) {
+    if (e.lat == null || e.lon == null) continue;
+    const t = e.tags, cat = classerOSM(t);
+    if (!cat) continue;
+    out.push({
+      id: `osm-${e.type}-${e.id}`, src: 'osm', cat, lat: e.lat, lon: e.lon,
+      nom: t.name || t['name:fr'] || t.operator || CATS[cat].l,
+      adresse: adresseOSM(t), ville: t['addr:city'] || t['contact:city'] || '',
+      tel: t.phone || t['contact:phone'] || '', web: t.website || t['contact:website'] || '',
+      horaires: t.opening_hours || '', finess: t['ref:FR:FINESS'] || '',
+      detail: t['healthcare:speciality:FR'] || t['healthcare:speciality'] || '', pmr: t.wheelchair || '',
+      lienOSM: `https://www.openstreetmap.org/${e.type}/${e.id}`,
+    });
+  }
+  return out;
+}
+
+// =====================================================================
+// 7. SOURCE 3 — ANNUAIRE SANTÉ AMELI (API tabulaire data.gouv.fr)
+// =====================================================================
+async function colonnesRessource(rid) {
+  let entetes = [];
+  try {
+    const p = await fetchJSON(`${CONFIG.tabular}/resources/${rid}/profile/`, 30000);
+    const pr = p.profile || p, cols = pr.columns || {};
+    entetes = (pr.header && pr.header.length ? pr.header : Object.keys(cols));
+  } catch (e) { /* on tente avec une ligne de données */ }
+  if (!entetes.length) {
+    const d = await fetchJSON(`${CONFIG.tabular}/resources/${rid}/data/?page_size=1`, 30000);
+    entetes = Object.keys((d.data || [])[0] || {});
+  }
+  return entetes.filter(h => !h.startsWith('__'));
+}
+// Correspondance des colonnes : le schéma connu d'abord, puis une reconnaissance par le nom
+// (en préférant toujours les colonnes « libellé » aux colonnes « code »).
+function reconnaitre(entetes) {
+  const a = new Set(entetes), k = h => cle(h);
+  const prefLib = l => l.sort((x, y) => (/libelle/.test(k(y)) - /libelle/.test(k(x))) || (/code/.test(k(x)) - /code/.test(k(y))));
+  const chercher = (re, exclu) => prefLib(entetes.filter(h => re.test(k(h)) && !(exclu && exclu.test(k(h)))))[0] || null;
+  const connu = (champ, defaut) => {
+    const v = SCHEMA_AMELI[champ];
+    if (Array.isArray(v)) { const ok = v.filter(c => a.has(c)); return ok.length ? ok : defaut; }
+    return v && a.has(v) ? v : defaut;
+  };
+  return {
+    nom:        connu('nom', chercher(/(^|_)nom$|^nom_|denomination|raison_?sociale/, /prenom|commune|voie|ville/)),
+    prenom:     connu('prenom', chercher(/prenom/)),
+    raison:     connu('raison', chercher(/raison_?sociale|denomination/)),
+    profession: connu('profession', chercher(/profession|type_?ps|type_?cds/)),
+    specialite: connu('specialite', chercher(/specialit|discipline|qualification/)),
+    activite:   connu('activite', chercher(/activite_?particuliere/)),
+    insee:      chercher(/insee|code_?commune|^cog$|depcom/, /postal|libelle|^nom/),
+    cp:         connu('cp', chercher(/postal|^cp$|^cp_|_cp$|code_?post/)),
+    commune:    connu('commune', chercher(/commune|ville|localite/, /code|insee|postal/)),
+    lat:        chercher(/^lat$|^latitude|_latitude$|_lat$/),
+    lon:        chercher(/^lon$|^lng$|^longitude|_longitude$|_lon$|_lng$/),
+    adresse:    connu('adresse', entetes.filter(h => /adresse|voie|lieu_?dit|complement/.test(k(h)) && !/code|mail|web|site|tel/.test(k(h)))),
+    tel:        connu('tel', chercher(/tel|phone/)),
+    extras:     connu('extras', entetes.filter(h => /libelle/.test(k(h)) && /secteur|option|exercice/.test(k(h)))),
+  };
+}
+async function lireLignes(rid, col, valeurs, suivi) {
+  const base = `${CONFIG.tabular}/resources/${rid}/data/`;
+  const lignes = [];
+  async function suivre(url) {
+    let n = 0;
+    while (url && n++ < 100) {
+      const j = await fetchJSON(url, 45000);
+      lignes.push(...(j.data || []));
+      if (suivi) suivi(lignes.length, j.meta && j.meta.total);
+      url = j.links && j.links.next;
+    }
+  }
+  try {
+    await suivre(`${base}?${encodeURIComponent(col)}__in=${valeurs.map(encodeURIComponent).join(',')}&page_size=200`);
+  } catch (e) {
+    lignes.length = 0;
+    let echecs = 0;
+    await pool(valeurs, 4, async v => {
+      try { await suivre(`${base}?${encodeURIComponent(col)}__exact=${encodeURIComponent(v)}&page_size=50`); } catch (err) { echecs++; }
+    });
+    if (echecs === valeurs.length) throw e;
+  }
+  return lignes;
+}
+function classerPro(profession, specialite) {
+  const p = norm(profession), s = norm(specialite), t = p + ' ' + s;
+  if (/pharmac|laborat|biolog/.test(p)) return null;          // pharmacies et laboratoires : OSM
+  if (/dentist|dentaire|orthodont/.test(t)) return 'dentiste';
+  if (/sage.?femme/.test(t)) return 'sage_femme';
+  if (/infirmi/.test(t)) return 'infirmier';
+  if (/kinesi|masseur/.test(t)) return 'kine';
+  if (/medecin/.test(p) || /^medecine|^chirurg|^psychiatr|^pediatr|^gyne|^ophtal|^cardio|^dermat|^radio|^stomato/.test(s)) {
+    if (/general/.test(s) || (!s && /general/.test(p))) return 'medecin_generaliste';
+    return 'specialiste';
+  }
+  return 'paramedical';
+}
+
+// Géocodage avec mémoire locale (les adresses déjà trouvées ne sont plus redemandées)
+async function geocoder(q, params = {}) {
+  for (const base of CONFIG.geocodeurs) {
+    try {
+      const u = new URL(base);
+      u.searchParams.set('q', q);
+      for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+      const j = await fetchJSON(u.toString(), 15000);
+      if (Array.isArray(j.features)) return j.features;
+    } catch (e) { /* géocodeur suivant */ }
+  }
+  return null;   // null = service injoignable ; [] = rien trouvé
+}
+
+async function chargerAmeli() {
+  const controle = {};
+  const cpsNCPA = [...new Set(S.communes.flatMap(c => c.cps))];
+  let lu = { ps: 0, cds: 0 }, total = { ps: null, cds: null };
+  const suivi = type => (n, t) => {
+    lu[type] = n; total[type] = t;
+    const tt = (total.ps || 0) + (total.cds || 0);
+    etape('ameli', 'run', `${nf(lu.ps + lu.cds)} lignes reçues${tt ? ' sur ' + nf(tt) : ''} (filtre : codes postaux de NCPA)`, tt ? (lu.ps + lu.cds) / tt : null);
+  };
+  const lire = async (rid, type) => {
+    const entetes = await colonnesRessource(rid);
+    const m = reconnaitre(entetes);
+    controle[type] = { entetes, m };
+    let col, valeurs;
+    if (m.insee) { col = m.insee; valeurs = S.communes.map(c => c.code); }
+    else if (m.cp) { col = m.cp; valeurs = cpsNCPA; }
+    else throw new Error('colonne commune ou code postal introuvable');
+    const lignes = await lireLignes(rid, col, valeurs, suivi(type));
+    controle[type].nbLignes = lignes.length;
+    return { lignes, m };
+  };
+  etape('ameli', 'run', 'Lecture de la structure du fichier…');
+  const [ps, cds] = await Promise.allSettled([lire(CONFIG.ameliPS, 'ps'), lire(CONFIG.ameliCDS, 'cds')]);
+  if (ps.status === 'rejected' && cds.status === 'rejected') throw ps.reason;
+
+  // 1) Normalisation des lignes
+  const candidats = [], vus = new Set();
+  const lireType = (res, type) => {
+    if (res.status !== 'fulfilled') { controle[type] = { ...(controle[type] || {}), erreur: res.reason.message }; return; }
+    const { lignes, m } = res.value;
+    const prof = {}; controle[type].professions = prof;
+    controle[type].doublons = 0;
+    for (const r of lignes) {
+      const v = c => (c && r[c] != null) ? String(r[c]).trim() : '';
+      const profession = v(m.profession), specialite = v(m.specialite);
+      const cat = type === 'cds' ? 'centre_sante' : classerPro(profession, specialite);
+      const cleP = `${profession || '—'} | ${specialite || '—'}`;
+      (prof[cleP] ||= { n: 0, cat });
+      prof[cleP].n++;
+      if (!cat) continue;
+      const rue = m.adresse.map(c => v(c)).filter(Boolean).join(' ').replace(/\s+/g, ' ');
+      const cp = v(m.cp).padStart(5, '0'), ville = v(m.commune);
+      const personne = [v(m.prenom), v(m.nom)].filter(Boolean).map(titre).join(' ');
+      const nom = type === 'cds' ? (v(m.raison) || v(m.nom) || 'Centre de santé') : (personne || titre(v(m.raison)) || profession);
+      const k = cle([nom, profession, specialite, rue, cp].join('|'));
+      if (vus.has(k)) { controle[type].doublons++; continue; } vus.add(k);
+      const extras = {};
+      m.extras.forEach(c => { if (v(c)) extras[LIB_EXTRAS[c] || titre(c.replace(/_/g, ' '))] = v(c); });
+      if (v(m.activite)) extras['Activité particulière'] = v(m.activite);
+      candidats.push({ type, cat, nom, profession, specialite, rue, cp, ville, tel: v(m.tel), extras,
+        insee: m.insee ? v(m.insee).padStart(5, '0') : null, lat: null, lon: null });
+    }
+  };
+  lireType(ps, 'ps'); lireType(cds, 'cds');
+  etape('ameli', 'ok', `${nf(candidats.length)} professionnels et centres trouvés pour les codes postaux de NCPA`);
+
+  // 2) Localisation : géocodage de chaque adresse (avec code postal) → position + commune INSEE.
+  //    Le fichier ne contient ni coordonnées ni code INSEE ; un code postal peut couvrir des communes hors NCPA.
+  const memo = memoire.lire(CONFIG.cacheGeo);
+  const groupes = {};
+  candidats.forEach(f => (groupes[[f.rue, f.cp, cleCommune(f.ville)].join('|')] ||= []).push(f));
+  const cles = Object.keys(groupes);
+  let fait = 0, injoignable = 0;
+  etape('geocodage', 'run', `0 / ${cles.length} adresses`, 0);
+  const nouveaux = {};
+  await pool(cles, 6, async g => {
+    const f0 = groupes[g][0];
+    let r = memo[g];
+    if (!r) {
+      const q = [f0.rue, f0.cp, f0.ville].filter(Boolean).join(' ');
+      const res = await geocoder(q, { postcode: f0.cp, limit: 1 });
+      if (res === null) injoignable++;
+      else {
+        const x = res[0];
+        r = x ? [x.geometry.coordinates[1], x.geometry.coordinates[0], x.properties.citycode, x.properties.score, x.properties.type] : [null, null, null, 0, ''];
+        nouveaux[g] = r;
+      }
+    }
+    groupes[g].forEach(f => { f.geo = r; });
+    fait++;
+    if (fait % 5 === 0 || fait === cles.length) etape('geocodage', 'run', `${fait} / ${cles.length} adresses`, fait / cles.length);
+  });
+  memoire.ecrire(CONFIG.cacheGeo, nouveaux);
+
+  // 3) Rattachement à une commune NCPA
+  const out = [];
+  const bilan = { garde: 0, horsNCPA: 0, approx: 0, nonRattaches: [] };
+  candidats.forEach((f, i) => {
+    const [lat, lon, citycode, score, typeRes] = f.geo || [];
+    const parNom = S.communes.filter(c => c.cps.includes(f.cp) && c.cleNom === cleCommune(f.ville));
+    let code = f.insee && S.parCode[f.insee] ? f.insee : null;
+    const fiable = lat != null && score >= 0.45 && typeRes !== 'municipality';
+    if (!code && lat != null && score >= 0.35 && S.parCode[citycode]) code = citycode;
+    if (!code && parNom.length === 1) code = parNom[0].code;
+    if (!code) {
+      const seul = S.communes.filter(c => c.cps.includes(f.cp));
+      if (lat != null && citycode && !S.parCode[citycode] && score >= 0.35) { bilan.horsNCPA++; return; }
+      if (seul.length === 1 && !f.ville) code = seul[0].code;
+    }
+    if (!code) { bilan.horsNCPA++; if (bilan.nonRattaches.length < 40) bilan.nonRattaches.push(`${f.ville} (${f.cp})`); return; }
+    const c = S.parCode[code];
+    const ok = fiable && citycode === code;
+    if (!ok) bilan.approx++;
+    bilan.garde++;
+    out.push({ id: `ameli-${f.type}-${i}`, src: 'ameli', cat: f.cat, nom: f.nom,
+      detail: [f.profession, f.specialite].filter(Boolean).filter((x, j, a) => a.indexOf(x) === j).join(' – '),
+      adresse: [f.rue, c.nom].filter(Boolean).join(', '), insee: code, tel: f.tel, extras: f.extras,
+      lat: ok ? lat : c.pt[0], lon: ok ? lon : c.pt[1], approx: !ok });
+  });
+  bilan.nonRattaches = [...new Set(bilan.nonRattaches)];
+  controle.bilan = bilan;
+  etape('geocodage', injoignable === cles.length && cles.length ? 'err' : 'ok',
+    `${nf(bilan.garde)} rattachés à NCPA · ${nf(bilan.horsNCPA)} écartés (autre commune)` + (bilan.approx ? ` · ${bilan.approx} placés à la mairie faute d'adresse précise` : ''));
+  return { feats: out, controle };
+}
+
+// =====================================================================
+// 8. ASSEMBLAGE DES DONNÉES ET FILTRES
+// =====================================================================
+function assembler() {
+  const osm = S.osm.map(f => {
+    const c = S.communes.length ? communeDuPoint(f.lat, f.lon) : null;
+    return { ...f, insee: c ? c.code : '', commune: c ? c.nom : (f.ville || (S.communes.length ? 'Hors NCPA' : 'Commune inconnue')), dansNCPA: S.communes.length ? !!c : true };
+  });
+  const ameli = S.ameli.map(f => ({ ...f, commune: S.parCode[f.insee]?.nom || '', dansNCPA: true }));
+  // Dédoublonnage : un point OSM d'une catégorie « professionnels » est un doublon s'il existe
+  // un professionnel Ameli de même catégorie à moins de 100 m, ou du même nom de famille à moins de 2 km.
+  const parCat = {};
+  ameli.forEach(a => (parCat[a.cat] ||= []).push(a));
+  osm.forEach(f => {
+    if (!CATS[f.cat].pro) return;
+    const n = norm(f.nom);
+    f.doublon = (parCat[f.cat] || []).some(a => {
+      const d = distKm([f.lat, f.lon], [a.lat, a.lon]);
+      const famille = norm(a.nom).split(' ').pop();
+      return d < CONFIG.doublonKm || (famille.length > 2 && n.includes(famille) && d < 2);
+    });
+  });
+  // centres de santé Ameli déjà présents dans OSM : on garde OSM
+  const cdsOSM = osm.filter(f => f.cat === 'centre_sante');
+  const ameliF = ameli.filter(f => !(f.cat === 'centre_sante' && cdsOSM.some(o => distKm([o.lat, o.lon], [f.lat, f.lon]) < 0.1)));
+  S.feats = [...osm, ...ameliF];
+  creerMarqueurs();
+}
+function sourceOK(f) {
+  if (f.src === 'ameli') return f.cat === 'centre_sante' || S.modePro !== 'osm';
+  if (CATS[f.cat].pro) return S.modePro === 'osm' || (S.modePro === 'mix' && !f.doublon);
+  return true;
+}
+function filtreBase(f) {
+  if (!sourceOK(f)) return false;
+  if (!f.dansNCPA && !S.voisins) return false;
+  if (S.commune && f.insee !== S.commune) return false;
+  if (S.q) {
+    const h = norm([f.nom, f.detail, f.adresse, f.commune, CATS[f.cat].l, f.finess].join(' '));
+    if (!S.q.split(/\s+/).every(m => h.includes(m))) return false;
+  }
+  return true;
+}
+const visibles = () => S.feats.filter(f => filtreBase(f) && S.actives.has(f.cat));
+
+// =====================================================================
+// 9. CARTE
+// =====================================================================
+const map = L.map('map', { zoomControl: false, maxZoom: 20, minZoom: 8 }).setView([49.2, -0.05], 11);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+let fondPlan;
+try {
+  fondPlan = L.maplibreGL({ style: 'https://tiles.openfreemap.org/styles/positron',
+    attribution: '© <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">contributeurs OpenStreetMap</a>' });
+} catch (e) { fondPlan = L.layerGroup(); console.warn('Fond vectoriel indisponible', e); }
+fondPlan.addTo(map);
+const fondOrtho = L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image%2Fjpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
+  { maxZoom: 21, maxNativeZoom: 19, attribution: '© IGN / Géoplateforme' });
+const coucheCommunes = L.geoJSON(null, { style: () => styleCommune(null) }).addTo(map);
+const cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 38, spiderfyOnMaxZoom: true,
+  iconCreateFunction: c => L.divIcon({ html: `<div style="background:#B91E27;color:#fff;border:2px solid #fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.4)">${c.getChildCount()}</div>`, className: '', iconSize: [34, 34] }) });
+map.addLayer(cluster);
+const coucheIso = L.layerGroup().addTo(map);
+L.control.layers({ 'Plan (OpenFreeMap)': fondPlan, 'Photo aérienne (IGN)': fondOrtho },
+  { 'Communes': coucheCommunes, "Temps d'accès": coucheIso }, { position: 'bottomright' }).addTo(map);
+L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+
+function cadrer(b) {
+  // laisse de la place aux panneaux flottants
+  const g = $('p-gauche').classList.contains('replie') ? 60 : 350, d = $('p-droite').classList.contains('replie') ? 60 : 320;
+  map.fitBounds(b, { paddingTopLeft: [window.innerWidth > 860 ? g : 10, 20], paddingBottomRight: [window.innerWidth > 860 ? d : 10, 60] });
+}
+function dessinerCommunes() {
+  coucheCommunes.clearLayers();
+  coucheCommunes.addData({ type: 'FeatureCollection', features: S.communes.map(c => ({ type: 'Feature', properties: { code: c.code }, geometry: c.geom })) });
+  coucheCommunes.eachLayer(l => l.bindTooltip(() => infobulleCommune(l.feature.properties.code), { sticky: true }));
+  const b = emprise();
+  cadrer([[b.s, b.w], [b.n, b.e]]);
+}
+function infobulleCommune(code) {
+  const c = S.parCode[code], a = S.analyse && S.analyse.parCode[code];
+  if (!c) return '';
+  let h = `<b>${esc(c.nom)}</b><br>${nf(c.pop)} hab.`;
+  if (a) h += `<br>Généralistes : ${a.n.medecin_generaliste} · Pharmacies : ${a.n.pharmacie}`;
+  if (a && S.choro) h += `<br>${esc(CHORO[S.choro].l)} : <b>${CHORO[S.choro].fmt(a[S.choro])}</b>`;
+  return h;
+}
+function iconeDe(f) {
+  const c = CATS[f.cat];
+  const cls = ['mk', f.dansNCPA ? '' : 'ext', f.approx ? 'approx' : '', f.src !== 'ameli' && c.pro && S.ameli.length && !f.doublon ? 'comp' : ''].join(' ');
+  return L.divIcon({ className: '', iconSize: [26, 26], iconAnchor: [13, 26], popupAnchor: [0, -24],
+    html: `<div class="${cls}" style="background:${c.c}"><span>${c.i}</span></div>` });
+}
+const marqueurs = new Map();
+function creerMarqueurs() {
+  marqueurs.clear();
+  for (const f of S.feats) {
+    const m = L.marker([f.lat, f.lon], { icon: iconeDe(f), title: f.nom });
+    m.bindPopup(() => popup(f), { maxWidth: 330 });
+    m.on('click', () => surlignerLigne(f.id));
+    marqueurs.set(f.id, m);
+  }
+}
+function popup(f) {
+  const c = CATS[f.cat], l = (lab, v) => v ? `<div><span class="l">${lab}</span> ${v}</div>` : '';
+  const extras = Object.entries(f.extras || {}).map(([k, v]) => l(esc(k), esc(v))).join('');
+  const src = f.src === 'ameli' ? 'Annuaire santé Ameli (Assurance maladie)' : f.src === 'instantane' ? 'OpenStreetMap (instantané hors ligne)' : 'OpenStreetMap';
+  return `<div class="pp"><h4>${esc(f.nom)}</h4>
+    <span class="cat-l" style="background:${c.c}">${c.i} ${esc(c.l)}</span>
+    ${l('Précision', esc(f.detail))}${l('Adresse', esc(f.adresse))}${l('Commune', esc(f.commune) + (f.dansNCPA ? '' : ' <i>(hors NCPA)</i>'))}
+    ${l('Tél.', f.tel ? `<a href="tel:${esc(f.tel)}">${esc(f.tel)}</a>` : '')}
+    ${l('Site', f.web ? `<a href="${esc(f.web)}" target="_blank" rel="noopener">ouvrir</a>` : '')}
+    ${l('Horaires', esc(f.horaires))}${l('FINESS', esc(f.finess))}${l('Accès PMR', f.pmr === 'yes' ? '♿ oui' : esc(f.pmr))}${extras}
+    ${f.approx ? '<div class="alerte">Adresse non localisée précisément : placé à la mairie.</div>' : ''}
+    ${f.src !== 'ameli' && c.pro && S.ameli.length && !f.doublon ? '<div class="alerte">Absent de l\'annuaire Ameli : salarié, donnée OSM périmée ou nom différent.</div>' : ''}
+    <div class="act"><button class="btn" onclick="origineDepuisLieu('${f.id}')">⏱ Temps d'accès</button>
+    ${f.lienOSM ? `<a class="btn" href="${f.lienOSM}" target="_blank" rel="noopener" title="Voir ou corriger dans OpenStreetMap">✎ OSM</a>` : ''}</div>
+    <div class="src">Source : ${src}</div></div>`;
+}
+
+// =====================================================================
+// 10. RENDU : catégories, chiffres clés, liste
+// =====================================================================
+function rendre() {
+  const vis = visibles();
+  cluster.clearLayers();
+  cluster.addLayers(vis.map(f => marqueurs.get(f.id)).filter(Boolean));
+  const n = {}; S.feats.forEach(f => { if (filtreBase(f)) n[f.cat] = (n[f.cat] || 0) + 1; });
+  $('cats').innerHTML = Object.entries(GROUPES).map(([g, lib]) => {
+    const ks = Object.keys(CATS).filter(k => CATS[k].g === g);
+    const tous = ks.every(k => S.actives.has(k));
+    return `<div class="groupe-cat"><label class="gt"><input type="checkbox" data-groupe="${g}" ${tous ? 'checked' : ''}> ${lib}</label>` +
+      ks.map(k => { const c = CATS[k]; return `<label class="cat${n[k] ? '' : ' vide'}"><input type="checkbox" data-cat="${k}" ${S.actives.has(k) ? 'checked' : ''}>
+        <span class="pin" style="background:${c.c}">${c.i}</span><span>${esc(c.l)}</span><span class="n">${n[k] || 0}</span></label>`; }).join('') + '</div>';
+  }).join('');
+  $('nb-visibles').textContent = nf(vis.length) + ' lieux';
+  $('b-liste').textContent = `☰ Liste des lieux (${nf(vis.length)})`;
+  rendreListe(vis);
+  rendreChiffres();
+  rendreIsoResultat();
+  rendreAideSource();
+}
+function rendreAideSource() {
+  const nbDoublons = S.feats.filter(f => f.doublon).length, nbComp = S.feats.filter(f => f.src !== 'ameli' && CATS[f.cat].pro && !f.doublon && f.dansNCPA).length;
+  const txt = {
+    ameli: 'Professionnels libéraux de l\'Assurance maladie uniquement : chaque personne compte pour un. Recommandé pour compter.',
+    mix: `Ameli, plus les ${nbComp} lieux OSM absents d'Ameli (contour pointillé noir). ${nbDoublons} doublons OSM écartés.`,
+    osm: 'OpenStreetMap seul : compte des cabinets, pas des personnes. Utile si l\'annuaire ne répond pas.',
+  }[S.modePro];
+  $('aide-source').textContent = (S.ameli.length ? '' : 'Annuaire Ameli non chargé. ') + txt + ' Les établissements (hôpitaux, pharmacies…) viennent toujours d\'OSM.';
+  document.querySelectorAll('#seg-source button').forEach(b => {
+    b.classList.toggle('on', b.dataset.m === S.modePro);
+    b.disabled = b.dataset.m !== 'osm' && !S.ameli.length;
+  });
+}
+function rendreChiffres() {
+  const charge = !S.analyse;
+  const fini = Object.keys(S.etapes).length && !Object.values(S.etapes).some(e => e.etat === 'run');
+  if (charge && fini) { $('cc-titre').textContent = 'Chiffres clés'; $('cc').innerHTML = '<p class="aide">Indisponibles : la liste des communes n\'a pas pu être chargée (API Géo injoignable). La carte montre l\'instantané hors ligne.</p>'; return; }
+  const att = '<span class="attente"></span>';
+  const A = S.analyse, l = S.commune && A ? A.parCode[S.commune] : null;
+  const c = S.commune ? S.parCode[S.commune] : null;
+  $('cc-titre').textContent = 'Chiffres clés · ' + (c ? c.nom : 'NCPA');
+  const pop = l ? l.pop : A ? A.pop : null, n = l ? l.n : A ? A.tot : null;
+  const ligne = (lib, v, sous) => `<div class="kv"><span class="l">${lib}</span><span class="v">${v}${sous ? `<small>${sous}</small>` : ''}</span></div>`;
+  const dens = k => n && pop ? nf(n[k] / pop * 10000, 1) + ' / 10 000 hab.' : '';
+  const enAttenteAmeli = S.etapes.ameli && S.etapes.ameli.etat === 'run' || S.etapes.geocodage && S.etapes.geocodage.etat === 'run';
+  const provisoire = enAttenteAmeli && !(S.modeChoisi && S.modePro === 'osm');
+  const vPro = k => charge || provisoire ? att : nf(n[k]);
+  let h = ligne('Population', charge ? att : nf(pop), 'population municipale') +
+    ligne('Médecins généralistes', vPro('medecin_generaliste'), charge || provisoire ? '' : dens('medecin_generaliste')) +
+    ligne('Pharmacies', charge ? att : nf(n.pharmacie)) +
+    ligne('Infirmiers', vPro('infirmier'), charge || provisoire ? '' : dens('infirmier')) +
+    ligne('Kinés · Dentistes · Sages-femmes', charge || provisoire ? att : `${nf(n.kine)} · ${nf(n.dentiste)} · ${nf(n.sage_femme)}`);
+  if (l) h += ligne('Généraliste le plus proche', CHORO.d_mg.fmt(l.d_mg), 'vol d\'oiseau depuis la mairie') + ligne('Urgences les plus proches', CHORO.d_urg.fmt(l.d_urg));
+  else if (A) { const sans = A.lignes.filter(x => !x.n.medecin_generaliste); h += ligne('Communes sans généraliste', provisoire ? att : `${sans.length} / ${A.lignes.length}`, provisoire ? '' : nf(sans.reduce((s, x) => s + x.pop, 0)) + ' hab.'); }
+  if (provisoire && !charge) h += '<p class="aide">⏳ Les professionnels libéraux arrivent : chiffres provisoires.</p>';
+  $('cc').innerHTML = h;
+}
+
+const COLS_LISTE = [['nom', 'Nom'], ['cat', 'Catégorie'], ['detail', 'Précision'], ['commune', 'Commune'], ['adresse', 'Adresse'], ['src', 'Source']];
+function rendreListe(vis) {
+  if (!$('tiroir').classList.contains('on')) return;
+  $('tiroir-titre').textContent = `Lieux affichés (${nf(vis.length)})`;
+  const { k, s } = S.tri.liste;
+  const val = (f, c) => c === 'cat' ? CATS[f.cat].l : c === 'src' ? (f.src === 'ameli' ? 'Ameli' : 'OSM') : (f[c] || '');
+  const lignes = [...vis].sort((a, b) => String(val(a, k)).localeCompare(String(val(b, k)), 'fr') * s).slice(0, 2000);
+  $('t-liste').innerHTML = '<thead><tr>' + COLS_LISTE.map(([c, l]) => `<th data-k="${c}" class="${c === k ? (s > 0 ? 'tri-asc' : 'tri-desc') : ''}">${l}</th>`).join('') + '</tr></thead><tbody>' +
+    lignes.map(f => `<tr data-id="${f.id}">` + COLS_LISTE.map(([c]) => `<td>${c === 'cat' ? `<span style="color:${CATS[f.cat].c}">●</span> ` : ''}${esc(val(f, c))}${c === 'commune' && !f.dansNCPA ? ' <i>(hors)</i>' : ''}</td>`).join('') + '</tr>').join('') + '</tbody>';
+}
+function surlignerLigne(id) {
+  document.querySelectorAll('#t-liste tr.sel').forEach(tr => tr.classList.remove('sel'));
+  const tr = document.querySelector(`#t-liste tr[data-id="${id}"]`);
+  if (tr) { tr.classList.add('sel'); tr.scrollIntoView({ block: 'nearest' }); }
+}
+function ouvrirLieu(id) {
+  const m = marqueurs.get(id);
+  if (!m) return;
+  cluster.zoomToShowLayer(m, () => m.openPopup());
+  surlignerLigne(id);
+}
+
+// =====================================================================
+// 11. ANALYSE PAR COMMUNE
+// =====================================================================
+const CLES_ANALYSE = ['medecin_generaliste', 'pharmacie', 'infirmier', 'dentiste', 'kine', 'sage_femme', 'specialiste', 'centre_sante'];
+function plusProche(pt, liste) { let m = Infinity; for (const f of liste) { const d = distKm(pt, [f.lat, f.lon]); if (d < m) m = d; } return m === Infinity ? null : m; }
+function analyser() {
+  if (!S.communes.length) { S.analyse = null; return; }
+  const ok = S.feats.filter(sourceOK);
+  const par = cat => ok.filter(f => f.cat === cat && !f.approx);
+  const mg = par('medecin_generaliste'), ph = par('pharmacie'), urg = par('urgences');
+  const lignes = S.communes.map(c => {
+    const n = {}; CLES_ANALYSE.forEach(k => n[k] = 0);
+    ok.forEach(f => { if (f.insee === c.code && f.dansNCPA && n[f.cat] != null) n[f.cat]++; });
+    return { code: c.code, nom: c.nom, pop: c.pop, n,
+      dens_mg: c.pop ? n.medecin_generaliste / c.pop * 10000 : null,
+      d_mg: n.medecin_generaliste ? 0 : plusProche(c.pt, mg),
+      d_ph: n.pharmacie ? 0 : plusProche(c.pt, ph),
+      d_urg: plusProche(c.pt, urg) };
+  });
+  const pop = lignes.reduce((s, l) => s + l.pop, 0);
+  const tot = {}; CLES_ANALYSE.forEach(k => tot[k] = lignes.reduce((s, l) => s + l.n[k], 0));
+  S.analyse = { lignes, parCode: Object.fromEntries(lignes.map(l => [l.code, l])), pop, tot };
+}
+const ROUGES = ['#e9f3e6', '#fdf0c8', '#f9c98c', '#ec8a5b', '#B91E27'];
+const CHORO = {
+  dens_mg: { l: 'Généralistes pour 10 000 hab.', fmt: v => nf(v, 1), seuils: [0.01, 4, 7, 10], pal: ['#f2f0f7', '#d4dbe8', '#9fb7d4', '#5b8cc0', '#1565c0'], txt: ['aucun', 'moins de 4', '4 à 7', '7 à 10', '10 et plus'] },
+  d_mg:   { l: 'Distance au généraliste', fmt: v => v == null ? '–' : v === 0 ? 'sur place' : nf(v, 1) + ' km', seuils: [0.01, 3, 6, 10], pal: ROUGES, txt: ['sur place', 'moins de 3 km', '3 à 6 km', '6 à 10 km', '10 km et plus'] },
+  d_ph:   { l: 'Distance à la pharmacie', fmt: v => v == null ? '–' : v === 0 ? 'sur place' : nf(v, 1) + ' km', seuils: [0.01, 3, 6, 10], pal: ROUGES, txt: ['sur place', 'moins de 3 km', '3 à 6 km', '6 à 10 km', '10 km et plus'] },
+  d_urg:  { l: 'Distance aux urgences', fmt: v => v == null ? '–' : nf(v, 1) + ' km', seuils: [10, 15, 20, 30], pal: ROUGES, txt: ['moins de 10 km', '10 à 15 km', '15 à 20 km', '20 à 30 km', '30 km et plus'] },
+};
+function classeChoro(k, v) { if (v == null) return null; const s = CHORO[k].seuils; let i = 0; while (i < s.length && v >= s[i]) i++; return i; }
+function styleCommune(code) {
+  const base = { color: '#B91E27', weight: 1, opacity: .5, fillOpacity: 0 };
+  if (!S.choro || !S.analyse || !code) return base;
+  const i = classeChoro(S.choro, S.analyse.parCode[code]?.[S.choro]);
+  return i == null ? base : { ...base, fillColor: CHORO[S.choro].pal[i], fillOpacity: .6 };
+}
+function rendreChoro() {
+  coucheCommunes.eachLayer(l => {
+    const code = l.feature.properties.code;
+    l.setStyle({ ...styleCommune(code), weight: code === S.commune ? 3 : 1, opacity: code === S.commune ? 1 : .5 });
+    if (code === S.commune) l.bringToFront();
+  });
+  const ch = CHORO[S.choro];
+  $('leg-choro').innerHTML = ch ? ch.pal.map((p, i) => `<div class="r"><i style="background:${p}"></i>${ch.txt[i]}</div>`).join('') +
+    (S.choro.startsWith('d_') ? '<div class="aide">À vol d\'oiseau, depuis la mairie.</div>' : '') : '';
+}
+function rendreAnalyse() {
+  const A = S.analyse;
+  if (!A) { $('kpis').innerHTML = '<div class="alerte">Le contour des communes n\'a pas pu être chargé : analyse indisponible.</div>'; return; }
+  const sansMG = A.lignes.filter(l => !l.n.medecin_generaliste);
+  const popSans = sansMG.reduce((s, l) => s + l.pop, 0);
+  const loinUrg = [...A.lignes].sort((a, b) => (b.d_urg || 0) - (a.d_urg || 0))[0];
+  const srcPro = { ameli: 'annuaire Ameli (une ligne = un professionnel)', mix: 'Ameli + lieux OSM absents d\'Ameli', osm: 'OpenStreetMap (une ligne = un cabinet)' }[S.modePro];
+  const enCours = ['ameli', 'geocodage'].some(k => S.etapes[k] && S.etapes[k].etat === 'run');
+  $('analyse-intro').innerHTML = (enCours ? '<div class="alerte">⏳ L\'annuaire Ameli est en cours de chargement : chiffres provisoires.</div>' : '') + `${S.communes.length} communes, ${nf(A.pop)} habitants. Professionnels comptés selon la source choisie sur la carte : <b>${srcPro}</b>.`;
+  const k = (l, v, s) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+  $('kpis').innerHTML =
+    k('Médecins généralistes', nf(A.tot.medecin_generaliste), `${nf(A.tot.medecin_generaliste / A.pop * 10000, 1)} pour 10 000 hab.`) +
+    k('Pharmacies', nf(A.tot.pharmacie), `1 pour ${nf(A.pop / Math.max(A.tot.pharmacie, 1))} hab.`) +
+    k('Infirmiers', nf(A.tot.infirmier), `${nf(A.tot.infirmier / A.pop * 10000, 1)} pour 10 000 hab.`) +
+    k('Communes sans généraliste', `${sansMG.length} / ${A.lignes.length}`, `${nf(popSans)} hab. (${nf(popSans / A.pop * 100, 0)} %)`) +
+    k('Commune la plus éloignée des urgences', loinUrg && loinUrg.d_urg != null ? nf(loinUrg.d_urg, 1) + ' km' : '–', loinUrg ? esc(loinUrg.nom) : '');
+  $('sans-mg').innerHTML = sansMG.length
+    ? [...sansMG].sort((a, b) => (b.d_mg || 0) - (a.d_mg || 0)).map(l => `${esc(l.nom)} (${nf(l.pop)} hab., généraliste à ${CHORO.d_mg.fmt(l.d_mg)})`).join(' · ')
+    : 'Toutes les communes ont au moins un médecin généraliste.';
+  rendreTableAnalyse();
+}
+const COLS_ANALYSE = [['nom', 'Commune', 0], ['pop', 'Population', 1], ['medecin_generaliste', 'Généralistes', 1], ['dens_mg', 'Génér. / 10 000 hab.', 1],
+  ['pharmacie', 'Pharmacies', 1], ['infirmier', 'Infirmiers', 1], ['dentiste', 'Dentistes', 1], ['kine', 'Kinés', 1], ['sage_femme', 'Sages-femmes', 1],
+  ['specialiste', 'Spécialistes', 1], ['centre_sante', 'Maisons / centres de santé', 1], ['d_mg', 'Généraliste le + proche (km)', 1], ['d_ph', 'Pharmacie la + proche (km)', 1], ['d_urg', 'Urgences (km)', 1]];
+const valA = (l, c) => l.n && l.n[c] != null ? l.n[c] : l[c];
+function fmtA(l, c) {
+  const v = valA(l, c);
+  if (c === 'nom') return esc(v);
+  if (c === 'dens_mg') return nf(v, 1);
+  if (c.startsWith('d_')) return v == null ? '–' : v === 0 ? 'sur place' : (v >= 10 ? `<span class="mauvais">${nf(v, 1)}</span>` : nf(v, 1));
+  return v === 0 && c !== 'pop' ? '<span style="color:#bbb">0</span>' : nf(v);
+}
+function rendreTableAnalyse() {
+  const A = S.analyse, { k, s } = S.tri.analyse;
+  const lignes = [...A.lignes].sort((a, b) => { const x = valA(a, k), y = valA(b, k); return (typeof x === 'string' ? x.localeCompare(y, 'fr') : ((x ?? -1) - (y ?? -1))) * s; });
+  const tot = { nom: 'Total NCPA', pop: A.pop, n: A.tot, dens_mg: A.tot.medecin_generaliste / A.pop * 10000 };
+  $('t-analyse').innerHTML = '<thead><tr>' + COLS_ANALYSE.map(([c, l, num]) => `<th data-k="${c}" class="${num ? 'num ' : ''}${c === k ? (s > 0 ? 'tri-asc' : 'tri-desc') : ''}">${l}</th>`).join('') + '</tr></thead><tbody>' +
+    lignes.map(l => `<tr data-code="${l.code}">` + COLS_ANALYSE.map(([c, , num]) => `<td class="${num ? 'num' : ''}">${fmtA(l, c)}</td>`).join('') + '</tr>').join('') +
+    '<tr class="total">' + COLS_ANALYSE.map(([c, , num]) => `<td class="${num ? 'num' : ''}">${c.startsWith('d_') ? '' : fmtA(tot, c)}</td>`).join('') + '</tr></tbody>';
+}
+
+// =====================================================================
+// 12. TEMPS D'ACCÈS (isochrones IGN Géoplateforme)
+// =====================================================================
+const marqueurOrigine = L.marker([0, 0], { draggable: true, icon: L.divIcon({ className: '', html: '<div class="origine"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }) });
+marqueurOrigine.on('dragend', () => { const p = marqueurOrigine.getLatLng(); S.iso.origine = { lat: p.lat, lon: p.lng, nom: 'Point choisi' }; calculerIso(); });
+function origineDepuis(lat, lon, nom) { map.closePopup(); S.iso.origine = { lat, lon, nom }; calculerIso(); }
+window.origineDepuisLieu = id => { const f = S.feats.find(x => x.id === id); if (f) origineDepuis(f.lat, f.lon, f.nom); };
+function couleurBande(i, n) { const pal = ['#2e7d32', '#9ccc65', '#f9a825', '#ef6c00', '#B91E27']; return n === 1 ? pal[2] : pal[Math.round(i * (pal.length - 1) / (n - 1))]; }
+async function calculerIso() {
+  const o = S.iso.origine; if (!o) return;
+  const durees = [...document.querySelectorAll('#iso-durees input:checked')].map(i => +i.value).sort((a, b) => a - b);
+  $('p-droite').classList.remove('replie');
+  if (!durees.length) { $('iso-res').innerHTML = '<div class="alerte">Cochez au moins une durée.</div>'; return; }
+  const profil = $('iso-profil').value, sens = $('iso-sens').value;
+  marqueurOrigine.setLatLng([o.lat, o.lon]).addTo(map);
+  $('iso-res').innerHTML = `<div class="kv"><span class="l"><span class="rond" style="display:inline-block;vertical-align:middle"></span> Calcul des temps d'accès…</span></div>`;
+  try {
+    const geoms = await Promise.all(durees.map(async d => {
+      const p = new URLSearchParams({ resource: 'bdtopo-valhalla', point: `${o.lon},${o.lat}`, costType: 'time', costValue: d * 60,
+        timeUnit: 'second', profile: profil, direction: sens, crs: 'EPSG:4326', geometryFormat: 'geojson' });
+      const j = await fetchJSON(`${CONFIG.isochrone}?${p}`, 40000);
+      if (!j.geometry) throw new Error(j.error?.message || 'pas de géométrie');
+      return { d, g: j.geometry };
+    }));
+    coucheIso.clearLayers();
+    [...geoms].reverse().forEach(({ d, g }) => {
+      const col = couleurBande(durees.indexOf(d), durees.length);
+      const l = L.geoJSON(g, { interactive: false, style: { color: col, weight: 2, fillColor: col, fillOpacity: .15 } }).addTo(coucheIso);
+      const b = l.getBounds();
+      L.marker([b.getNorth(), (b.getWest() + b.getEast()) / 2], { interactive: false, icon: L.divIcon({ className: '', html: `<span class="lbl-iso" style="border-color:${col}">${d} min</span>`, iconAnchor: [20, 8] }) }).addTo(coucheIso);
+    });
+    S.iso.couches = { geoms, profil, sens };
+    cadrer(L.geoJSON(geoms[geoms.length - 1].g).getBounds());
+    rendreIsoResultat();
+  } catch (e) {
+    $('iso-res').innerHTML = `<div class="alerte">Calcul impossible (${esc(e.message)}). Le service IGN est peut-être indisponible, ou le point est trop loin d'une route.</div>`;
+  }
+}
+function rendreIsoResultat() {
+  const I = S.iso.couches, o = S.iso.origine;
+  if (!I || !o) return;
+  const vis = S.feats.filter(f => sourceOK(f) && S.actives.has(f.cat) && !f.approx);
+  const cats = Object.keys(CATS).filter(k => S.actives.has(k));
+  const comptes = I.geoms.map(({ g }) => { const n = {}; vis.forEach(f => { if (dansGeom(f.lat, f.lon, g)) n[f.cat] = (n[f.cat] || 0) + 1; }); return n; });
+  const lignes = cats.filter(k => comptes.some(n => n[k])).map(k => `<tr><td><span style="color:${CATS[k].c}">●</span> ${esc(CATS[k].l)}</td>${comptes.map(n => `<td>${n[k] || 0}</td>`).join('')}</tr>`).join('');
+  const derniere = I.geoms[I.geoms.length - 1];
+  const com = S.communes.filter(c => dansGeom(c.pt[0], c.pt[1], derniere.g));
+  const pop = com.reduce((s, c) => s + c.pop, 0);
+  $('iso-res').innerHTML = `<h4 style="margin:14px 0 2px;color:var(--rouge);font-size:12px;letter-spacing:.08em;text-transform:uppercase">Temps d'accès</h4>
+    <div style="font-weight:700">${esc(o.nom)}</div>
+    <div class="aide">${I.profil === 'car' ? 'En voiture' : 'À pied'}, ${I.sens === 'departure' ? 'au départ de ce point' : 'pour rejoindre ce point'} · lieux affichés, cumulés</div>
+    <table><tr><th></th>${I.geoms.map(x => `<th>${x.d} min</th>`).join('')}</tr>${lignes || '<tr><td colspan="9">Aucun lieu</td></tr>'}</table>
+    <div class="aide" style="margin-top:6px">${com.length} communes NCPA (${nf(pop)} hab.) ont leur mairie à moins de ${derniere.d} min.</div>`;
+}
+function modePose(on) {
+  S.iso.pose = on;
+  document.body.classList.toggle('mode-pose', on);
+  $('b-pose').classList.toggle('on', on);
+  $('b-pose').textContent = on ? '👆 Cliquez sur la carte…' : '📍 Choisir un point sur la carte';
+}
+map.on('click', e => {
+  if (!S.iso.pose) return;
+  modePose(false);
+  S.iso.origine = { lat: e.latlng.lat, lon: e.latlng.lng, nom: 'Point choisi' };
+  calculerIso();
+});
+
+// =====================================================================
+// 13. ÉTAT DES SOURCES ET CONTRÔLE AMELI
+// =====================================================================
+function rendreSources() {
+  const L1 = { geo: ['Communes (contours, population, mairies)', 'API Géo – geo.api.gouv.fr'],
+               osm: ['Établissements et lieux de soins', 'OpenStreetMap via Overpass'],
+               ameli: ['Professionnels libéraux et centres de santé', 'Annuaire santé Ameli – API tabulaire data.gouv.fr'] };
+  const lib = { ok: '✅ à jour', cache: '🟠 copie', err: '❌ indisponible', run: '⏳ chargement' };
+  $('etat-sources').innerHTML = '<table class="t"><thead><tr><th>Donnée</th><th>Source</th><th>État</th><th class="num">Éléments</th><th>Date des données</th><th>Détail</th></tr></thead><tbody>' +
+    Object.entries(L1).map(([k, [d, s]]) => { const x = S.src[k]; return `<tr><td>${d}</td><td>${s}</td><td>${lib[x.etat] || '–'}</td><td class="num">${x.nb != null ? nf(x.nb) : '–'}</td><td>${dateFR(x.date)}</td><td>${esc(x.msg || '')}</td></tr>`; }).join('') +
+    '</tbody></table><p class="note">Les données sont interrogées à chaque ouverture. La dernière réponse est gardée dans le navigateur pour rouvrir l\'outil sans réseau, ainsi que les adresses déjà localisées (ouvertures suivantes plus rapides).</p>';
+  const C = S.controle;
+  if (!C) { $('controle-ameli').innerHTML = '<p class="note">Pas encore lu.</p>'; return; }
+  const champs = [['nom', 'Nom'], ['prenom', 'Prénom'], ['raison', 'Raison sociale'], ['profession', 'Profession'], ['specialite', 'Spécialité'], ['activite', 'Activité particulière'],
+    ['cp', 'Code postal'], ['commune', 'Commune'], ['insee', 'Code INSEE'], ['adresse', 'Adresse'], ['tel', 'Téléphone'], ['extras', 'Infos complémentaires']];
+  let h = '';
+  if (C.bilan) {
+    const b = C.bilan;
+    h += `<div class="kpis" style="margin-top:4px">
+      <div class="kpi"><div class="l">Rattachés à une commune NCPA</div><div class="v">${nf(b.garde)}</div><div class="s">dont ${nf(b.approx)} placés à la mairie</div></div>
+      <div class="kpi"><div class="l">Écartés : commune hors NCPA</div><div class="v">${nf(b.horsNCPA)}</div><div class="s">même code postal, autre commune</div></div></div>
+      ${b.nonRattaches.length ? `<p class="note">Communes du fichier non reconnues : ${b.nonRattaches.map(esc).join(', ')}.</p>` : ''}`;
+  }
+  ['ps', 'cds'].forEach(t => {
+    const r = C[t]; if (!r) return;
+    const titreT = t === 'ps' ? 'Fichier des professionnels de santé' : 'Fichier des centres de santé';
+    if (!r.m) { h += `<p><b>${titreT}</b> : <span class="mauvais">${esc(r.erreur || 'non lu')}</span></p>`; return; }
+    h += `<h4 style="margin:14px 0 4px">${titreT}</h4><p class="note">${r.nbLignes != null ? nf(r.nbLignes) + ' lignes reçues pour les codes postaux de NCPA' : ''}${r.doublons ? ` · ${r.doublons} lignes en double ignorées` : ''} ${r.erreur ? '<span class="mauvais">' + esc(r.erreur) + '</span>' : ''}</p>`;
+    if (r.professions) {
+      const rows = Object.entries(r.professions).sort((a, b) => b[1].n - a[1].n);
+      h += `<p class="note">Comment l'outil a classé chaque profession (à vérifier en cas de doute sur un chiffre) :</p>
+        <div style="overflow:auto;max-height:340px"><table class="t" style="max-width:900px"><thead><tr><th>Profession | spécialité (fichier Ameli)</th><th class="num">Lignes</th><th>Catégorie dans l'outil</th></tr></thead><tbody>` +
+        rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v.n}</td><td>${v.cat ? `<span style="color:${CATS[v.cat].c}">●</span> ${esc(CATS[v.cat].l)}` : '<i>ignoré (pharmacies et laboratoires : OSM)</i>'}</td></tr>`).join('') + '</tbody></table></div>';
+    }
+    h += `<details><summary class="note" style="cursor:pointer;margin-top:8px">Colonnes utilisées</summary><table class="t" style="max-width:720px"><tbody>${champs.map(([c, l]) => { const v = r.m[c]; const txt = Array.isArray(v) ? v.join(', ') : v; return `<tr><td>${l}</td><td>${txt ? '<code>' + esc(txt) + '</code>' : '<span style="color:#999">non trouvée</span>'}</td></tr>`; }).join('')}</tbody></table>
+      <p class="note">Toutes les colonnes : ${r.entetes.map(esc).join(' · ')}</p></details>`;
+  });
+  $('controle-ameli').innerHTML = h;
+}
+
+// =====================================================================
+// 14. CHARGEMENT
+// =====================================================================
+function toutRafraichir() { analyser(); rendre(); rendreChoro(); rendreAnalyse(); rendreSources(); }
+
+async function charger() {
+  const c = memoire.lire(CONFIG.cache);
+  $('b-actualiser').disabled = true;
+  S.etapes = {}; S.src = { geo: {}, osm: {}, ameli: {} };
+  montrerChargement();
+  ['geo', 'osm', 'ameli', 'geocodage'].forEach(id => etape(id, 'attente', ''));
+  rendreChiffres();
+
+  // --- Territoire
+  etape('geo', 'run', 'Contours, population et mairies des communes…');
+  try {
+    const t = await chargerTerritoire();
+    installerTerritoire(t);
+    S.src.geo = { etat: 'ok', nb: t.length, date: new Date().toISOString(), msg: t.length + ' communes' };
+    memoire.ecrire(CONFIG.cache, { territoire: t, dateTerritoire: S.src.geo.date });
+    etape('geo', 'ok', `${t.length} communes · ${nf(t.reduce((s, x) => s + x.pop, 0))} habitants`);
+  } catch (e) {
+    if (c.territoire && c.territoire.every(x => contourValide(x.geom))) {
+      installerTerritoire(c.territoire);
+      S.src.geo = { etat: 'cache', nb: c.territoire.length, date: c.dateTerritoire, msg: 'API Géo injoignable (' + e.message + ')' };
+      etape('geo', 'cache', `API Géo injoignable : copie du ${dateFR(c.dateTerritoire)}`);
+    } else { S.src.geo = { etat: 'err', msg: e.message }; etape('geo', 'err', 'Indisponible (' + e.message + ') : pas de rattachement aux communes'); }
+  }
+
+  // --- OSM et Ameli en parallèle ; la carte se remplit dès qu'OSM arrive
+  const pOSM = chargerOSM();
+  const pAmeli = S.communes.length ? chargerAmeli() : Promise.reject(new Error('communes indisponibles'));
+  pAmeli.catch(() => {});
+
+  try {
+    const r = await pOSM;
+    S.osm = normaliserOSM(r.elements);
+    S.src.osm = { etat: 'ok', nb: S.osm.length, date: new Date().toISOString(), msg: 'serveur ' + r.serveur };
+    memoire.ecrire(CONFIG.cache, { osm: r.elements, dateOSM: S.src.osm.date });
+    etape('osm', 'ok', `${nf(S.osm.length)} lieux reçus (serveur ${r.serveur})`);
+  } catch (e) {
+    if (c.osm) {
+      S.osm = normaliserOSM(c.osm);
+      S.src.osm = { etat: 'cache', nb: S.osm.length, date: c.dateOSM, msg: 'Overpass injoignable (' + e.message + ')' };
+      etape('osm', 'cache', `Serveurs OSM injoignables : copie du ${dateFR(c.dateOSM)}`);
+    } else {
+      const inst = JSON.parse($('instantane').textContent);
+      S.osm = normaliserOSM(inst.elements).map(f => ({ ...f, src: 'instantane' }));
+      S.src.osm = { etat: 'cache', nb: S.osm.length, date: inst.date, msg: 'instantané intégré au fichier (Overpass injoignable : ' + e.message + ')' };
+      etape('osm', 'cache', `Serveurs OSM injoignables : instantané du ${dateFR(inst.date)}`);
+    }
+  }
+  assembler(); toutRafraichir();
+
+  try {
+    const r = await pAmeli;
+    S.ameli = r.feats; S.controle = r.controle;
+    S.src.ameli = { etat: r.feats.length ? 'ok' : 'err', nb: r.feats.length, date: new Date().toISOString(),
+      msg: r.feats.length ? `${r.controle.bilan.approx} placés à la mairie faute d'adresse précise` : 'aucune ligne rattachée à NCPA' };
+    if (r.feats.length) memoire.ecrire(CONFIG.cache, { ameli: r.feats, controle: r.controle, dateAmeli: S.src.ameli.date });
+    else etape('ameli', 'err', 'Aucun professionnel rattaché à NCPA : voir l\'onglet Sources');
+  } catch (e) {
+    if (c.ameli) {
+      S.ameli = c.ameli; S.controle = c.controle;
+      S.src.ameli = { etat: 'cache', nb: c.ameli.length, date: c.dateAmeli, msg: 'Annuaire injoignable (' + e.message + ')' };
+      etape('ameli', 'cache', `Annuaire injoignable : copie du ${dateFR(c.dateAmeli)}`); etape('geocodage', 'saut', 'Inutile (copie utilisée)');
+    } else {
+      S.ameli = []; S.src.ameli = { etat: 'err', msg: e.message }; S.controle = { ps: { erreur: e.message } };
+      etape('ameli', 'err', 'Indisponible (' + e.message + ') : professionnels issus d\'OSM'); etape('geocodage', 'saut', '');
+    }
+  }
+  if (S.ameli.length && !S.modeChoisi) S.modePro = 'ameli';
+  if (!S.ameli.length) S.modePro = 'osm';
+  assembler(); toutRafraichir();
+  $('b-actualiser').disabled = false;
+  rendreChargement();
+  const reserves = Object.values(S.etapes).some(e => e.etat === 'err' || e.etat === 'cache');
+  if (!reserves) setTimeout(masquerChargement, 2500);
+}
+
+// =====================================================================
+// 15. INTERACTIONS
+// =====================================================================
+document.querySelectorAll('#seg-source button').forEach(b => b.onclick = () => { S.modePro = b.dataset.m; S.modeChoisi = true; toutRafraichir(); });
+$('cats').addEventListener('change', e => {
+  const k = e.target.dataset.cat, g = e.target.dataset.groupe;
+  if (k) e.target.checked ? S.actives.add(k) : S.actives.delete(k);
+  if (g) Object.keys(CATS).filter(x => CATS[x].g === g).forEach(x => e.target.checked ? S.actives.add(x) : S.actives.delete(x));
+  rendre();
+});
+$('f-voisins').onchange = e => { S.voisins = e.target.checked; rendre(); };
+let tq; $('q').oninput = e => { clearTimeout(tq); tq = setTimeout(() => { S.q = norm(e.target.value.trim()); rendre(); }, 200); };
+function changerCommune() {
+  S.commune = $('f-commune').value;
+  const c = S.parCode[S.commune];
+  if (c) cadrer([[c.bb.s, c.bb.w], [c.bb.n, c.bb.e]]);
+  else if (S.communes.length) { const b = emprise(); cadrer([[b.s, b.w], [b.n, b.e]]); }
+  rendre(); rendreChoro();
+}
+$('f-commune').onchange = changerCommune;
+$('f-choro').onchange = e => { S.choro = e.target.value; rendreChoro(); };
+$('b-pose').onclick = () => modePose(!S.iso.pose);
+$('b-iso-eff').onclick = () => { coucheIso.clearLayers(); map.removeLayer(marqueurOrigine); S.iso.origine = null; S.iso.couches = null; $('iso-res').innerHTML = ''; modePose(false); };
+['iso-profil', 'iso-sens'].forEach(id => $(id).onchange = calculerIso);
+$('iso-durees').onchange = calculerIso;
+$('adresse').addEventListener('keydown', async e => {
+  if (e.key !== 'Enter') return;
+  const q = e.target.value.trim(); if (q.length < 3) return;
+  const c = map.getCenter();
+  $('suggestions').innerHTML = '<div>Recherche…</div>';
+  const res = await geocoder(q, { limit: 5, lat: c.lat.toFixed(4), lon: c.lng.toFixed(4) }) || [];
+  $('suggestions').innerHTML = res.length ? res.map((r, i) => `<div data-i="${i}">${esc(r.properties.label)}</div>`).join('') : '<div>Aucun résultat</div>';
+  $('suggestions').querySelectorAll('div[data-i]').forEach(d => d.onclick = () => {
+    const r = res[+d.dataset.i];
+    $('suggestions').innerHTML = '';
+    origineDepuis(r.geometry.coordinates[1], r.geometry.coordinates[0], r.properties.label);
+  });
+});
+document.querySelectorAll('[data-replier]').forEach(b => b.onclick = () => {
+  const p = $(b.dataset.replier), r = p.classList.toggle('replie');
+  b.textContent = b.dataset.replier === 'p-gauche' ? (r ? '⟩' : '⟨') : (r ? '⟨' : '⟩');
+});
+$('b-liste').onclick = () => { $('tiroir').classList.add('on'); $('b-liste').style.display = 'none'; rendre(); };
+$('b-liste-fermer').onclick = () => { $('tiroir').classList.remove('on'); $('b-liste').style.display = ''; };
+$('t-liste').addEventListener('click', e => {
+  const th = e.target.closest('th');
+  if (th) { const k = th.dataset.k; S.tri.liste = { k, s: S.tri.liste.k === k ? -S.tri.liste.s : 1 }; rendre(); return; }
+  const tr = e.target.closest('tr[data-id]'); if (tr) ouvrirLieu(tr.dataset.id);
+});
+$('t-analyse').addEventListener('click', e => {
+  const th = e.target.closest('th');
+  if (th) { const k = th.dataset.k; S.tri.analyse = { k, s: S.tri.analyse.k === k ? -S.tri.analyse.s : (k === 'nom' ? 1 : -1) }; rendreTableAnalyse(); return; }
+  const tr = e.target.closest('tr[data-code]');
+  if (tr) { afficherVue('carte'); $('f-commune').value = tr.dataset.code; changerCommune(); }
+});
+function afficherVue(v) {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.vue === v));
+  document.querySelectorAll('.vue').forEach(s => s.classList.toggle('on', s.id === 'vue-' + v));
+  if (v === 'carte') setTimeout(() => map.invalidateSize(), 30);
+}
+window.afficherVue = afficherVue;
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => afficherVue(b.dataset.vue));
+$('puce').onclick = () => { if (S.enCours || Object.values(S.etapes).some(e => e.etat === 'run')) { afficherVue('carte'); montrerChargement(); } else afficherVue('sources'); };
+$('b-actualiser').onclick = () => charger();
+if (window.innerWidth <= 860) { $('p-gauche').classList.add('replie'); $('p-droite').classList.add('replie'); }
+
+// Exports
+const aujourdhui = () => new Date().toISOString().slice(0, 10);
+$('b-geojson').onclick = () => {
+  const fc = { type: 'FeatureCollection', features: visibles().map(f => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [f.lon, f.lat] },
+    properties: { nom: f.nom, categorie: CATS[f.cat].l, precision: f.detail || '', commune: f.commune, insee: f.insee || '', dans_ncpa: f.dansNCPA,
+      adresse: f.adresse || '', telephone: f.tel || '', finess: f.finess || '', source: f.src === 'ameli' ? 'Ameli' : 'OSM', position_approx: !!f.approx } })) };
+  telecharger(`offre_soins_NCPA_${aujourdhui()}.geojson`, JSON.stringify(fc), 'application/geo+json');
+};
+$('b-csv').onclick = () => {
+  telecharger(`offre_soins_NCPA_${aujourdhui()}.csv`,
+    csv(['Nom', 'Catégorie', 'Précision', 'Commune', 'Code INSEE', 'Dans NCPA', 'Adresse', 'Téléphone', 'FINESS', 'Source', 'Latitude', 'Longitude', 'Position approximative'],
+      visibles().map(f => [f.nom, CATS[f.cat].l, f.detail, f.commune, f.insee, f.dansNCPA ? 'oui' : 'non', f.adresse, f.tel, f.finess, f.src === 'ameli' ? 'Ameli' : 'OSM', f.lat.toFixed(6).replace('.', ','), f.lon.toFixed(6).replace('.', ','), f.approx ? 'oui' : ''])), 'text/csv');
+};
+$('b-csv-analyse').onclick = () => {
+  if (!S.analyse) return;
+  const dec = (v, d = 1) => v == null ? '' : Number(v).toFixed(d).replace('.', ',');
+  telecharger(`analyse_offre_soins_NCPA_${aujourdhui()}.csv`,
+    csv(COLS_ANALYSE.map(c => c[1]).concat(['Code INSEE']),
+      S.analyse.lignes.map(l => COLS_ANALYSE.map(([c]) => { const v = valA(l, c); return c === 'nom' ? v : (c.startsWith('d_') || c === 'dens_mg') ? dec(v) : v; }).concat([l.code]))), 'text/csv');
+};
+
+$('methode').innerHTML = `
+<p><b>Territoire.</b> Les 38 communes de NCPA (SIREN ${CONFIG.siren}), leurs contours, leur population et la position de leur mairie sont lus en direct sur l'API Géo. Chaque lieu OSM est rattaché à sa commune par sa position.</p>
+<p><b>Établissements</b> (hôpitaux, urgences, cliniques, maisons de santé, pharmacies, laboratoires, imagerie, CMP) : OpenStreetMap, interrogé en direct sur NCPA élargie d'environ 7 km. Le bouton « ✎ OSM » d'une fiche permet de vérifier ou corriger la donnée à la source.</p>
+<p><b>Professionnels libéraux</b> : Annuaire santé de l'Assurance maladie (fichier officiel sur data.gouv.fr). Le fichier ne contient ni coordonnées ni code INSEE : l'outil lit les lignes des codes postaux de NCPA, localise chaque adresse avec le géocodeur de la Géoplateforme (IGN), puis ne garde que celles situées dans une commune de NCPA. Un code postal couvrant aussi des communes voisines, une partie des lignes est écartée : c'est normal. Les adresses introuvables sont placées à la mairie (contour jaune) et exclues des calculs de distance. Les médecins salariés (hôpital, centre) n'y figurent pas.</p>
+<p><b>Doublons.</b> En mode « Annuaire Ameli », seuls les professionnels Ameli sont affichés et comptés : pas de doublon possible. En mode « Ameli + compléments », un lieu OSM est écarté s'il existe un professionnel Ameli de même catégorie à moins de 100 m, ou portant le même nom à moins de 2 km. Ceux qui restent ont un contour pointillé noir.</p>
+<p><b>Distances.</b> À vol d'oiseau, depuis la mairie, offre des communes voisines comprise. Elles sous-estiment le trajet réel : pour un vrai temps de parcours, utiliser « Temps d'accès » (Géoplateforme IGN, BD TOPO, sans trafic).</p>
+<p><b>Précautions.</b> Ameli compte des personnes, OSM des lieux : comparer les communes avec une même source. Les données personnelles des professionnels sont publiées pour faciliter l'accès aux soins (art. L.1461-2 du code de la santé publique) : ne pas les réutiliser à d'autres fins.</p>`;
+
+charger();
+</script>
+</body>
+</html>
