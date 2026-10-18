@@ -613,7 +613,7 @@ const themesActifs = THEMES.filter(t => OUTILS.some(o => o.theme === t.id));
 
 function carte(o, t) {
   return `
-    <a class="carte" href="${esc(o.fichier)}" style="--c:${t.couleur}">
+    <a class="carte" href="${esc(o.fichier)}" target="_blank" rel="noopener noreferrer" style="--c:${t.couleur}">
       <div class="apercu">${APERCUS[o.apercu] || ""}${o.badge ? `<span class="badge">${esc(o.badge)}</span>` : ""}</div>
       <div class="corps">
         <h3>${esc(o.titre)}</h3>
@@ -639,7 +639,7 @@ document.getElementById("guides-liste").innerHTML = GUIDES.map(g => `
   </a>`).join("");
 
 document.getElementById("logiciels-liste").innerHTML = LOGICIELS.map(l => `
-  <a class="logiciel" href="${esc(l.fichier)}" style="--c:${l.couleur}">
+  <a class="logiciel" href="${esc(l.fichier)}" target="_blank" rel="noopener noreferrer" style="--c:${l.couleur}">
     <span class="ico">${ICONES[l.icone] || ""}</span>
     <div><h3>${esc(l.titre)}</h3><p>${esc(l.description)}</p>
       <ul class="tags">${(l.tags || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul>
