@@ -42,8 +42,9 @@ h1 em{font-style:normal;color:#9fd0c8}
 
 /* ---------- Filtres ---------- */
 nav.filtres{position:sticky;top:0;z-index:10;background:rgba(18,27,30,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--trait)}
-nav.filtres .page{display:flex;gap:8px;overflow-x:auto;padding-top:14px;padding-bottom:14px;scrollbar-width:none}
+nav.filtres .page{display:flex;flex-wrap:wrap;gap:8px;padding-top:10px;padding-bottom:10px}
 nav.filtres .page::-webkit-scrollbar{display:none}
+@media (max-width:600px){nav.filtres .page{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}}
 .chip{flex:0 0 auto;font:inherit;font-size:14px;border:1px solid var(--trait-fort);background:transparent;color:var(--gris);padding:6px 14px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:border-color .15s,color .15s}
 .chip:hover{border-color:var(--gris2);color:var(--encre)}
 .chip .pt{width:8px;height:8px;border-radius:50%;background:var(--c,var(--encre))}
