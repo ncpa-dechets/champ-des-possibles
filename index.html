@@ -305,6 +305,16 @@ const OUTILS = [
     tags: ["IGN BD TOPO · BDNB", "38 communes", "Frise animée", "Comparaison des communes"]
   },
   {
+    theme: "amenagement",
+    titre: "Outils Urbanisme",
+    fichier: "outils/outils-urbanisme-ncpa.html",
+    apercu: "urbanisme",
+    description: "Application à installer sur le poste qui interroge les sources publiques pour les 38 communes : consommation d'espaces, permis de construire, friches et zonage des documents d'urbanisme. Chaque thème offre tableaux, cartes interactives et rapports exportables.",
+    interet: "Suivre la sobriété foncière (ZAN), croiser permis, friches et zones U/AU/A/N, et produire des rapports prêts à transmettre pour un PLUi, une instruction ou une réunion d'élus.",
+    limites: "Les chiffres dépendent des sources publiques (retards de mise à jour, localisation approximative de certains permis). À lire comme des ordres de grandeur, à confirmer avant tout usage réglementaire.",
+    tags: ["Consommation d'espaces", "Permis", "Friches", "Zonage", "Application à télécharger"]
+  },
+  {
     theme: "eau",
     titre: "Veille crues et submersion",
     fichier: "outils/veille-hydro-ncpa.html",
@@ -605,6 +615,17 @@ const APERCUS = {
       <line x1="20" y1="108" x2="340" y2="108" stroke="currentColor" stroke-width="2" opacity=".3" stroke-linecap="round"/>
       <line x1="20" y1="108" x2="236" y2="108" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
       <circle cx="236" cy="108" r="6" class="marq"/>
+    </svg>`,
+  urbanisme: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g stroke="var(--carte)" stroke-width="1.5" stroke-linejoin="round">
+        <rect x="40" y="20" width="110" height="70" rx="3" fill="#8FB573"/>
+        <rect x="150" y="20" width="90" height="40" rx="3" fill="#E2B84A"/>
+        <rect x="150" y="60" width="90" height="30" rx="3" fill="#D9822B"/>
+        <rect x="240" y="20" width="80" height="70" rx="3" fill="#3A6DB0" opacity=".75"/>
+      </g>
+      <g fill="currentColor" opacity=".55"><rect x="48" y="104" width="30" height="10" rx="2"/><rect x="84" y="98" width="30" height="16" rx="2"/><rect x="120" y="92" width="30" height="22" rx="2"/><rect x="156" y="100" width="30" height="14" rx="2"/></g>
+      <circle cx="212" cy="40" r="6" class="marq"/>
     </svg>`,
   mobilite: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
