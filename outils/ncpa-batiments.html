@@ -90,6 +90,10 @@ footer { margin-top: 20px; font-size: 12px; color: var(--muted); }
 #yearRange { width: 100%; margin: 4px 0 0; accent-color: var(--rouge); }
 .axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
+#basemap { position: absolute; left: 14px; top: 14px; z-index: 2; display: flex; background: rgba(255,255,255,0.94); border: 1px solid var(--line); border-radius: 6px; padding: 3px; box-shadow: 0 4px 18px rgba(31,35,40,0.10); }
+#basemap button { border: 0; background: none; padding: 6px 12px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; border-radius: 4px; }
+#basemap button[aria-pressed="true"] { background: var(--ink); color: #fff; font-weight: 700; }
+
 #tip { position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 8px 11px; font-size: 13px; max-width: 260px; box-shadow: 0 4px 16px rgba(31,35,40,0.14); }
 #tip .ty { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
 #tip .ty.est { font-weight: 400; }
@@ -185,7 +189,7 @@ tr.tot td { font-weight: 700; border-top: 2px solid var(--ink); }
       <p>Glisser : déplacer. Molette : zoomer. Clic droit ou Ctrl + glisser : pivoter et incliner.</p>
     </details>
 
-    <footer>Sources : IGN BD TOPO, BDNB (CSTB), API Découpage administratif (contours et populations), sous Licence Ouverte Etalab 2.0. Fond de carte © OpenFreeMap, © contributeurs OpenStreetMap. Inspiré de paris.bogachev.fr.</footer>
+    <footer>Sources : IGN BD TOPO, BDNB (CSTB), API Découpage administratif (contours et populations), sous Licence Ouverte Etalab 2.0. Fonds de carte © IGN (Plan IGN, BD ORTHO) via la Géoplateforme. Inspiré de paris.bogachev.fr.</footer>
   </aside>
 
   <main id="stage">
@@ -205,6 +209,10 @@ tr.tot td { font-weight: 700; border-top: 2px solid var(--ink); }
         <canvas id="hist" aria-hidden="true"></canvas>
         <input type="range" id="yearRange" aria-label="Année affichée" step="1">
         <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
+      </div>
+      <div id="basemap" role="group" aria-label="Fond de carte">
+        <button data-base="plan" aria-pressed="true">Plan IGN</button>
+        <button data-base="ortho" aria-pressed="false">Satellite</button>
       </div>
       <div id="tip" hidden></div>
     </div>
@@ -1155,16 +1163,39 @@ function applyImport() {
 }
 
 /* ---- Carte ---- */
+// Fonds IGN (Géoplateforme, WMTS en Web Mercator)
+const ignTiles = (layer, format) => [`https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&TILEMATRIXSET=PM&FORMAT=${format}&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}`];
+const IGN_ATTR = '<a href="https://www.ign.fr/" target="_blank">© IGN</a> – Géoplateforme';
+const BASES = { plan: 'base-plan', ortho: 'base-ortho' };
 const map = new maplibregl.Map({
-  container: 'map', style: 'https://tiles.openfreemap.org/styles/positron',
+  container: 'map',
+  style: {
+    version: 8,
+    sources: {
+      'ign-plan': { type: 'raster', tiles: ignTiles('GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2', 'image/png'), tileSize: 256, maxzoom: 19, attribution: IGN_ATTR },
+      'ign-ortho': { type: 'raster', tiles: ignTiles('ORTHOIMAGERY.ORTHOPHOTOS', 'image/jpeg'), tileSize: 256, maxzoom: 19, attribution: IGN_ATTR }
+    },
+    layers: [
+      { id: 'bg', type: 'background', paint: { 'background-color': '#F5F6F7' } },
+      { id: 'base-plan', type: 'raster', source: 'ign-plan', paint: { 'raster-saturation': -0.4 } },
+      { id: 'base-ortho', type: 'raster', source: 'ign-ortho', layout: { visibility: 'none' } }
+    ]
+  },
   center: [-0.1236, 49.2834], zoom: 14.6, pitch: 55, bearing: -20, maxPitch: 75,
   attributionControl: { compact: true }
 });
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 map.on('error', e => console.warn(e && e.error));
 
+function setBase(base) {
+  Object.entries(BASES).forEach(([k, id]) => map.setLayoutProperty(id, 'visibility', k === base ? 'visible' : 'none'));
+  document.querySelectorAll('#basemap button').forEach(b => b.setAttribute('aria-pressed', b.dataset.base === base));
+  try { localStorage.setItem('ncpa-bat-base', base); } catch (e) {}
+}
+document.querySelectorAll('#basemap button').forEach(b => { b.onclick = () => setBase(b.dataset.base); });
+
 map.on('load', async () => {
-  map.getStyle().layers.forEach(l => { if (l['source-layer'] === 'building') map.setLayoutProperty(l.id, 'visibility', 'none'); });
+  try { const b = localStorage.getItem('ncpa-bat-base'); if (BASES[b]) setBase(b); } catch (e) {}
   map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: 0.35, position: [1.3, 200, 40] });
 
   let feats = await loadCommunes();
