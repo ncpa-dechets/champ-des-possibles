@@ -1,0 +1,1254 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCPA, bâtiment par bâtiment</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+:root {
+  --ink: #1F2328;
+  --muted: #646A73;
+  --line: #E3E5E8;
+  --paper: #FFFFFF;
+  --wash: #F5F6F7;
+  --rouge: #B91E27;
+  --vert: #B1B993;
+  --font: Calibri, "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font); color: var(--ink); background: var(--paper); font-size: 15px; line-height: 1.4; }
+#app { display: grid; grid-template-columns: 310px 1fr; height: 100vh; }
+
+/* Panneau */
+#panel { border-right: 1px solid var(--line); border-top: 4px solid var(--rouge); overflow-y: auto; padding: 22px 20px 28px; }
+h1 { font-size: 30px; line-height: 1.05; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.01em; }
+.lede { margin: 0 0 6px; color: var(--muted); }
+#total { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+section { margin-top: 24px; }
+h2 { font-size: 16px; margin: 0 0 4px; font-weight: 700; }
+.hint { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+
+#legend { list-style: none; margin: 0; padding: 0; }
+.hint .link { color: var(--muted); font-size: 13px; }
+.per { display: grid; grid-template-columns: auto 16px 1fr auto; gap: 10px; align-items: center; width: 100%; padding: 5px 6px; margin: 0 -6px; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: 4px; }
+.per:hover { background: var(--wash); }
+.per.off { opacity: 0.35; }
+.per .sw { width: 16px; height: 16px; border-radius: 3px; }
+.per small { display: block; color: var(--muted); font-size: 12px; line-height: 1.1; }
+.per .cnt { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.per.unk { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0; padding-top: 8px; }
+.per input { margin: 0; accent-color: var(--rouge); }
+
+.srow { display: grid; grid-template-columns: 1fr 70px 38px; gap: 8px; align-items: center; font-size: 13px; padding: 2px 0; }
+.srow .bar { height: 6px; background: var(--wash); border-radius: 3px; overflow: hidden; }
+.srow .bar i { display: block; height: 100%; background: var(--ink); }
+.srow .pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+.file { display: inline-block; padding: 7px 12px; border: 1px solid var(--ink); border-radius: 4px; cursor: pointer; font-size: 14px; }
+.file:focus-within { outline: 2px solid var(--rouge); outline-offset: 2px; }
+.file input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+#importMap { margin-top: 10px; display: grid; gap: 8px; }
+#importMap[hidden] { display: none; }
+#importMap label { font-size: 13px; display: grid; gap: 4px; }
+select, button { font: inherit; }
+select { padding: 5px; border: 1px solid var(--line); border-radius: 4px; }
+#applyImport { padding: 7px 12px; background: var(--ink); color: #fff; border: 0; border-radius: 4px; cursor: pointer; }
+#importMsg { margin-top: 8px; }
+
+#steps { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+#steps li { display: grid; grid-template-columns: 16px 1fr; gap: 6px; padding: 3px 0; }
+#steps .ico { font-weight: 700; }
+#steps .ok .ico { color: #3E7D3A; }
+#steps .warn .ico { color: #B36B00; }
+#steps .ko .ico { color: var(--rouge); }
+#steps .run .ico { color: var(--muted); }
+
+details { margin-top: 24px; font-size: 13px; color: var(--muted); }
+details summary { cursor: pointer; color: var(--ink); font-size: 15px; font-weight: 700; }
+details p { margin: 8px 0; }
+footer { margin-top: 20px; font-size: 12px; color: var(--muted); }
+
+/* Carte et frise */
+#stage { position: relative; min-height: 0; }
+#map { position: absolute; inset: 0; }
+#loader { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(255,255,255,0.6); z-index: 3; }
+#loader.done { display: none; }
+#loader .card { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px 22px; width: min(420px, 90%); box-shadow: 0 6px 24px rgba(31,35,40,0.12); }
+#loader .lt { margin: 0 0 10px; font-weight: 700; }
+
+#timeline { position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 2; background: rgba(255,255,255,0.94); border: 1px solid var(--line); border-radius: 6px; padding: 10px 16px 8px; box-shadow: 0 4px 18px rgba(31,35,40,0.10); }
+#timeline[hidden] { display: none; }
+.row { display: flex; align-items: center; gap: 16px; }
+#yearBig { font-size: 58px; line-height: 1; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; min-width: 3.2ch; }
+#play { padding: 7px 16px; border-radius: 4px; border: 0; background: var(--rouge); color: #fff; cursor: pointer; font-weight: 700; min-width: 86px; }
+#counter { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 14px; margin-left: auto; text-align: right; }
+#hist { display: block; width: 100%; height: 64px; margin-top: 8px; cursor: ew-resize; touch-action: none; }
+#yearRange { width: 100%; margin: 4px 0 0; accent-color: var(--rouge); }
+.axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+#tip { position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 8px 11px; font-size: 13px; max-width: 260px; box-shadow: 0 4px 16px rgba(31,35,40,0.14); }
+#tip .ty { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+#tip .ty.est { font-weight: 400; }
+#tip .ts { color: var(--muted); margin-bottom: 4px; }
+
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--rouge); outline-offset: 2px; }
+
+
+.csel { display: grid; gap: 4px; margin: 14px 0 6px; font-size: 13px; color: var(--muted); }
+.csel select { font-size: 15px; color: var(--ink); padding: 6px; }
+#stage { display: flex; flex-direction: column; }
+.tabs { display: flex; gap: 2px; padding: 8px 14px 0; border-bottom: 1px solid var(--line); background: var(--paper); }
+.tabs button { border: 0; background: none; padding: 8px 14px; font-size: 15px; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--rouge); }
+#mapView { position: relative; flex: 1 1 auto; min-height: 0; }
+#mapView[hidden], #cmpView[hidden] { display: none; }
+#cmpView { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 18px 22px 30px; }
+.cmpTop { display: flex; gap: 20px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; max-width: 1100px; }
+.cmpTop .hint { max-width: 70ch; }
+.cmpTitle { font-size: 22px; margin-bottom: 6px; }
+#loadAll { padding: 8px 14px; border: 0; border-radius: 4px; background: var(--rouge); color: #fff; font-weight: 700; cursor: pointer; }
+.tableWrap { overflow-x: auto; margin-top: 14px; }
+table { border-collapse: collapse; width: 100%; max-width: 1100px; font-size: 14px; }
+th { text-align: left; font-weight: 700; border-bottom: 2px solid var(--ink); padding: 6px 8px; white-space: nowrap; }
+td { border-bottom: 1px solid var(--line); padding: 6px 8px; vertical-align: middle; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.idle td { color: var(--muted); }
+tr.tot td { font-weight: 700; border-top: 2px solid var(--ink); }
+.sort { border: 0; background: none; font: inherit; font-weight: 700; cursor: pointer; padding: 0; color: inherit; }
+.link { border: 0; background: none; font: inherit; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; cursor: pointer; padding: 0; text-align: left; }
+.link:hover { text-decoration-color: var(--rouge); }
+.small { padding: 3px 10px; border: 1px solid var(--ink); background: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.rep { display: flex; width: 220px; height: 12px; border-radius: 2px; overflow: hidden; background: var(--wash); }
+.rep i { display: block; height: 100%; }
+.cmpLegend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; font-size: 13px; color: var(--muted); max-width: 1100px; }
+.cmpLegend span { display: inline-flex; align-items: center; gap: 6px; }
+.cmpLegend i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+@media (max-width: 860px) { .rep { width: 140px; } }
+
+@media (max-width: 860px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  #panel { max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--line); }
+  #yearBig { font-size: 40px; }
+  #counter { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>Bâtiment par bâtiment</h1>
+    <p class="lede">Les 38 communes de NCPA, chaque bâtiment coloré selon l’année de sa construction. Choisissez une commune ou cliquez-la sur la carte pour la charger.</p>
+    <label class="csel">Commune
+      <select id="communeSel"><option>Chargement de la liste…</option></select>
+    </label>
+    <p id="total"></p>
+
+    <section>
+      <h2>Périodes</h2>
+      <p class="hint">Cochez les périodes à afficher. <button class="link" id="allOn">Tout cocher</button>, <button class="link" id="allOff">tout décocher</button>.</p>
+      <ul id="legend"></ul>
+    </section>
+
+    <section>
+      <h2>Origine des dates</h2>
+      <div id="sources"></div>
+    </section>
+
+    <section>
+      <h2>Chargement : <span id="scopeName"></span></h2>
+      <ul id="steps"></ul>
+    </section>
+
+    <section>
+      <h2>Importer des dates</h2>
+      <p class="hint">Si l’API BDNB n’a pas répondu : téléchargez l’extraction BDNB du Calvados sur bdnb.io, filtrez-la sur les communes voulues dans QGIS et exportez la couche contenant l’année de construction en GeoJSON. Les dates s’appliquent à toutes les communes chargées.</p>
+      <label class="file">Choisir un fichier GeoJSON<input type="file" id="fileIn" accept=".geojson,.json,application/geo+json,application/json"></label>
+      <div id="importMap" hidden>
+        <label>Champ contenant l’année <select id="fieldSel"></select></label>
+        <button id="applyImport">Appliquer les dates</button>
+      </div>
+      <p id="importMsg" class="hint"></p>
+    </section>
+
+    <details>
+      <summary>Comment lire la carte</summary>
+      <p>Les emprises et hauteurs viennent de la BD TOPO de l’IGN. L’année vient en priorité d’un fichier importé, puis de la BDNB (issue des fichiers fonciers), puis de la date d’apparition de la BD TOPO.</p>
+      <p>Un bâtiment sans date reçoit l’année médiane de ses 8 voisins datés les plus proches dans un rayon de 250 m. Il est alors dessiné plus pâle, et l’infobulle l’indique.</p>
+      <p>Les années rondes (1900, 1950…) sont souvent approximatives. Seuls les bâtiments encore debout figurent : la carte montre l’âge de la ville actuelle, pas son rythme de croissance passé.</p>
+      <p>De loin, les bâtiments sont dessinés à plat ; ils passent en relief en zoomant.</p>
+      <p>Les données téléchargées sont gardées dans la mémoire du navigateur pour ne pas les retélécharger. <button class="link" id="clearCache">Vider cette mémoire</button></p>
+      <p id="cacheMsg"></p>
+      <p>Glisser : déplacer. Molette : zoomer. Clic droit ou Ctrl + glisser : pivoter et incliner.</p>
+    </details>
+
+    <footer>Sources : IGN BD TOPO, BDNB (CSTB), API Découpage administratif (contours et populations), sous Licence Ouverte Etalab 2.0. Fond de carte © OpenFreeMap, © contributeurs OpenStreetMap. Inspiré de paris.bogachev.fr.</footer>
+  </aside>
+
+  <main id="stage">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabMap" aria-selected="true">Carte</button>
+      <button role="tab" id="tabCmp" aria-selected="false">Comparer les communes</button>
+    </div>
+    <div id="mapView">
+      <div id="map" aria-label="Carte 3D des bâtiments de NCPA"></div>
+      <div id="loader"><div class="card"><p class="lt">Chargement de la liste des communes…</p></div></div>
+      <div id="timeline" hidden>
+        <div class="row">
+          <div id="yearBig" aria-live="polite">2026</div>
+          <button id="play" aria-pressed="false">Lecture</button>
+          <div id="counter"></div>
+        </div>
+        <canvas id="hist" aria-hidden="true"></canvas>
+        <input type="range" id="yearRange" aria-label="Année affichée" step="1">
+        <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
+      </div>
+      <div id="tip" hidden></div>
+    </div>
+    <div id="cmpView" hidden>
+      <div class="cmpTop">
+        <div>
+          <h2 class="cmpTitle">Comparer les communes</h2>
+          <p class="hint"><span id="cmpCount"></span> <span id="bootMsg"></span> Années médianes et parts calculées sur les bâtiments datés ou estimés. Le chargement complet demande environ 6 appels BDNB par commune, sur un quota de 10 000 par mois.</p>
+        </div>
+        <button id="loadAll">Charger toutes les communes</button>
+      </div>
+      <div class="tableWrap">
+        <table>
+          <thead><tr id="cmpHead"></tr></thead>
+          <tbody id="cmpBody"></tbody>
+        </table>
+      </div>
+      <div class="cmpLegend" id="cmpLegend"></div>
+    </div>
+  </main>
+</div>
+<script>
+/* ===== Fonctions de calcul, sans dépendance à la page ===== */
+const CFG = {
+  epci: { siren: '200065563', nom: 'Normandie-Cabourg-Pays d’Auge', defaut: '14117' },
+  fallbackCommune: { nom: 'Cabourg', code: '14117', bbox: [-0.170, 49.268, -0.085, 49.302] },
+  cacheVersion: 'v2',
+  endYear: new Date().getFullYear(),
+  estimRadius: 250,   // rayon de recherche des voisins datés (m)
+  estimK: 8,          // nombre de voisins pris en compte
+  joinMaxDist: 20     // distance max pour rattacher une date sans recouvrement (m)
+};
+
+const PERIODS = [
+  { to: 1854, label: 'Avant 1855', sub: '', color: '#6E1F2A' },
+  { to: 1889, label: '1855 – 1889', sub: '', color: '#B23A2E' },
+  { to: 1913, label: '1890 – 1913', sub: 'Belle Époque', color: '#D9822B' },
+  { to: 1945, label: '1914 – 1945', sub: 'Guerres et entre-deux-guerres', color: '#E2B84A' },
+  { to: 1974, label: '1946 – 1974', sub: 'Trente Glorieuses', color: '#8FB573' },
+  { to: 1999, label: '1975 – 1999', sub: '', color: '#3F9C9E' },
+  { to: 2012, label: '2000 – 2012', sub: '', color: '#3A6DB0' },
+  { to: 9999, label: 'Depuis 2013', sub: '', color: '#3A3C8C' }
+];
+const UNKNOWN_COLOR = '#C5C9CF';
+
+function periodOf(y) {
+  for (let i = 0; i < PERIODS.length; i++) if (y <= PERIODS[i].to) return i;
+  return PERIODS.length - 1;
+}
+
+function parseYear(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const m = String(v).match(/(1[0-9]{3}|20[0-9]{2})/);
+  if (!m) return null;
+  const y = +m[1];
+  return (y >= 1000 && y <= CFG.endYear) ? y : null;
+}
+
+/* Lambert 93 (EPSG:2154) -> WGS84, formule de la projection conique conforme */
+const l93ToWgs = (() => {
+  const a = 6378137, f = 1 / 298.257222101, e = Math.sqrt(2 * f - f * f), d = Math.PI / 180;
+  const m = p => Math.cos(p) / Math.sqrt(1 - e * e * Math.sin(p) ** 2);
+  const t = p => Math.tan(Math.PI / 4 - p / 2) / Math.pow((1 - e * Math.sin(p)) / (1 + e * Math.sin(p)), e / 2);
+  const p1 = 49 * d, p2 = 44 * d, p0 = 46.5 * d, l0 = 3 * d, x0 = 700000, y0 = 6600000;
+  const n = (Math.log(m(p1)) - Math.log(m(p2))) / (Math.log(t(p1)) - Math.log(t(p2)));
+  const F = m(p1) / (n * Math.pow(t(p1), n));
+  const r0 = a * F * Math.pow(t(p0), n);
+  return (x, y) => {
+    const dx = x - x0, dy = r0 - (y - y0);
+    const r = Math.sqrt(dx * dx + dy * dy);
+    const tt = Math.pow(r / (a * F), 1 / n);
+    const lon = Math.atan2(dx, dy) / n + l0;
+    let phi = Math.PI / 2 - 2 * Math.atan(tt);
+    for (let i = 0; i < 10; i++) {
+      const es = e * Math.sin(phi);
+      phi = Math.PI / 2 - 2 * Math.atan(tt * Math.pow((1 - es) / (1 + es), e / 2));
+    }
+    return [lon / d, phi / d];
+  };
+})();
+
+/* ---- Géométries : format interne { polys: [[anneau, trous...]], pts: [[x,y]] } ---- */
+function fromGeoJSON(g) {
+  const out = { polys: [], pts: [] };
+  if (!g) return out;
+  const c2 = c => [c[0], c[1]];
+  const ring = r => r.map(c2);
+  switch (g.type) {
+    case 'Polygon': out.polys.push(g.coordinates.map(ring)); break;
+    case 'MultiPolygon': g.coordinates.forEach(p => out.polys.push(p.map(ring))); break;
+    case 'Point': out.pts.push(c2(g.coordinates)); break;
+    case 'MultiPoint': g.coordinates.forEach(c => out.pts.push(c2(c))); break;
+    case 'GeometryCollection':
+      (g.geometries || []).forEach(s => { const o = fromGeoJSON(s); out.polys.push(...o.polys); out.pts.push(...o.pts); });
+      break;
+  }
+  return out;
+}
+
+function fromWKB(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  const dv = new DataView(bytes.buffer);
+  let o = 0;
+  const out = { polys: [], pts: [] };
+  function read() {
+    const le = dv.getUint8(o) === 1; o += 1;
+    let type = dv.getUint32(o, le); o += 4;
+    let hasZ = (type & 0x80000000) !== 0, hasM = (type & 0x40000000) !== 0;
+    const hasSRID = (type & 0x20000000) !== 0;
+    type = type & 0x0FFFFFFF;
+    if (type >= 1000 && type < 4000) {
+      const k = Math.floor(type / 1000); type = type % 1000;
+      if (k === 1 || k === 3) hasZ = true;
+      if (k === 2 || k === 3) hasM = true;
+    }
+    if (hasSRID) o += 4;
+    const dim = 2 + (hasZ ? 1 : 0) + (hasM ? 1 : 0);
+    const pt = () => { const p = [dv.getFloat64(o, le), dv.getFloat64(o + 8, le)]; o += 8 * dim; return p; };
+    const ring = () => { const n = dv.getUint32(o, le); o += 4; const r = []; for (let i = 0; i < n; i++) r.push(pt()); return r; };
+    if (type === 1) { out.pts.push(pt()); return; }
+    if (type === 2) { ring(); return; }
+    if (type === 3) { const n = dv.getUint32(o, le); o += 4; const p = []; for (let i = 0; i < n; i++) p.push(ring()); out.polys.push(p); return; }
+    if (type >= 4 && type <= 7) { const n = dv.getUint32(o, le); o += 4; for (let i = 0; i < n; i++) read(); return; }
+    throw new Error('Type WKB non géré : ' + type);
+  }
+  read();
+  return out;
+}
+
+function fromWKT(s) {
+  const out = { polys: [], pts: [] };
+  s = s.replace(/^SRID=\d+;/i, '');
+  const groups = s.match(/\(([^()]+)\)/g) || [];
+  const isPoint = /^\s*(MULTI)?POINT/i.test(s);
+  groups.forEach(gr => {
+    const coords = gr.slice(1, -1).split(',').map(p => p.trim().split(/\s+/).map(Number)).filter(c => c.length >= 2 && !isNaN(c[0]));
+    if (isPoint) coords.forEach(c => out.pts.push([c[0], c[1]]));
+    else if (coords.length >= 3) out.polys.push([coords.map(c => [c[0], c[1]])]);
+  });
+  return out;
+}
+
+function parseAnyGeom(g) {
+  if (!g) return null;
+  let geo;
+  try {
+    if (typeof g === 'object') geo = fromGeoJSON(g);
+    else {
+      const s = String(g).trim();
+      if (s.startsWith('{')) geo = fromGeoJSON(JSON.parse(s));
+      else if (/^[0-9A-Fa-f]+$/.test(s) && s.length % 2 === 0) geo = fromWKB(s);
+      else geo = fromWKT(s);
+    }
+  } catch (e) { return null; }
+  return finalizeGeom(geo);
+}
+
+/* Reprojection automatique (Lambert 93 détecté), emprise et centre */
+function finalizeGeom(geo) {
+  if (!geo || (!geo.polys.length && !geo.pts.length)) return null;
+  const first = geo.polys.length ? geo.polys[0][0][0] : geo.pts[0];
+  if (!first) return null;
+  if (Math.abs(first[0]) > 180 || Math.abs(first[1]) > 90) {
+    const tr = c => l93ToWgs(c[0], c[1]);
+    geo.polys = geo.polys.map(p => p.map(r => r.map(tr)));
+    geo.pts = geo.pts.map(tr);
+  }
+  let b = [Infinity, Infinity, -Infinity, -Infinity];
+  const ext = c => { if (c[0] < b[0]) b[0] = c[0]; if (c[1] < b[1]) b[1] = c[1]; if (c[0] > b[2]) b[2] = c[0]; if (c[1] > b[3]) b[3] = c[1]; };
+  geo.polys.forEach(p => p[0].forEach(ext));
+  geo.pts.forEach(ext);
+  geo.bbox = b;
+  geo.c = geo.polys.length ? mainCentroid(geo.polys) : geo.pts[0];
+  return geo;
+}
+
+function ringArea(r) {
+  let A = 0;
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) A += r[j][0] * r[i][1] - r[i][0] * r[j][1];
+  return A / 2;
+}
+function ringCentroid(r) {
+  let A = 0, cx = 0, cy = 0;
+  const x0 = r[0][0], y0 = r[0][1];
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const xi = r[i][0] - x0, yi = r[i][1] - y0, xj = r[j][0] - x0, yj = r[j][1] - y0;
+    const c = xj * yi - xi * yj;
+    A += c; cx += (xj + xi) * c; cy += (yj + yi) * c;
+  }
+  if (Math.abs(A) < 1e-18) {
+    let sx = 0, sy = 0; r.forEach(p => { sx += p[0]; sy += p[1]; });
+    return [sx / r.length, sy / r.length];
+  }
+  return [cx / (3 * A) + x0, cy / (3 * A) + y0];
+}
+function mainCentroid(polys) {
+  let best = polys[0], ba = -1;
+  polys.forEach(p => { const a = Math.abs(ringArea(p[0])); if (a > ba) { ba = a; best = p; } });
+  return ringCentroid(best[0]);
+}
+function inRing(x, y, r) {
+  let inside = false;
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const xi = r[i][0], yi = r[i][1], xj = r[j][0], yj = r[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function inPolys(x, y, polys) {
+  for (const p of polys) {
+    if (!inRing(x, y, p[0])) continue;
+    let hole = false;
+    for (let k = 1; k < p.length; k++) if (inRing(x, y, p[k])) { hole = true; break; }
+    if (!hole) return true;
+  }
+  return false;
+}
+
+const M_LAT = 111320;
+function distM(a, b) {
+  const kx = M_LAT * Math.cos(b[1] * Math.PI / 180);
+  return Math.hypot((a[0] - b[0]) * kx, (a[1] - b[1]) * M_LAT);
+}
+
+class Grid {
+  constructor(cell) { this.c = cell; this.m = new Map(); }
+  addBox(b, v) {
+    const c = this.c;
+    for (let i = Math.floor(b[0] / c); i <= Math.floor(b[2] / c); i++)
+      for (let j = Math.floor(b[1] / c); j <= Math.floor(b[3] / c); j++) {
+        const k = i + ',' + j; let a = this.m.get(k);
+        if (!a) this.m.set(k, a = []);
+        a.push(v);
+      }
+  }
+  near(x, y, r) {
+    const c = this.c, i0 = Math.floor(x / c), j0 = Math.floor(y / c), out = new Set();
+    for (let i = i0 - r; i <= i0 + r; i++)
+      for (let j = j0 - r; j <= j0 + r; j++) {
+        const a = this.m.get(i + ',' + j);
+        if (a) for (const v of a) out.add(v);
+      }
+    return out;
+  }
+}
+
+/* Rattache à chaque bâtiment BD TOPO l'année d'une source externe (BDNB ou fichier) :
+   d'abord par inclusion du centre du bâtiment dans le polygone source, sinon par proximité. */
+function joinYears(buildings, items, key) {
+  const g = new Grid(0.001);
+  items.forEach(it => g.addBox(it.bbox, it));
+  let n = 0;
+  for (const b of buildings) {
+    b[key] = null;
+    let hit = null;
+    for (const it of g.near(b.c[0], b.c[1], 0)) {
+      if (it.polys.length && inPolys(b.c[0], b.c[1], it.polys)) { hit = it; break; }
+    }
+    if (!hit) {
+      let bd = CFG.joinMaxDist;
+      for (const it of g.near(b.c[0], b.c[1], 1)) {
+        const d = distM(b.c, it.c);
+        if (d < bd) { bd = d; hit = it; }
+      }
+    }
+    if (hit) { b[key] = { year: hit.year, adr: hit.adr || null }; n++; }
+  }
+  return n;
+}
+
+/* Choix de la date de chaque bâtiment, puis estimation des non datés */
+function classify(buildings) {
+  for (const b of buildings) {
+    b.y = null; b.e = 2; b.src = ''; b.nEst = 0;
+    b.adr = (b.bdnb && b.bdnb.adr) || (b.imp && b.imp.adr) || null;
+    if (b.imp && b.imp.year) { b.y = b.imp.year; b.src = 'Fichier importé'; }
+    else if (b.bdnb && b.bdnb.year) { b.y = b.bdnb.year; b.src = 'BDNB'; }
+    else if (b.topoYear) { b.y = b.topoYear; b.src = 'BD TOPO (IGN)'; }
+    if (b.y) b.e = 0;
+  }
+  const dated = buildings.filter(b => b.e === 0);
+  const g = new Grid(0.001);
+  dated.forEach(b => g.addBox([b.c[0], b.c[1], b.c[0], b.c[1]], b));
+  for (const b of buildings) {
+    if (b.e === 0) continue;
+    const near = [];
+    for (const o of g.near(b.c[0], b.c[1], 4)) {
+      const d = distM(b.c, o.c);
+      if (d <= CFG.estimRadius) near.push([d, o.y]);
+    }
+    if (!near.length) continue;
+    near.sort((a, c) => a[0] - c[0]);
+    const ys = near.slice(0, CFG.estimK).map(v => v[1]).sort((a, c) => a - c);
+    const mid = ys.length >> 1;
+    b.y = ys.length % 2 ? ys[mid] : Math.round((ys[mid - 1] + ys[mid]) / 2);
+    b.e = 1; b.src = 'Estimée'; b.nEst = ys.length;
+  }
+  const stats = { BDNB: 0, 'BD TOPO (IGN)': 0, 'Fichier importé': 0, 'Estimée': 0, inconnue: 0 };
+  buildings.forEach(b => { if (b.e === 2) stats.inconnue++; else stats[b.src]++; });
+  return stats;
+}
+
+function communeStats(blds) {
+  const withY = blds.filter(b => b.e !== 2);
+  const ys = withY.map(b => b.y).sort((a, b) => a - b);
+  const per = PERIODS.map(() => 0);
+  withY.forEach(b => per[periodOf(b.y)]++);
+  const d = withY.length || 1;
+  return {
+    n: blds.length, nY: withY.length, exact: blds.filter(b => b.e === 0).length,
+    median: ys.length ? ys[ys.length >> 1] : null,
+    pre1945: withY.filter(b => b.y <= 1945).length / d,
+    post2000: withY.filter(b => b.y >= 2000).length / d,
+    per
+  };
+}
+const round6 = v => Math.round(v * 1e6) / 1e6;
+function roundPolys(polys) { return polys.map(p => p.map(r => r.map(c => [round6(c[0]), round6(c[1])]))); }
+
+/* ===== Application ===== */
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('fr-FR');
+const pct = v => Math.round(v * 100) + ' %';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const S = {
+  communes: [], byInsee: new Map(), scope: CFG.epci.defaut,
+  startYear: 1800, year: CFG.endYear,
+  active: new Set(PERIODS.map((_, i) => i)), showUnknown: true,
+  playing: false, hoverId: null, importFC: null, importItems: null,
+  loadingAll: false, stopAll: false, quota: null, sort: { key: 'nom', dir: 1 }
+};
+
+async function fetchT(url, opts = {}, ms = 30000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try { return await fetch(url, { ...opts, signal: ctl.signal }); }
+  finally { clearTimeout(t); }
+}
+
+/* ---- Cache du navigateur (IndexedDB) : évite de retélécharger et économise le quota BDNB ---- */
+const Cache = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open('batiments-ncpa', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  }));
+  const run = async (mode, fn) => {
+    try {
+      const db = await open();
+      return await new Promise(res => {
+        const tx = db.transaction('kv', mode); const q = fn(tx.objectStore('kv'));
+        tx.oncomplete = () => res(q && q.result !== undefined ? q.result : null);
+        tx.onerror = () => res(null); tx.onabort = () => res(null);
+      });
+    } catch (e) { return null; }
+  };
+  return {
+    get: k => run('readonly', st => st.get(CFG.cacheVersion + ':' + k)),
+    set: (k, v) => run('readwrite', st => st.put(v, CFG.cacheVersion + ':' + k)),
+    clear: () => run('readwrite', st => st.clear())
+  };
+})();
+
+/* ---- Liste et contours des 38 communes (API Découpage administratif) ---- */
+async function loadCommunes() {
+  const q = 'fields=nom,code,population,contour&format=geojson&geometry=contour';
+  const urls = [
+    `https://geo.api.gouv.fr/communes?codeEpci=${CFG.epci.siren}&${q}`,
+    `https://geo.api.gouv.fr/epcis/${CFG.epci.siren}/communes?${q}`
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetchT(url, {}, 20000);
+      if (!res.ok) continue;
+      const fc = await res.json();
+      if (fc.features && fc.features.length) return fc.features;
+    } catch (e) { /* essai suivant */ }
+  }
+  return null;
+}
+
+/* ---- Bâtiments BD TOPO (service WFS de l’IGN) ---- */
+async function loadBDTOPO(bb, onCount) {
+  const m = 0.0005, b = [bb[0] - m, bb[1] - m, bb[2] + m, bb[3] + m];
+  const base = 'https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=BDTOPO_V3:batiment&OUTPUTFORMAT=application/json&COUNT=5000';
+  const bboxes = [`${b[1]},${b[0]},${b[3]},${b[2]},urn:ogc:def:crs:EPSG::4326`, `${b[0]},${b[1]},${b[2]},${b[3]},CRS:84`];
+  for (const bbox of bboxes) {
+    const feats = []; let start = 0;
+    for (let k = 0; k < 30; k++) {
+      const res = await fetchT(`${base}&BBOX=${encodeURIComponent(bbox)}&STARTINDEX=${start}`, {}, 90000);
+      if (!res.ok) throw new Error('Service IGN : erreur ' + res.status);
+      const fc = await res.json();
+      const f = fc.features || [];
+      feats.push(...f); start += f.length; onCount(feats.length);
+      const total = typeof fc.numberMatched === 'number' ? fc.numberMatched : (typeof fc.totalFeatures === 'number' ? fc.totalFeatures : null);
+      if (!f.length || (total !== null && start >= total) || (total === null && f.length < 5000)) break;
+    }
+    if (feats.length) return feats;
+  }
+  return [];
+}
+
+function prepareBuildings(feats, communePolys) {
+  const seen = new Set(), out = [];
+  let swap = null;
+  for (const f of feats) {
+    const p = f.properties || {};
+    const id = p.cleabs || f.id;
+    if (seen.has(id)) continue; seen.add(id);
+    if (/projet/i.test(p.etat_de_l_objet || '')) continue;
+    const raw = fromGeoJSON(f.geometry);
+    if (!raw.polys.length) continue;
+    if (swap === null) swap = Math.abs(raw.polys[0][0][0][0]) > 40;
+    if (swap) raw.polys = raw.polys.map(pl => pl.map(r => r.map(c => [c[1], c[0]])));
+    const geo = finalizeGeom(raw);
+    if (!geo) continue;
+    if (communePolys && !inPolys(geo.c[0], geo.c[1], communePolys)) continue;
+    const et = +p.nombre_d_etages || null;
+    const h = +p.hauteur || (et ? et * 3 : 0) || 5;
+    out.push({
+      polys: roundPolys(geo.polys), c: geo.c, bbox: geo.bbox,
+      topoYear: parseYear(p.date_d_apparition),
+      h: Math.max(2.5, h), hReal: +p.hauteur || null, et,
+      us: p.usage_1 || p.usage1 || '', lg: +p.nombre_de_logements || null
+    });
+  }
+  return out;
+}
+
+/* ---- BDNB : années (table batiment_groupe_complet) + contours (table batiment_groupe) ---- */
+async function bdnbGet(table, insee, select, accept, single) {
+  const out = [], lim = single ? 1 : 1000;
+  for (let k = 0, off = 0; k < 40; k++, off += lim) {
+    const url = `https://api.bdnb.io/v1/bdnb/donnees/${table}?code_commune_insee=eq.${insee}` +
+      (select ? `&select=${encodeURIComponent(select)}` : '') + `&limit=${lim}&offset=${off}`;
+    let res;
+    try { res = await fetchT(url, { headers: { Accept: accept } }, 45000); }
+    catch (e) { throw Object.assign(new Error('network'), { kind: 'network' }); }
+    const q = res.headers.get('x-quota-remaining');
+    if (q !== null) S.quota = +q;
+    if (!res.ok) throw Object.assign(new Error('HTTP ' + res.status), { kind: 'http', status: res.status });
+    const data = await res.json();
+    let rows;
+    if (data && data.type === 'FeatureCollection') rows = data.features.map(f => ({ ...f.properties, __geom: f.geometry }));
+    else if (Array.isArray(data)) rows = data;
+    else throw Object.assign(new Error('format inattendu'), { kind: 'http' });
+    out.push(...rows);
+    if (single || rows.length < lim) break;
+    await sleep(250);
+  }
+  return out;
+}
+
+function describe(v) {
+  if (v === null || v === undefined) return 'vide';
+  const s = typeof v === 'string' ? v : JSON.stringify(v);
+  return (typeof v) + ' « ' + s.slice(0, 50) + (s.length > 50 ? '…' : '') + ' »';
+}
+
+async function loadBDNB(insee) {
+  const diag = {};
+  const yrs = await bdnbGet('batiment_groupe_complet', insee,
+    'batiment_groupe_id,annee_construction,annee_construction_dpe,libelle_adr_principale_ban', 'application/json');
+  diag.groupes = yrs.length;
+  const ym = new Map();
+  yrs.forEach(r => {
+    const y = parseYear(r.annee_construction) || parseYear(r.annee_construction_dpe);
+    if (y) ym.set(r.batiment_groupe_id, { year: y, adr: r.libelle_adr_principale_ban || null });
+  });
+  diag.avecAnnee = ym.size;
+  if (!ym.size) return { items: [], diag };
+
+  let geomKey = 'geom_groupe', rows;
+  try { rows = await bdnbGet('batiment_groupe', insee, 'batiment_groupe_id,' + geomKey, 'application/json'); }
+  catch (e) {
+    if (e.kind !== 'http') throw e;
+    const one = await bdnbGet('batiment_groupe', insee, null, 'application/json', true);
+    const keys = Object.keys(one[0] || {});
+    diag.colonnesGeom = keys.filter(k => /geom/i.test(k)).join(', ') || 'aucune';
+    geomKey = keys.find(k => /geom/i.test(k));
+    if (!geomKey) return { items: [], diag };
+    rows = await bdnbGet('batiment_groupe', insee, 'batiment_groupe_id,' + geomKey, 'application/json');
+  }
+  const build = (rs, getG) => {
+    const items = []; let parsed = 0;
+    for (const r of rs) {
+      const g = parseAnyGeom(getG(r));
+      if (!g) continue;
+      parsed++;
+      const d = ym.get(r.batiment_groupe_id);
+      if (d) items.push({ polys: roundPolys(g.polys), pts: g.pts, c: g.c, bbox: g.bbox, year: d.year, adr: d.adr });
+    }
+    return { items, parsed };
+  };
+  let { items, parsed } = build(rows, r => r[geomKey]);
+  diag.geometries = rows.length; diag.lues = parsed;
+  if (!parsed && rows.length) {
+    diag.exemple = describe(rows[0][geomKey]);
+    try {
+      const rows2 = await bdnbGet('batiment_groupe', insee, 'batiment_groupe_id,' + geomKey, 'application/geo+json');
+      ({ items, parsed } = build(rows2, r => r.__geom || r[geomKey]));
+      diag.luesGeoJSON = parsed;
+    } catch (e) { diag.geojson = e.message; }
+  }
+  diag.rattachables = items.length;
+  return { items, diag };
+}
+
+/* ---- Chargement d’une commune ---- */
+function msg(cm, id, text, status) {
+  const m = cm.msgs.find(x => x.id === id);
+  if (m) { m.text = text; m.status = status || 'run'; } else cm.msgs.push({ id, text, status: status || 'run' });
+  if (S.scope === cm.insee) renderMsgs();
+}
+
+async function loadCommune(cm) {
+  if (cm.status === 'ok' || cm.status === 'loading') return;
+  cm.status = 'loading'; cm.msgs = [];
+  renderCompare(); renderSelect();
+  try {
+    let blds = await Cache.get('bdtopo:' + cm.insee);
+    if (blds) msg(cm, 'bdtopo', `${fmt(blds.length)} bâtiments BD TOPO (déjà en mémoire du navigateur)`, 'ok');
+    else {
+      msg(cm, 'bdtopo', 'Bâtiments BD TOPO : interrogation de l’IGN…');
+      const feats = await loadBDTOPO(cm.bbox, n => msg(cm, 'bdtopo', `Bâtiments BD TOPO : ${fmt(n)} reçus…`));
+      blds = prepareBuildings(feats, cm.polys);
+      if (!blds.length) throw new Error('Aucun bâtiment reçu de l’IGN. Vérifiez la connexion puis réessayez.');
+      await Cache.set('bdtopo:' + cm.insee, blds);
+      const wt = blds.filter(b => b.topoYear).length;
+      msg(cm, 'bdtopo', `${fmt(blds.length)} bâtiments BD TOPO, dont ${fmt(wt)} avec une date d’apparition`, 'ok');
+    }
+
+    let items = await Cache.get('bdnb:' + cm.insee);
+    if (items) msg(cm, 'bdnb', `Années BDNB : ${fmt(items.length)} groupes datés (déjà en mémoire du navigateur)`, 'ok');
+    else {
+      msg(cm, 'bdnb', 'Années BDNB : interrogation de l’API…');
+      try {
+        const r = await loadBDNB(cm.insee);
+        items = r.items; cm.diag = r.diag;
+        if (items.length) await Cache.set('bdnb:' + cm.insee, items);
+      } catch (e) {
+        items = [];
+        const why = e.kind === 'network' ? 'le navigateur n’a pas pu joindre l’API (accès bloqué ou réseau)'
+          : e.status === 429 ? 'quota mensuel de l’API épuisé' : `l’API a répondu ${e.message}`;
+        msg(cm, 'bdnb', `Années BDNB indisponibles : ${why}.`, 'warn');
+      }
+    }
+    const n = items.length ? joinYears(blds, items, 'bdnb') : 0;
+    if (items.length || cm.diag) {
+      const d = cm.diag;
+      const detail = d && !n ? ` Détail : ${d.groupes} groupes reçus, ${d.avecAnnee} avec une année, ${d.geometries ?? 0} contours reçus, ${d.lues ?? 0} lus` +
+        (d.luesGeoJSON !== undefined ? `, ${d.luesGeoJSON} lus en GeoJSON` : '') +
+        (d.colonnesGeom ? `, colonnes géométriques : ${d.colonnesGeom}` : '') +
+        (d.exemple ? `, exemple de contour : ${d.exemple}` : '') + '.' : '';
+      msg(cm, 'bdnb', `Années BDNB : ${fmt(n)} bâtiments datés.${detail}`, n ? 'ok' : 'warn');
+    }
+    if (S.importItems) joinYears(blds, S.importItems, 'imp');
+    classify(blds);
+    blds.forEach(b => { b.insee = cm.insee; b.nom = cm.nom; });
+    cm.buildings = blds; cm.stats = communeStats(blds); cm.status = 'ok';
+  } catch (e) {
+    cm.status = 'error';
+    msg(cm, 'err', e.message || 'Chargement impossible.', 'ko');
+  }
+  refreshAll();
+}
+
+/* ---- Données cartographiques ---- */
+const allBuildings = () => S.communes.flatMap(c => c.status === 'ok' ? c.buildings : []);
+const scopeBuildings = () => S.scope === 'all' ? allBuildings() : ((S.byInsee.get(S.scope) || {}).buildings || []);
+
+function buildFC() {
+  return {
+    type: 'FeatureCollection',
+    features: allBuildings().map(b => ({
+      type: 'Feature',
+      geometry: { type: 'MultiPolygon', coordinates: b.polys },
+      properties: {
+        y: b.y || 0, p: b.y ? periodOf(b.y) : -1, e: b.e, s: b.src, n: b.nEst,
+        r: (b.e === 0 && b.y % 10 === 0) ? 1 : 0, h: b.h, hr: b.hReal || 0, et: b.et || 0,
+        us: b.us, lg: b.lg || 0, adr: b.adr || '', com: b.nom, ic: b.insee
+      }
+    }))
+  };
+}
+
+const colorExpr = ['match', ['get', 'p'], ...PERIODS.flatMap((p, i) => [i, p.color]), UNKNOWN_COLOR];
+const withHover = c => ['case', ['boolean', ['feature-state', 'hover'], false], '#1F2328', c];
+const Z3D = 13.5;
+const BAT_LAYERS = ['bat-flat', 'bat-unknown', 'bat-est', 'bat-exact'];
+
+const scopeCond = () => S.scope === 'all' ? ['==', 1, 1] : ['==', ['get', 'ic'], S.scope];
+function yearFilter(e) {
+  return ['all', scopeCond(), ['==', ['get', 'e'], e], ['<=', ['get', 'y'], S.year], ['in', ['get', 'p'], ['literal', [...S.active]]]];
+}
+function unknownFilter() { return ['all', scopeCond(), ['==', ['get', 'e'], 2]]; }
+function flatFilter() {
+  return ['any', ['all', unknownFilter(), ['==', 1, S.showUnknown ? 1 : 0]], yearFilter(0), yearFilter(1)];
+}
+
+function addLayers() {
+  const firstSymbol = (map.getStyle().layers.find(l => l.type === 'symbol') || {}).id;
+  const fc = { type: 'FeatureCollection', features: S.communes.map(c => ({ type: 'Feature', geometry: c.geometry, properties: { insee: c.insee, nom: c.nom } })) };
+  map.addSource('communes', { type: 'geojson', data: fc, promoteId: 'insee' });
+  map.addLayer({ id: 'communes-fill', type: 'fill', source: 'communes', paint: {
+    'fill-color': '#646A73',
+    'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.14, ['boolean', ['feature-state', 'loaded'], false], 0, 0.07]
+  } }, firstSymbol);
+  map.addLayer({ id: 'communes-line', type: 'line', source: 'communes', paint: {
+    'line-color': '#B91E27', 'line-opacity': 0.75,
+    'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 2.4, 0.8]
+  } }, firstSymbol);
+
+  map.addSource('bat', { type: 'geojson', data: buildFC(), generateId: true });
+  map.addLayer({ id: 'bat-flat', type: 'fill', source: 'bat', maxzoom: Z3D, filter: flatFilter(), paint: {
+    'fill-color': withHover(colorExpr), 'fill-opacity': ['match', ['get', 'e'], 0, 0.9, 1, 0.5, 0.45]
+  } }, firstSymbol);
+  const ext = (id, filter, color, opacity) => map.addLayer({
+    id, type: 'fill-extrusion', source: 'bat', minzoom: Z3D, filter, paint: {
+      'fill-extrusion-color': withHover(color), 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0,
+      'fill-extrusion-opacity': opacity, 'fill-extrusion-vertical-gradient': true
+    }
+  }, firstSymbol);
+  ext('bat-unknown', unknownFilter(), UNKNOWN_COLOR, 0.55);
+  ext('bat-est', yearFilter(1), colorExpr, 0.6);
+  ext('bat-exact', yearFilter(0), colorExpr, 0.95);
+}
+
+function applyFilters() {
+  if (!map.getLayer('bat-exact')) return;
+  map.setFilter('bat-exact', yearFilter(0));
+  map.setFilter('bat-est', yearFilter(1));
+  map.setFilter('bat-flat', flatFilter());
+  map.setFilter('bat-unknown', unknownFilter());
+  map.setLayoutProperty('bat-unknown', 'visibility', S.showUnknown ? 'visible' : 'none');
+}
+
+function refreshAll() {
+  const src = map.getSource('bat');
+  if (src) src.setData(buildFC());
+  S.communes.forEach(c => map.getSource('communes') && map.setFeatureState({ source: 'communes', id: c.insee }, { loaded: c.status === 'ok', selected: c.insee === S.scope }));
+  computeHist(); renderLegend(); renderSources(); renderMsgs(); renderSelect(); renderCompare();
+  setYear(S.year);
+}
+
+/* ---- Sélection de commune ---- */
+function selectScope(insee, fly = true) {
+  S.scope = insee;
+  S.communes.forEach(c => map.setFeatureState({ source: 'communes', id: c.insee }, { selected: c.insee === insee }));
+  let bb;
+  if (insee === 'all') {
+    bb = S.communes.reduce((a, c) => [Math.min(a[0], c.bbox[0]), Math.min(a[1], c.bbox[1]), Math.max(a[2], c.bbox[2]), Math.max(a[3], c.bbox[3])], [Infinity, Infinity, -Infinity, -Infinity]);
+    if (fly) map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: { top: 40, bottom: 190, left: 40, right: 40 }, pitch: 30, duration: 1400 });
+  } else {
+    const cm = S.byInsee.get(insee);
+    bb = cm.bbox;
+    if (fly) map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: { top: 40, bottom: 190, left: 40, right: 40 }, pitch: 55, bearing: -20, duration: 1400 });
+    if (cm.status !== 'ok') loadCommune(cm);
+  }
+  refreshAll();
+}
+
+/* ---- Frise ---- */
+let hist = null;
+function computeHist() {
+  const all = allBuildings().filter(b => b.e !== 2).map(b => b.y).sort((a, b) => a - b);
+  const lo = all.length ? all[Math.floor(all.length * 0.005)] : 1850;
+  S.startYear = Math.max(1700, Math.floor((Math.min(lo, 1850) - 5) / 10) * 10);
+  const span = CFG.endYear - S.startYear + 1;
+  hist = Array.from({ length: span }, () => PERIODS.map(() => [0, 0]));
+  for (const b of scopeBuildings()) {
+    if (b.e === 2) continue;
+    const i = Math.min(Math.max(0, b.y - S.startYear), span - 1);
+    hist[i][periodOf(b.y)][b.e]++;
+  }
+  $('yearRange').min = S.startYear; $('yearRange').max = CFG.endYear;
+  $('axisStart').textContent = S.startYear; $('axisEnd').textContent = CFG.endYear;
+}
+
+function drawHist() {
+  const cv = $('hist');
+  const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+  if (!W || !hist) return;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const span = hist.length, per = Math.max(1, Math.ceil(span / (W / 4))), nb = Math.ceil(span / per);
+  const bins = Array.from({ length: nb }, () => PERIODS.map(() => [0, 0]));
+  hist.forEach((row, i) => row.forEach((v, p) => { const b = bins[Math.floor(i / per)][p]; b[0] += v[0]; b[1] += v[1]; }));
+  let max = 1;
+  bins.forEach(b => { const t = b.reduce((s, v) => s + v[0] + v[1], 0); if (t > max) max = t; });
+  const bw = W / nb, cur = S.year - S.startYear;
+  bins.forEach((b, i) => {
+    let yb = H;
+    const past = i * per <= cur;
+    b.forEach((v, p) => {
+      const on = S.active.has(p);
+      [0, 1].forEach(e => {
+        if (!v[e]) return;
+        const hh = v[e] / max * (H - 2);
+        ctx.globalAlpha = (past ? 1 : 0.18) * (e ? 0.45 : 1) * (on ? 1 : 0.2);
+        ctx.fillStyle = PERIODS[p].color;
+        ctx.fillRect(i * bw + 0.5, yb - hh, Math.max(1, bw - 1), hh);
+        yb -= hh;
+      });
+    });
+  });
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#B91E27';
+  ctx.fillRect(Math.round((cur + 0.5) / span * W) - 1, 0, 2, H);
+}
+
+function setYear(y) {
+  S.year = Math.max(S.startYear, Math.min(CFG.endYear, Math.round(y)));
+  $('yearBig').textContent = S.year;
+  $('yearRange').value = S.year;
+  applyFilters();
+  let shown = 0, tot = 0;
+  for (const b of scopeBuildings()) {
+    if (b.e === 2 || !S.active.has(periodOf(b.y))) continue;
+    tot++; if (b.y <= S.year) shown++;
+  }
+  $('counter').textContent = `${fmt(shown)} bâtiments sur ${fmt(tot)}`;
+  drawHist();
+}
+
+let lastT = 0;
+function tick(t) {
+  if (!S.playing) return;
+  if (!lastT) lastT = t;
+  const ny = S.year + (t - lastT) / 1000 * ((CFG.endYear - S.startYear) / 18);
+  if (Math.floor(ny) !== S.year) { lastT = t; setYear(Math.min(ny, CFG.endYear)); }
+  if (S.year >= CFG.endYear) { togglePlay(false); return; }
+  requestAnimationFrame(tick);
+}
+function togglePlay(force) {
+  S.playing = force !== undefined ? force : !S.playing;
+  $('play').textContent = S.playing ? 'Pause' : 'Lecture';
+  $('play').setAttribute('aria-pressed', S.playing);
+  if (S.playing) { if (S.year >= CFG.endYear) setYear(S.startYear); lastT = 0; requestAnimationFrame(tick); }
+}
+
+/* ---- Panneau ---- */
+function renderSelect() {
+  const sel = $('communeSel');
+  const ok = S.communes.filter(c => c.status === 'ok').length;
+  sel.innerHTML = `<option value="all">Toutes les communes chargées (${ok})</option>` +
+    S.communes.map(c => `<option value="${c.insee}">${c.nom}${c.status === 'ok' ? '' : c.status === 'loading' ? ' (chargement…)' : c.status === 'error' ? ' (échec)' : ''}</option>`).join('');
+  sel.value = S.scope;
+  const cm = S.byInsee.get(S.scope);
+  $('scopeName').textContent = S.scope === 'all' ? 'les communes chargées' : cm ? cm.nom : '';
+}
+
+function renderLegend() {
+  const blds = scopeBuildings();
+  const counts = PERIODS.map(() => 0); let unk = 0;
+  blds.forEach(b => { if (b.e === 2) unk++; else counts[periodOf(b.y)]++; });
+  const ul = $('legend'); ul.innerHTML = '';
+  PERIODS.forEach((p, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<label class="per${S.active.has(i) ? '' : ' off'}"><input type="checkbox" data-p="${i}" ${S.active.has(i) ? 'checked' : ''}><span class="sw" style="background:${p.color}"></span><span class="lab">${p.label}${p.sub ? `<small>${p.sub}</small>` : ''}</span><span class="cnt">${fmt(counts[i])}</span></label>`;
+    ul.appendChild(li);
+  });
+  ul.querySelectorAll('input[data-p]').forEach(cb => cb.onchange = () => {
+    const i = +cb.dataset.p;
+    if (cb.checked) S.active.add(i); else S.active.delete(i);
+    cb.closest('.per').classList.toggle('off', !cb.checked);
+    setYear(S.year);
+  });
+  const li = document.createElement('li');
+  li.innerHTML = `<label class="per unk${S.showUnknown ? '' : ' off'}"><input type="checkbox" id="unkBox" ${S.showUnknown ? 'checked' : ''}><span class="sw" style="background:${UNKNOWN_COLOR}"></span><span class="lab">Date inconnue</span><span class="cnt">${fmt(unk)}</span></label>`;
+  ul.appendChild(li);
+  $('unkBox').onchange = e => { S.showUnknown = e.target.checked; e.target.closest('.per').classList.toggle('off', !S.showUnknown); applyFilters(); };
+}
+
+function renderSources() {
+  const blds = scopeBuildings();
+  const st = { BDNB: 0, 'BD TOPO (IGN)': 0, 'Fichier importé': 0, 'Estimée': 0, inconnue: 0 };
+  blds.forEach(b => { if (b.e === 2) st.inconnue++; else st[b.src]++; });
+  const n = blds.length || 1;
+  const rows = [['Fichier importé', 'Fichier importé'], ['BDNB', 'BDNB'], ['BD TOPO (IGN)', 'BD TOPO'], ['Estimée', 'Estimées d’après les voisins'], ['inconnue', 'Sans date']];
+  $('sources').innerHTML = rows.filter(([k]) => st[k] || k === 'BDNB').map(([k, l]) =>
+    `<div class="srow"><span>${l}</span><span class="bar"><i style="width:${(st[k] / n * 100).toFixed(1)}%"></i></span><span class="pct">${Math.round(st[k] / n * 100)} %</span></div>`).join('');
+  $('total').textContent = blds.length ? `${fmt(blds.length)} bâtiments` : '';
+}
+
+function renderMsgs() {
+  const ul = $('steps'); ul.innerHTML = '';
+  if (S.scope === 'all') {
+    const ok = S.communes.filter(c => c.status === 'ok').length;
+    ul.innerHTML = `<li class="ok"><span class="ico">✓</span><span>${ok} commune${ok > 1 ? 's' : ''} chargée${ok > 1 ? 's' : ''} sur ${S.communes.length}</span></li>`;
+  } else {
+    const cm = S.byInsee.get(S.scope);
+    (cm ? cm.msgs : []).forEach(m => {
+      const li = document.createElement('li'); li.className = m.status;
+      li.innerHTML = `<span class="ico" aria-hidden="true">${m.status === 'ok' ? '✓' : m.status === 'ko' ? '✕' : m.status === 'warn' ? '!' : '…'}</span><span>${m.text}</span>`;
+      ul.appendChild(li);
+    });
+    if (cm && cm.status === 'error') {
+      const li = document.createElement('li');
+      li.innerHTML = '<span></span><button class="small" id="retry">Réessayer</button>';
+      ul.appendChild(li);
+      $('retry').onclick = () => { cm.status = 'idle'; loadCommune(cm); };
+    }
+  }
+  if (S.quota !== null) ul.insertAdjacentHTML('beforeend', `<li class="run"><span class="ico">·</span><span>Appels BDNB restants ce mois-ci : ${fmt(S.quota)}</span></li>`);
+}
+
+/* ---- Infobulle ---- */
+function tipHTML(p) {
+  const per = p.p >= 0 ? PERIODS[p.p] : null;
+  let src;
+  if (p.e === 2) src = 'Date inconnue';
+  else if (p.e === 1) src = `Année estimée d’après ${p.n} bâtiment${p.n > 1 ? 's' : ''} daté${p.n > 1 ? 's' : ''} voisin${p.n > 1 ? 's' : ''}`;
+  else src = `Source : ${p.s}`;
+  const lines = [];
+  if (per) lines.push(`${per.label}${per.sub ? ', ' + per.sub : ''}`);
+  if (p.r) lines.push('Année ronde : peut-être approximative');
+  const dims = [];
+  if (p.hr) dims.push(`${Math.round(p.hr)} m de haut`);
+  if (p.et) dims.push(`${p.et} étage${p.et > 1 ? 's' : ''}`);
+  if (dims.length) lines.push(dims.join(', '));
+  if (p.us) lines.push(`Usage : ${p.us}`);
+  if (p.lg) lines.push(`${p.lg} logement${p.lg > 1 ? 's' : ''}`);
+  if (p.adr) lines.push(p.adr);
+  if (p.com) lines.push(p.com);
+  return `<div class="ty${p.e === 1 ? ' est' : ''}">${p.e === 2 ? '?' : (p.e === 1 ? 'vers ' : '') + p.y}</div><div class="ts">${src}</div>${lines.map(l => `<div>${l}</div>`).join('')}`;
+}
+
+/* ---- Comparaison des communes ---- */
+const COLS = [
+  ['nom', 'Commune'], ['pop', 'Population'], ['n', 'Bâtiments'], ['exact', 'Avec date connue'],
+  ['median', 'Année médiane'], ['pre1945', 'Avant 1946'], ['post2000', 'Depuis 2000'], ['rep', 'Répartition par période']
+];
+function sortVal(c, k) {
+  if (k === 'nom') return c.nom;
+  if (k === 'pop') return c.pop || 0;
+  if (!c.stats) return null;
+  if (k === 'exact') return c.stats.exact / (c.stats.n || 1);
+  return c.stats[k];
+}
+function bar(per, n) {
+  return `<span class="rep">${per.map((v, i) => v ? `<i style="width:${(v / n * 100).toFixed(2)}%;background:${PERIODS[i].color}" title="${PERIODS[i].label} : ${fmt(v)}"></i>` : '').join('')}</span>`;
+}
+function renderCompare() {
+  const tb = $('cmpBody'); if (!tb) return;
+  const { key, dir } = S.sort;
+  const list = [...S.communes].sort((a, b) => {
+    const va = sortVal(a, key), vb = sortVal(b, key);
+    if (va === null && vb === null) return a.nom.localeCompare(b.nom, 'fr');
+    if (va === null) return 1; if (vb === null) return -1;
+    return (typeof va === 'string' ? va.localeCompare(vb, 'fr') : va - vb) * dir;
+  });
+  $('cmpHead').innerHTML = COLS.map(([k, l]) => k === 'rep' ? `<th>${l}</th>` :
+    `<th><button class="sort" data-k="${k}" aria-sort="${key === k ? (dir > 0 ? 'ascending' : 'descending') : 'none'}">${l}${key === k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`).join('');
+  $('cmpHead').querySelectorAll('.sort').forEach(b => b.onclick = () => {
+    S.sort = { key: b.dataset.k, dir: S.sort.key === b.dataset.k ? -S.sort.dir : (b.dataset.k === 'nom' ? 1 : -1) };
+    renderCompare();
+  });
+  tb.innerHTML = list.map(c => {
+    const s = c.stats;
+    const name = `<button class="link" data-goto="${c.insee}">${c.nom}</button>`;
+    if (!s) {
+      const st = c.status === 'loading' ? 'Chargement…' : `<button class="small" data-load="${c.insee}">${c.status === 'error' ? 'Réessayer' : 'Charger'}</button>`;
+      return `<tr class="idle"><td>${name}</td><td class="num">${c.pop ? fmt(c.pop) : '—'}</td><td colspan="6">${st}</td></tr>`;
+    }
+    return `<tr><td>${name}</td><td class="num">${c.pop ? fmt(c.pop) : '—'}</td><td class="num">${fmt(s.n)}</td><td class="num">${pct(s.exact / (s.n || 1))}</td>` +
+      `<td class="num">${s.median ?? '—'}</td><td class="num">${pct(s.pre1945)}</td><td class="num">${pct(s.post2000)}</td><td>${bar(s.per, s.nY || 1)}</td></tr>`;
+  }).join('');
+  const loaded = S.communes.filter(c => c.stats);
+  if (loaded.length > 1) {
+    const s = communeStats(allBuildings());
+    tb.insertAdjacentHTML('beforeend', `<tr class="tot"><td>Ensemble chargé (${loaded.length})</td><td class="num">${fmt(loaded.reduce((a, c) => a + (c.pop || 0), 0))}</td><td class="num">${fmt(s.n)}</td><td class="num">${pct(s.exact / (s.n || 1))}</td><td class="num">${s.median ?? '—'}</td><td class="num">${pct(s.pre1945)}</td><td class="num">${pct(s.post2000)}</td><td>${bar(s.per, s.nY || 1)}</td></tr>`);
+  }
+  tb.querySelectorAll('[data-load]').forEach(b => b.onclick = () => loadCommune(S.byInsee.get(b.dataset.load)));
+  tb.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { showTab('map'); selectScope(b.dataset.goto); });
+  const ok = S.communes.filter(c => c.status === 'ok').length;
+  $('cmpCount').textContent = `${ok} commune${ok > 1 ? 's' : ''} chargée${ok > 1 ? 's' : ''} sur ${S.communes.length}.`;
+  $('loadAll').textContent = S.loadingAll ? 'Interrompre le chargement' : 'Charger toutes les communes';
+}
+
+async function loadAll() {
+  if (S.loadingAll) { S.stopAll = true; return; }
+  S.loadingAll = true; S.stopAll = false; renderCompare();
+  for (const c of S.communes) {
+    if (S.stopAll) break;
+    if (c.status === 'ok') continue;
+    await loadCommune(c);
+    await sleep(400);
+  }
+  S.loadingAll = false; renderCompare();
+}
+
+function showTab(t) {
+  $('tabMap').setAttribute('aria-selected', t === 'map');
+  $('tabCmp').setAttribute('aria-selected', t === 'cmp');
+  $('mapView').hidden = t !== 'map';
+  $('cmpView').hidden = t !== 'cmp';
+  if (t === 'map') { map.resize(); drawHist(); } else renderCompare();
+}
+
+/* ---- Import d’un fichier de dates ---- */
+function handleFile(file) {
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const fc = JSON.parse(rd.result);
+      if (!fc.features || !fc.features.length) throw new Error();
+      S.importFC = fc;
+      const keys = new Set();
+      fc.features.slice(0, 300).forEach(f => Object.keys(f.properties || {}).forEach(k => keys.add(k)));
+      const list = [...keys];
+      const guess = list.find(k => /annee_construction/i.test(k)) || list.find(k => /ann[eé]e|year|jannath|construction|date/i.test(k)) || list[0];
+      $('fieldSel').innerHTML = list.map(k => `<option ${k === guess ? 'selected' : ''}>${k}</option>`).join('');
+      $('importMap').hidden = false;
+      $('importMsg').textContent = `${fmt(fc.features.length)} objets lus. Vérifiez le champ contenant l’année.`;
+    } catch (e) {
+      $('importMsg').textContent = 'Fichier illisible : il faut un GeoJSON (export QGIS « GeoJSON »).';
+    }
+  };
+  rd.readAsText(file);
+}
+function applyImport() {
+  const field = $('fieldSel').value;
+  const items = [];
+  for (const f of S.importFC.features) {
+    const year = parseYear((f.properties || {})[field]);
+    if (!year) continue;
+    const geo = finalizeGeom(fromGeoJSON(f.geometry));
+    if (geo) items.push({ ...geo, year });
+  }
+  S.importItems = items;
+  let n = 0;
+  S.communes.forEach(c => {
+    if (c.status !== 'ok') return;
+    n += joinYears(c.buildings, items, 'imp');
+    classify(c.buildings); c.stats = communeStats(c.buildings);
+  });
+  $('importMsg').textContent = `${fmt(items.length)} dates lues, ${fmt(n)} bâtiments datés par le fichier (appliqué aussi aux communes chargées ensuite).`;
+  $('importMap').hidden = true;
+  refreshAll();
+}
+
+/* ---- Carte ---- */
+const map = new maplibregl.Map({
+  container: 'map', style: 'https://tiles.openfreemap.org/styles/positron',
+  center: [-0.1236, 49.2834], zoom: 14.6, pitch: 55, bearing: -20, maxPitch: 75,
+  attributionControl: { compact: true }
+});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+map.on('error', e => console.warn(e && e.error));
+
+map.on('load', async () => {
+  map.getStyle().layers.forEach(l => { if (l['source-layer'] === 'building') map.setLayoutProperty(l.id, 'visibility', 'none'); });
+  map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: 0.35, position: [1.3, 200, 40] });
+
+  let feats = await loadCommunes();
+  if (feats) $('bootMsg').textContent = `${feats.length} communes de NCPA trouvées.`;
+  else {
+    const f = CFG.fallbackCommune, b = f.bbox;
+    feats = [{ properties: { nom: f.nom, code: f.code }, geometry: { type: 'Polygon', coordinates: [[[b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]], [b[0], b[1]]]] } }];
+    $('bootMsg').textContent = 'Liste des communes indisponible : seule Cabourg est proposée.';
+  }
+  S.communes = feats.map(f => {
+    const g = finalizeGeom(fromGeoJSON(f.geometry));
+    return { insee: f.properties.code, nom: f.properties.nom, pop: f.properties.population || null, geometry: f.geometry,
+      polys: g.polys, bbox: g.bbox, status: 'idle', msgs: [], buildings: [], stats: null };
+  }).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  S.communes.forEach(c => S.byInsee.set(c.insee, c));
+  if (!S.byInsee.has(S.scope)) S.scope = S.communes[0].insee;
+
+  addLayers();
+  $('loader').classList.add('done');
+  $('timeline').hidden = false;
+  selectScope(S.scope);
+
+  const tip = $('tip');
+  const batLayers = () => BAT_LAYERS.filter(l => map.getLayer(l));
+  let hoverCom = null;
+  map.on('mousemove', e => {
+    const f = map.queryRenderedFeatures(e.point, { layers: batLayers() })[0];
+    if (S.hoverId !== null) map.setFeatureState({ source: 'bat', id: S.hoverId }, { hover: false });
+    const fc = f ? null : map.queryRenderedFeatures(e.point, { layers: ['communes-fill'] })[0];
+    if (hoverCom !== null) map.setFeatureState({ source: 'communes', id: hoverCom }, { hover: false });
+    hoverCom = fc ? fc.properties.insee : null;
+    if (hoverCom !== null) map.setFeatureState({ source: 'communes', id: hoverCom }, { hover: true });
+    if (!f) {
+      S.hoverId = null;
+      const cm = hoverCom && S.byInsee.get(hoverCom);
+      if (cm && cm.status !== 'ok') {
+        tip.innerHTML = `<div class="ts">${cm.nom}</div><div>${cm.status === 'loading' ? 'Chargement…' : 'Cliquer pour charger cette commune'}</div>`;
+        placeTip(e); map.getCanvas().style.cursor = 'pointer';
+      } else { tip.hidden = true; map.getCanvas().style.cursor = cm ? 'pointer' : ''; }
+      return;
+    }
+    S.hoverId = f.id;
+    map.setFeatureState({ source: 'bat', id: f.id }, { hover: true });
+    map.getCanvas().style.cursor = 'pointer';
+    tip.innerHTML = tipHTML(f.properties);
+    placeTip(e);
+  });
+  function placeTip(e) {
+    tip.hidden = false;
+    const r = $('mapView').getBoundingClientRect();
+    const x = Math.min(e.point.x + 16, r.width - tip.offsetWidth - 8);
+    const y = Math.max(8, e.point.y - tip.offsetHeight - 12);
+    tip.style.transform = `translate(${x}px, ${y}px)`;
+  }
+  map.getCanvas().addEventListener('mouseleave', () => { tip.hidden = true; });
+  map.on('click', e => {
+    if (map.queryRenderedFeatures(e.point, { layers: batLayers() }).length) return;
+    const fc = map.queryRenderedFeatures(e.point, { layers: ['communes-fill'] })[0];
+    if (fc && fc.properties.insee !== S.scope) selectScope(fc.properties.insee);
+  });
+});
+
+/* ---- Contrôles ---- */
+$('play').onclick = () => togglePlay();
+$('yearRange').oninput = e => { togglePlay(false); setYear(+e.target.value); };
+(() => {
+  const cv = $('hist'); let down = false;
+  const at = ev => { const r = cv.getBoundingClientRect(); setYear(S.startYear + (ev.clientX - r.left) / r.width * (CFG.endYear - S.startYear)); };
+  cv.addEventListener('pointerdown', ev => { down = true; togglePlay(false); cv.setPointerCapture(ev.pointerId); at(ev); });
+  cv.addEventListener('pointermove', ev => { if (down) at(ev); });
+  cv.addEventListener('pointerup', () => { down = false; });
+})();
+$('allOn').onclick = () => { S.active = new Set(PERIODS.map((_, k) => k)); renderLegend(); setYear(S.year); };
+$('allOff').onclick = () => { S.active = new Set(); renderLegend(); setYear(S.year); };
+$('communeSel').onchange = e => selectScope(e.target.value);
+$('fileIn').onchange = e => { if (e.target.files[0]) handleFile(e.target.files[0]); };
+$('applyImport').onclick = applyImport;
+$('tabMap').onclick = () => showTab('map');
+$('tabCmp').onclick = () => showTab('cmp');
+$('loadAll').onclick = loadAll;
+$('clearCache').onclick = async () => { await Cache.clear(); $('cacheMsg').textContent = 'Mémoire vidée : les prochains chargements interrogeront à nouveau les serveurs.'; };
+new ResizeObserver(drawHist).observe($('hist'));
+$('cmpLegend').innerHTML = PERIODS.map(p => `<span><i style="background:${p.color}"></i>${p.label}</span>`).join('');
+
+</script>
+</body>
+</html>
