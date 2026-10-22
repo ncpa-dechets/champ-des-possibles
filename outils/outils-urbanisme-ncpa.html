@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outils Urbanisme · Champs des possibles · NCPA</title>
+<meta name="description" content="Consommation d'espaces, permis de construire, friches et zonage des 38 communes de Normandie Cabourg Pays d'Auge : un outil fondé sur des données publiques, avec exports Excel, QGIS, cartes et rapports.">
+<style>
+:root{
+  color-scheme:dark;
+  --rouge:#B91E27; --accent:#e0767a;
+  --fond:#121b1e; --fond-haut:#0e1618;
+  --carte:#18242a; --carte-haut:#1d2b31;
+  --encre:#e3eae7; --gris:#a2b1ad; --gris2:#6f817d;
+  --trait:rgba(214,232,226,.09); --trait-fort:rgba(214,232,226,.16);
+  --ombre:0 1px 2px rgba(0,0,0,.25), 0 8px 24px rgba(0,0,0,.18);
+  --c:#d9a27e;            /* couleur de la thématique Aménagement & foncier */
+  font-family: Calibri, "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+html,body{margin:0}
+body{background:var(--fond);color:var(--encre);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--c)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.page{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ---------- En-tête ---------- */
+header{position:relative;overflow:hidden;border-top:3px solid var(--rouge);border-bottom:1px solid var(--trait);
+  background:radial-gradient(900px 420px at 85% 10%, rgba(217,162,126,.13), transparent 70%),
+             radial-gradient(700px 380px at 0% 100%, rgba(140,191,143,.06), transparent 70%),
+             var(--fond-haut)}
+header svg.topo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;color:#ecc6a8;opacity:.10}
+header .page{position:relative;padding-top:28px;padding-bottom:52px}
+.retour{display:inline-block;margin:0 0 34px;font-size:14px;color:var(--gris);text-decoration:none}
+.retour:hover{color:var(--encre);text-decoration:underline}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(32px,4.8vw,50px);line-height:1.08;margin:12px 0 18px;font-weight:700;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--c)}
+.intro{max-width:760px;color:var(--gris);font-size:18px;margin:0}
+.principes{display:flex;flex-wrap:wrap;gap:10px;margin:30px 0 0;padding:0;list-style:none;font-size:14px}
+.principes li{display:flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--trait-fort);border-radius:999px;background:rgba(255,255,255,.025)}
+.principes li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.chiffres{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:36px 0 0;max-width:900px}
+.chiffres div{border-left:2px solid var(--c);padding:2px 0 2px 14px}
+.chiffres b{display:block;font-size:28px;line-height:1.1}
+.chiffres span{font-size:13.5px;color:var(--gris)}
+
+/* ---------- Navigation ---------- */
+nav.sommaire{position:sticky;top:0;z-index:10;background:rgba(18,27,30,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--trait)}
+nav.sommaire .page{display:flex;gap:8px;overflow-x:auto;padding-top:12px;padding-bottom:12px;scrollbar-width:none}
+nav.sommaire .page::-webkit-scrollbar{display:none}
+nav.sommaire a{flex:0 0 auto;font-size:14px;border:1px solid var(--trait-fort);color:var(--gris);padding:5px 14px;border-radius:999px;text-decoration:none}
+nav.sommaire a:hover{border-color:var(--c);color:var(--encre)}
+
+/* ---------- Sections ---------- */
+main .page{padding-top:12px;padding-bottom:72px}
+section{padding-top:48px}
+.titre{display:flex;flex-direction:column;gap:2px;margin-bottom:22px;padding-bottom:12px;border-bottom:1px solid var(--trait)}
+.titre h2{margin:0;font-size:24px;display:flex;align-items:center;gap:10px}
+.titre h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 60%,transparent)}
+.titre p{margin:0;color:var(--gris);font-size:15px}
+h3{font-size:19px;line-height:1.25;margin:0 0 8px}
+p{margin:0 0 12px}
+.gris{color:var(--gris)}
+
+.encadre{background:var(--carte);border:1px solid var(--trait);border-left:3px solid var(--accent);border-radius:12px;padding:20px 24px;box-shadow:var(--ombre)}
+.encadre h3{color:var(--encre)}
+.encadre ul{margin:6px 0 10px;padding-left:20px}
+.encadre li{margin:4px 0}
+
+/* Cartes de fonctionnalités */
+.grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.carte{display:flex;flex-direction:column;background:var(--carte);border:1px solid var(--trait);border-radius:16px;padding:20px 22px 18px;box-shadow:var(--ombre)}
+.carte .num{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--c);font-weight:700;margin-bottom:6px}
+.carte p{color:var(--gris);font-size:15px}
+.interet{margin:auto 0 0;padding:10px 14px;background:color-mix(in srgb,var(--c) 8%,transparent);border-left:2px solid var(--c);border-radius:0 8px 8px 0;font-size:14px;color:var(--encre)}
+.interet b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--c);margin-bottom:2px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;padding:0;list-style:none}
+.tags li{font-size:12.5px;color:var(--gris);background:rgba(255,255,255,.05);border-radius:6px;padding:2px 9px}
+
+/* Visite guidée */
+.etape{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:28px;align-items:start;margin:0 0 44px}
+.etape.inverse{grid-template-columns:minmax(0,1fr) minmax(0,1.55fr)}
+.etape.inverse figure{order:2}
+.etape .texte ul{margin:6px 0 12px;padding-left:20px;color:var(--gris)}
+.etape .texte li{margin:5px 0}
+.etape .texte li b{color:var(--encre)}
+.etiquette{display:inline-block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:999px;padding:2px 10px;margin-bottom:10px}
+figure{margin:0}
+figure img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--trait-fort);box-shadow:var(--ombre);cursor:zoom-in;background:#0b1214}
+figcaption{font-size:13.5px;color:var(--gris);margin-top:8px}
+.galerie{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px 18px;margin:8px 0 0}
+.galerie figure img{border-radius:8px}
+.galerie figcaption{font-size:13px}
+
+/* Exports */
+.onglets{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0;list-style:none}
+.onglets li{font-size:13px;background:#1f5132;color:#d9f0df;border-radius:4px 4px 0 0;padding:3px 10px;border-bottom:2px solid #3b8a57}
+
+/* Usages */
+.usages{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px}
+.usage{background:var(--carte);border:1px solid var(--trait);border-radius:14px;padding:18px 22px}
+.usage h3{font-size:17.5px}
+.usage ul{margin:4px 0 0;padding-left:18px;color:var(--gris);font-size:15px}
+.usage li{margin:5px 0}
+
+/* Tableau des sources */
+.defile{overflow-x:auto;border:1px solid var(--trait);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:860px}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--trait)}
+th{background:var(--carte-haut);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gris)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+td .gris{font-size:13.5px}
+.acces{display:inline-block;font-size:12px;border-radius:999px;padding:1px 9px;white-space:nowrap}
+.libre{background:rgba(140,191,143,.14);color:#a9d6ab}
+.cle{background:rgba(224,118,122,.14);color:#efa3a6}
+
+/* Précautions */
+.limites{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.limites div{padding:12px 16px;background:rgba(224,118,122,.07);border-left:2px solid var(--accent);border-radius:0 8px 8px 0;font-size:15px}
+.limites b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
+
+/* Obtenir l'outil */
+.etapes-install{counter-reset:n;list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.etapes-install li{counter-increment:n;background:var(--carte);border:1px solid var(--trait);border-radius:12px;padding:16px 18px 14px;font-size:15px;color:var(--gris)}
+.etapes-install li::before{content:counter(n);display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--encre);font-weight:700;margin-bottom:8px}
+.etapes-install b{display:block;color:var(--encre);margin-bottom:2px}
+
+/* Agrandissement des captures */
+#zoom{position:fixed;inset:0;z-index:50;background:rgba(6,10,12,.92);display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 64px}
+#zoom.ouvert{display:flex}
+#zoom img{max-width:100%;max-height:calc(100vh - 110px);border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6);cursor:zoom-out}
+#zoom p{color:var(--gris);margin:12px 0 0;font-size:14.5px;text-align:center;max-width:900px}
+#zoom button{position:absolute;background:rgba(255,255,255,.08);color:var(--encre);border:1px solid var(--trait-fort);border-radius:999px;width:44px;height:44px;font-size:20px;cursor:pointer}
+#zoom button:hover{background:rgba(255,255,255,.16)}
+#zPrec{left:14px;top:50%}#zSuiv{right:14px;top:50%}#zFermer{right:14px;top:14px}
+
+footer{border-top:1px solid var(--trait);background:var(--fond-haut)}
+footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;font-size:14px;color:var(--gris2)}
+footer a{color:var(--gris)}
+
+@media (max-width:900px){
+  .etape,.etape.inverse{grid-template-columns:1fr}
+  .etape.inverse figure{order:0}
+}
+@media (max-width:600px){
+  .page{padding:0 16px}
+  .intro{font-size:16px}
+  #zoom{padding:20px 12px}
+  #zPrec,#zSuiv{top:auto;bottom:14px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{nav.sommaire,#zoom{display:none!important}body{background:#fff;color:#000}}
+
+/* Emplacements de captures pas encore ajoutées */
+figure .vide{display:none}
+figure.manquante img{display:none}
+figure.manquante .vide{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;aspect-ratio:16/10;
+  border:1.5px dashed var(--trait-fort);border-radius:10px;background:rgba(255,255,255,.02);color:var(--gris);text-align:center;padding:16px;font-size:14px}
+.galerie figure.manquante .vide{aspect-ratio:4/3;font-size:13px}
+figure.manquante .vide b{color:var(--encre);font-weight:700}
+figure.manquante .vide code{font-size:12.5px;color:var(--c);word-break:break-all}
+
+/* Bouton de téléchargement */
+.telecharger{display:inline-flex;align-items:center;gap:10px;margin-top:32px;padding:12px 20px;border-radius:12px;background:var(--c);
+  color:#1b130e;font-weight:700;text-decoration:none;font-size:16px;box-shadow:var(--ombre);transition:filter .2s,transform .2s}
+.telecharger:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.telecharger small{font-weight:400;opacity:.75;font-size:13.5px}
+.deux{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px}
+.etapes-install code,.encadre code{font-family:Consolas,"Cascadia Mono",monospace;font-size:13.5px;color:var(--encre);
+  background:rgba(255,255,255,.06);border-radius:4px;padding:0 5px}
+
+/* Captures de démonstration : bandeau sur chaque image tant que CAPTURES_DEMO vaut true (voir le script) */
+.si-demo{display:none}
+body.demo .si-demo{display:block}
+body.demo main figure{position:relative}
+body.demo main figure:not(.manquante)::before{content:"Données de démonstration";position:absolute;top:10px;left:10px;z-index:2;
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;background:rgba(14,22,24,.85);color:#efa3a6;
+  border:1px solid rgba(224,118,122,.5);padding:3px 10px;border-radius:999px;pointer-events:none}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="topo" id="topo" aria-hidden="true"></svg>
+  <div class="page">
+    <a class="retour" href="../index.html" title="Retour à l'accueil Champs des possibles">← Tous les outils</a>
+    <div class="eyebrow">NCPA · Champs des possibles · Aménagement &amp; foncier</div>
+    <h1>Outils<br><em>Urbanisme</em></h1>
+    <p class="intro">Un outil qui rassemble, commune par commune, les données publiques sur le foncier et l'urbanisme des 38 communes de Normandie Cabourg Pays d'Auge : la consommation d'espaces naturels, agricoles et forestiers au regard de la trajectoire ZAN, chaque permis de construire, d'aménager ou de démolir délivré depuis 2013, les friches recensées et le zonage des documents d'urbanisme avec ses servitudes et ses prescriptions. Chaque thème s'explore indépendamment des autres et se transmet en tableau Excel, en couche pour QGIS, en carte interactive et en rapport illustré.</p>
+    <ul class="principes">
+      <li>Application Windows ou interface dans le navigateur</li>
+      <li>Uniquement des données ouvertes, sans identifiant</li>
+      <li>Quatre thèmes indépendants</li>
+    </ul>
+    <div class="chiffres" aria-label="L'outil en chiffres">
+      <div><b>4</b><span>thèmes à explorer séparément</span></div>
+      <div><b>8</b><span>jeux de données publics</span></div>
+      <div><b>4</b><span>exports par thème, prêts à transmettre</span></div>
+      <div><b>2</b><span>façons de l'utiliser : application ou navigateur</span></div>
+    </div>
+    <a class="telecharger" href="../telechargements/OutilsUrbanisme_NCPA_v0.8.zip" download>⬇ Télécharger l'outil <small>version 0.8 · 260 Ko</small></a>
+  </div>
+</header>
+
+<nav class="sommaire" aria-label="Sommaire">
+  <div class="page">
+    <a href="#pourquoi">Pourquoi une application</a>
+    <a href="#fonctions">Ce que permet l'outil</a>
+    <a href="#visite">Visite guidée</a>
+    <a href="#cartes">Cartes</a>
+    <a href="#exports">Exports</a>
+    <a href="#usages">Exemples d'usages</a>
+    <a href="#donnees">Données mobilisées</a>
+    <a href="#precautions">Précautions de lecture</a>
+    <a href="#obtenir">Obtenir l'outil</a>
+  </div>
+</nav>
+
+<main>
+<div class="page">
+
+<!-- ================================================================== -->
+<section id="pourquoi">
+  <div class="encadre">
+    <h3>Pourquoi cet outil n'est pas une page web comme les autres</h3>
+    <p class="gris">Comme l'<a href="observatoire-mobilite-ncpa.html">Observatoire de la mobilité</a>, les Outils Urbanisme s'installent sur le poste plutôt que de s'ouvrir directement en ligne. Trois raisons à cela :</p>
+    <ul>
+      <li><b>Le volume de données.</b> Certaines sources sont des fichiers nationaux : environ 30 Mo pour la consommation d'espaces, 25 Mo pour l'inventaire des friches, et le plan cadastral de chaque commune pour localiser les permis. Ils sont téléchargés une fois, puis conservés sur le poste : les lancements suivants sont bien plus rapides.</li>
+      <li><b>Des services à interroger avec méthode.</b> Le serveur du ministère publie parfois une nouvelle version de la liste des permis quelques jours avant de la rendre accessible ; le Géoportail de l'Urbanisme ne renvoie que 1 000 objets à la fois. L'outil gère ces contraintes, tient un journal de chaque appel et propose un bouton de diagnostic par source.</li>
+      <li><b>Des documents produits sur le poste.</b> Classeur Excel, couches SIG, carte et rapport sont générés localement, prêts à être transmis par courriel.</li>
+    </ul>
+    <p class="gris">Deux façons de l'utiliser, sur le même moteur : une <b>application Windows</b>, sans rien à installer pour l'utilisateur, ou une <b>interface dans le navigateur</b> (Streamlit), plus confortable pour explorer les données, qui demande Python sur le poste.</p>
+    <p class="gris" style="margin:0">Aucune clé ni aucun identifiant n'est à demander : toutes les sources sont ouvertes. Cliquer sur une image pour l'agrandir.</p>
+    <p class="si-demo" style="margin:12px 0 0;padding:10px 14px;border-radius:8px;background:rgba(224,118,122,.10);border:1px solid rgba(224,118,122,.35);font-size:14.5px"><b>Captures provisoires.</b> Les images de cette page ont été réalisées sur les vrais contours des 38 communes, mais avec des <b>chiffres fictifs</b> et sans fond de carte. Elles illustrent le fonctionnement de l'outil et ne doivent pas être lues comme des résultats.</p>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section id="fonctions">
+  <div class="titre"><h2>Ce que permet l'outil</h2><p>Quatre thèmes, chacun avec sa source, son lancement et ses résultats, et des passerelles entre eux</p></div>
+  <div class="grille">
+    <article class="carte">
+      <div class="num">Thème 1</div>
+      <h3>Consommation d'espaces naturels, agricoles et forestiers</h3>
+      <p>Surface consommée chaque année depuis 2011, par destination (habitat, activité, routes…), pour chaque commune, NCPA, le Calvados et la Normandie. Comparaison de la décennie de référence 2011-2021 avec la période qui a suivi, et part déjà consommée de l'enveloppe indicative de la loi Climat et résilience.</p>
+      <ul class="tags"><li>Trajectoire ZAN</li><li>Par destination</li><li>Pour 1 000 ha de territoire</li></ul>
+      <p class="interet"><b>Utile pour</b>Situer chaque commune sur la trajectoire de sobriété foncière et préparer les échanges sur le PLUi et le SCoT.</p>
+    </article>
+    <article class="carte">
+      <div class="num">Thème 2</div>
+      <h3>Permis de construire, d'aménager et de démolir</h3>
+      <p>Chaque autorisation délivrée depuis 2013, placée sur sa parcelle cadastrale : logements créés (individuels ou collectifs), état d'avancement (autorisé, commencé, terminé), catégorie de demandeur, adresse. Les logements « à venir » regroupent les chantiers ouverts et les autorisations récentes.</p>
+      <ul class="tags"><li>Logements à venir</li><li>Lotissements</li><li>Localisation parcellaire</li></ul>
+      <p class="interet"><b>Utile pour</b>Anticiper les nouveaux foyers à desservir (collecte, réseaux, écoles) et suivre le rythme de construction.</p>
+    </article>
+    <article class="carte">
+      <div class="num">Thème 3</div>
+      <h3>Friches</h3>
+      <p>Sites recensés dans l'inventaire national Cartofriches : statut (sans projet, avec projet, potentielle, reconvertie), type, surface, occupation, pollution des sols, zonage, avec le lien vers la fiche de chaque site. Comparaison avec le Calvados et la Normandie.</p>
+      <ul class="tags"><li>Gisement sans projet</li><li>Pollution des sols</li><li>Contours des sites</li></ul>
+      <p class="interet"><b>Utile pour</b>Repérer les terrains à reconvertir avant d'ouvrir de nouvelles zones à l'urbanisation.</p>
+    </article>
+    <article class="carte">
+      <div class="num">Thème 4</div>
+      <h3>Zonage, servitudes et prescriptions</h3>
+      <p>Document d'urbanisme applicable à chaque commune (PLUi, PLU, carte communale ou règlement national), zones U, AU, A et N avec leurs surfaces par commune et le lien vers leur règlement, servitudes d'utilité publique (monuments historiques, captages, risques, réseaux) et prescriptions (espaces boisés classés, emplacements réservés).</p>
+      <ul class="tags"><li>Géoportail de l'Urbanisme</li><li>Surfaces par commune</li><li>Règlement en un clic</li></ul>
+      <p class="interet"><b>Utile pour</b>Disposer d'une vue d'ensemble du zonage et des contraintes, sans ouvrir les documents commune par commune.</p>
+    </article>
+    <article class="carte">
+      <div class="num">Passerelle</div>
+      <h3>Croiser permis, friches et zonage</h3>
+      <p>Le thème Zonage indique dans quelle zone se trouve chaque permis et chaque friche, et quelles servitudes ou prescriptions les concernent. Il reprend les résultats des autres thèmes, ou un fichier qu'ils ont exporté.</p>
+      <ul class="tags"><li>Logements hors zone urbaine</li><li>Friches en zone de risque</li></ul>
+      <p class="interet"><b>Utile pour</b>Mesurer, par exemple, la part des logements autorisés hors des zones urbaines.</p>
+    </article>
+    <article class="carte">
+      <div class="num">Vos données</div>
+      <h3>Ajouter sa propre couche</h3>
+      <p>Sur la carte du zonage, on dépose un fichier GeoJSON (points d'apport volontaire, projets, équipements…), en coordonnées GPS ou en Lambert-93 : chaque objet indique la zone où il se trouve, et un résumé donne leur répartition par type de zone.</p>
+      <ul class="tags"><li>GeoJSON</li><li>Lambert-93 converti</li><li>Rien n'est envoyé</li></ul>
+      <p class="interet"><b>Utile pour</b>Vérifier en quelques secondes le zonage d'une liste de projets ou d'équipements.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section id="visite">
+  <div class="titre"><h2>Visite guidée</h2><p>L'interface dans le navigateur : une page, quatre onglets, cinq vues par thème</p></div>
+
+  <div class="etape">
+    <figure><img src="captures/outils-urbanisme/interface-accueil.webp" width="1400" height="875" alt="Page d'accueil de l'interface : bandeau, onglets des quatre thèmes et paramètres de l'extraction" loading="lazy" decoding="async"><figcaption>Page d'accueil : un onglet par thème, paramètres de l'extraction et diagnostic de la source</figcaption></figure>
+    <div class="texte">
+      <span class="etiquette">Étape 1 · Choisir</span>
+      <h3>Un thème, des communes, un clic</h3>
+      <p class="gris">Chaque onglet se règle indépendamment :</p>
+      <ul>
+        <li><b>Les communes</b> : toutes par défaut, ou une sélection.</li>
+        <li><b>Les options propres au thème</b> : types d'autorisation et période pour les permis, comparaison avec le Calvados et la Normandie, couches de servitudes et de prescriptions pour le zonage.</li>
+        <li><b>La source</b> : un bouton teste son accessibilité ou vérifie ce que l'outil en comprend, un autre cherche une version plus récente.</li>
+      </ul>
+      <p class="gris">Si un service ne répond pas, une solution de repli est prévue : déposer soi-même le fichier téléchargé depuis le navigateur.</p>
+    </div>
+  </div>
+
+  <div class="etape inverse">
+    <div class="texte">
+      <span class="etiquette">Étape 2 · Suivre</span>
+      <h3>Une extraction qu'on voit avancer</h3>
+      <p class="gris">Pendant le travail, une jauge indique l'étape en cours, le pourcentage, le temps écoulé et une estimation du temps restant, avec les dernières lignes du journal et un bouton Annuler.</p>
+      <ul>
+        <li><b>Rien ne s'interrompt</b> si l'on change d'onglet ou si l'on recharge la page.</li>
+        <li><b>Plusieurs thèmes en parallèle</b> : les permis peuvent tourner pendant que l'on consulte les friches.</li>
+        <li><b>Une seconde fois plus vite</b> : les fichiers déjà téléchargés sont réutilisés.</li>
+      </ul>
+    </div>
+    <figure><img src="captures/outils-urbanisme/extraction-progression.webp" width="1400" height="875" alt="Extraction des permis en cours : jauge de progression, étape, temps restant et journal" loading="lazy" decoding="async"><figcaption>Extraction des permis en cours : localisation sur le cadastre, 67 %, temps restant estimé</figcaption></figure>
+  </div>
+
+  <div class="etape">
+    <figure><img src="captures/outils-urbanisme/conso-synthese.webp" width="1400" height="875" alt="Résultats de la consommation d'espaces : chiffres clés et tableau de synthèse par commune" loading="lazy" decoding="async"><figcaption>Consommation d'espaces : chiffres clés et synthèse, l'enveloppe consommée en barre de progression</figcaption></figure>
+    <div class="texte">
+      <span class="etiquette">Étape 3 · Lire</span>
+      <h3>Chiffres clés, puis cinq vues</h3>
+      <p class="gris">Une fois l'extraction terminée, les paramètres se replient et laissent place aux résultats :</p>
+      <ul>
+        <li><b>Synthèse</b> : le tableau par commune et par territoire de comparaison.</li>
+        <li><b>Explorer</b> : filtres, graphiques et listes détaillées.</li>
+        <li><b>Carte</b> et <b>Rapport</b> : affichés en grand dans la page, avec un bouton plein écran.</li>
+        <li><b>Téléchargements</b> : Excel, GeoJSON, carte et rapport.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="etape inverse">
+    <div class="texte">
+      <span class="etiquette">Étape 4 · Explorer</span>
+      <h3>Filtrer, comparer, descendre au détail</h3>
+      <p class="gris">La vue Explorer est propre à chaque thème :</p>
+      <ul>
+        <li><b>Consommation d'espaces</b> : série annuelle par destination pour le territoire choisi, comparaison avec le Calvados et la Normandie, tableau commune par année.</li>
+        <li><b>Permis</b> : filtres par type, état, commune, recherche par adresse ou demandeur, liste des autorisations une par une.</li>
+        <li><b>Friches</b> : surfaces par commune et par statut, liste des sites avec lien vers leur fiche.</li>
+        <li><b>Zonage</b> : pour une commune, surfaces par type de zone, zones et règlements, servitudes, prescriptions, permis et friches concernés.</li>
+      </ul>
+    </div>
+    <figure><img src="captures/outils-urbanisme/conso-explorer.webp" width="1400" height="875" alt="Vue Explorer de la consommation d'espaces : surfaces annuelles par destination et comparaison territoriale" loading="lazy" decoding="async"><figcaption>Consommation d'espaces : surfaces annuelles par destination, et comparaison pour 1 000 ha de territoire</figcaption></figure>
+  </div>
+
+  <div class="galerie" style="grid-template-columns:repeat(auto-fill,minmax(440px,1fr))">
+    <figure><img src="captures/outils-urbanisme/permis-explorer.webp" width="1400" height="875" alt="Vue Explorer des permis : filtres, logements autorisés par année et liste des autorisations" loading="lazy" decoding="async"><figcaption>Permis : filtres, logements autorisés par année, liste détaillée</figcaption></figure>
+    <figure><img src="captures/outils-urbanisme/friches-explorer.webp" width="1400" height="875" alt="Vue Explorer des friches : surfaces par commune et par statut" loading="lazy" decoding="async"><figcaption>Friches : surfaces par commune, selon le statut des sites</figcaption></figure>
+    <figure><img src="captures/outils-urbanisme/zonage-synthese.webp" width="1400" height="875" alt="Synthèse du zonage : communes couvertes par un document, zones à urbaniser, servitudes" loading="lazy" decoding="async"><figcaption>Zonage : documents, zones à urbaniser et servitudes en chiffres clés</figcaption></figure>
+    <figure><img src="captures/outils-urbanisme/zonage-explorer.webp" width="1400" height="875" alt="Vue Explorer du zonage : surfaces par type de zone et liste des zones avec lien vers le règlement" loading="lazy" decoding="async"><figcaption>Zonage : surfaces par type de zone, zones et lien vers leur règlement</figcaption></figure>
+  </div>
+
+  <div class="etape" style="margin-top:44px">
+    <figure><img src="captures/outils-urbanisme/application-windows.webp" width="1400" height="880" alt="Application Windows : onglet Permis avec la liste des communes, les options et le tableau des résultats" loading="lazy" decoding="async"><figcaption>La version application Windows : mêmes thèmes, mêmes sources, mêmes exports</figcaption></figure>
+    <div class="texte">
+      <span class="etiquette">Variante · Application Windows</span>
+      <h3>La même chose, sans Python</h3>
+      <p class="gris">Pour les postes où Python n'est pas installé, l'outil existe aussi en application Windows à copier sur le poste, sans droits d'administrateur :</p>
+      <ul>
+        <li><b>Un onglet par thème</b>, avec sa liste de communes à cocher.</li>
+        <li><b>Une jauge de progression</b> et un journal détaillé.</li>
+        <li><b>Les mêmes exports</b>, enregistrés là où on le souhaite.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section id="cartes">
+  <div class="titre"><h2>Les cartes</h2><p>Une carte interactive par thème, sur fond Plan IGN ou photographie aérienne</p></div>
+
+  <div class="etape">
+    <figure><img src="captures/outils-urbanisme/zonage-carte.webp" width="1376" height="851" alt="Carte du zonage : zones U, AU, A et N, servitudes, prescriptions et couche de points ajoutée" loading="lazy" decoding="async"><figcaption>Zonage : zones, servitudes, prescriptions et une couche de points déposée par l'utilisateur</figcaption></figure>
+    <div class="texte">
+      <span class="etiquette">Thème 4 · Zonage</span>
+      <h3>Le zonage du territoire sur une seule carte</h3>
+      <ul>
+        <li><b>Les zones</b> aux couleurs du standard national, avec leur surface par commune dans la légende et le lien vers le règlement.</li>
+        <li><b>Les servitudes et prescriptions</b>, à afficher catégorie par catégorie.</li>
+        <li><b>Les permis et les friches</b> croisés avec le zonage.</li>
+        <li><b>Sa propre couche</b>, déposée en GeoJSON : chaque objet indique sa zone.</li>
+      </ul>
+      <p class="gris">Communes au règlement national grisées ; fond Plan IGN ou photo aérienne, limites communales en blanc sur la photo.</p>
+    </div>
+  </div>
+
+  <div class="galerie">
+    <figure><img src="captures/outils-urbanisme/conso-carte.webp" width="1376" height="851" alt="Carte de la consommation d'espaces par commune, avec choix de l'indicateur" loading="lazy" decoding="async"><figcaption>Consommation d'espaces : huit indicateurs au choix, dont chaque année depuis 2011</figcaption></figure>
+    <figure><img src="captures/outils-urbanisme/permis-carte.webp" width="1376" height="851" alt="Carte des permis filtrée sur les logements à venir" loading="lazy" decoding="async"><figcaption>Permis : filtre « logements à venir », taille des points selon le nombre de logements</figcaption></figure>
+  </div>
+  <p class="gris" style="margin-top:14px;font-size:14.5px">Chaque carte a son tableau lié, que l'on trie et filtre : un clic sur une ligne centre la carte sur l'objet, un clic sur la carte met la ligne en évidence. Les cartes sont des pages autonomes : elles s'ouvrent sans connexion (sauf pour le fond) et se transmettent par courriel.</p>
+</section>
+
+<!-- ================================================================== -->
+<section id="exports">
+  <div class="titre"><h2>Les exports</h2><p>Pour chaque thème, quatre productions à transmettre telles quelles</p></div>
+
+  <div class="etape">
+    <figure><img src="captures/outils-urbanisme/rapport-conso.webp" width="1280" height="1000" alt="Rapport sur la consommation d'espaces : jauge de l'enveloppe indicative et consommation annuelle par destination" loading="lazy" decoding="async"><figcaption>Rapport sur la consommation d'espaces : l'enveloppe déjà consommée, face au temps écoulé depuis 2021</figcaption></figure>
+    <div class="texte">
+      <span class="etiquette">Pour les élus, la direction et les partenaires</span>
+      <h3>Un rapport illustré par thème</h3>
+      <p class="gris">Une page web autonome, à ouvrir dans n'importe quel navigateur, à imprimer ou à envoyer par courriel. Chaque rapport s'ouvre sur un message central :</p>
+      <ul>
+        <li><b>Consommation d'espaces</b> : la part de l'enveloppe indicative déjà consommée, mise en regard du temps écoulé.</li>
+        <li><b>Permis</b> : le parcours des logements, de l'autorisation à l'achèvement, et ceux encore à venir.</li>
+        <li><b>Friches</b> : la répartition des surfaces par statut, dont le gisement sans projet.</li>
+        <li><b>Zonage</b> : la couverture du territoire par les documents et la part de chaque type de zone.</li>
+      </ul>
+      <p class="gris">Viennent ensuite les graphiques, les comparaisons, un tableau et la méthode.</p>
+    </div>
+  </div>
+
+  <div class="galerie" style="grid-template-columns:repeat(auto-fill,minmax(440px,1fr))">
+    <figure><img src="captures/outils-urbanisme/rapport-permis.webp" width="1280" height="1000" alt="Rapport sur les permis : parcours des logements et logements autorisés par année" loading="lazy" decoding="async"><figcaption>Permis : parcours des logements et logements autorisés par année</figcaption></figure>
+    <figure><img src="captures/outils-urbanisme/rapport-friches.webp" width="1280" height="1050" alt="Rapport sur les friches : répartition des surfaces par statut et surfaces par commune" loading="lazy" decoding="async"><figcaption>Friches : le gisement sans projet, puis le détail par commune</figcaption></figure>
+    <figure><img src="captures/outils-urbanisme/rapport-zonage.webp" width="1280" height="1050" alt="Rapport sur le zonage : couverture par les documents d'urbanisme et profil de chaque commune" loading="lazy" decoding="async"><figcaption>Zonage : couverture par les documents et profil de chaque commune</figcaption></figure>
+    <figure><img src="captures/outils-urbanisme/rapport-zonage-croisement.webp" width="1280" height="628" alt="Rapport sur le zonage : permis et friches selon le type de zone" loading="lazy" decoding="async"><figcaption>Zonage : permis et friches selon le type de zone où ils se trouvent</figcaption></figure>
+  </div>
+
+  <div class="deux" style="margin-top:28px">
+    <div class="usage">
+      <h3>Classeur Excel</h3>
+      <p class="gris" style="font-size:15px">Les chiffres prêts à retravailler, avec une feuille qui rappelle sources et définitions. Par exemple, pour les permis :</p>
+      <ul class="onglets"><li>Synthèse</li><li>Par année</li><li>Logements (PC et DP)</li><li>Permis d'aménager</li><li>Permis de démolir</li><li>Lisez-moi</li></ul>
+      <p class="gris" style="font-size:14px;margin:10px 0 0">Les listes conservent toutes les colonnes d'origine des producteurs, à droite des colonnes lisibles.</p>
+    </div>
+    <div class="usage">
+      <h3>Couches pour QGIS</h3>
+      <p class="gris" style="font-size:15px">Des fichiers GeoJSON avec tous les attributs : communes et leurs indicateurs, permis localisés, contours des friches, zones découpées par commune, servitudes, prescriptions, et permis et friches croisés avec le zonage.</p>
+      <p class="gris" style="font-size:14px;margin:0">Coordonnées en WGS84, à reprojeter en Lambert-93 dans QGIS si besoin.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section id="usages">
+  <div class="titre"><h2>Exemples d'usages</h2><p>Quelques situations où l'outil fait gagner du temps</p></div>
+  <div class="usages">
+    <div class="usage">
+      <h3>Urbanisme et planification</h3>
+      <ul>
+        <li>Suivre la trajectoire ZAN de chaque commune et préparer les échanges sur le PLUi et le SCoT.</li>
+        <li>Comparer les zones à urbaniser du document aux surfaces déjà consommées.</li>
+        <li>Mesurer la part des logements autorisés hors des zones urbaines.</li>
+      </ul>
+    </div>
+    <div class="usage">
+      <h3>Services techniques et collecte des déchets</h3>
+      <ul>
+        <li>Repérer les logements à venir pour anticiper les tournées de collecte et l'implantation des points d'apport volontaire.</li>
+        <li>Vérifier le zonage et les servitudes d'une liste de sites en déposant un simple fichier.</li>
+        <li>Suivre les lotissements autorisés, futurs quartiers à équiper.</li>
+      </ul>
+    </div>
+    <div class="usage">
+      <h3>Développement économique</h3>
+      <ul>
+        <li>Repérer les friches sans projet, leur surface et leur zonage.</li>
+        <li>Identifier celles qui présentent une pollution supposée ou une contrainte de servitude.</li>
+        <li>Préparer une stratégie de reconversion plutôt que d'extension.</li>
+      </ul>
+    </div>
+    <div class="usage">
+      <h3>Élus et direction générale</h3>
+      <ul>
+        <li>Disposer de chiffres sourcés pour un bureau, un conseil communautaire ou une commission urbanisme.</li>
+        <li>Transmettre un rapport illustré, lisible sans logiciel.</li>
+        <li>Situer NCPA par rapport au Calvados et à la Normandie.</li>
+      </ul>
+    </div>
+    <div class="usage">
+      <h3>Habitat</h3>
+      <ul>
+        <li>Suivre le rythme de construction, individuel et collectif, commune par commune.</li>
+        <li>Repérer les bailleurs sociaux et promoteurs parmi les demandeurs.</li>
+        <li>Compléter un programme local de l'habitat ou un observatoire.</li>
+      </ul>
+    </div>
+    <div class="usage">
+      <h3>Au-delà de NCPA</h3>
+      <ul>
+        <li>Les sources sont nationales : l'outil peut être adapté à une autre intercommunalité.</li>
+        <li>Reprendre les couches dans QGIS pour les croiser avec d'autres données du territoire.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section id="donnees">
+  <div class="titre"><h2>Les données mobilisées</h2><p>Uniquement des sources publiques, interrogées directement chez leurs producteurs</p></div>
+  <div class="defile">
+    <table>
+      <thead><tr><th>Donnée</th><th>Producteur</th><th>Ce que l'outil en tire</th><th>Échelle</th><th>Accès</th></tr></thead>
+      <tbody>
+        <tr><td>Consommation d'espaces naturels, agricoles et forestiers</td><td>Cerema, d'après les Fichiers fonciers<br><span class="gris">data.gouv.fr, millésime annuel</span></td><td>Surface consommée chaque année depuis 2011, par destination ; surface communale</td><td>Commune à région</td><td><span class="acces libre">Libre</span></td></tr>
+        <tr><td>Liste des autorisations d'urbanisme</td><td>Ministère de la Transition écologique (SDES), base Sitadel<br><span class="gris">plateforme DiDo, mise à jour mensuelle</span></td><td>Chaque permis de construire, déclaration préalable, permis d'aménager et de démolir : dates, état, logements, demandeur, parcelles</td><td>Autorisation</td><td><span class="acces libre">Libre</span></td></tr>
+        <tr><td>Plan cadastral</td><td>DGFiP, diffusé par Etalab<br><span class="gris">cadastre.data.gouv.fr</span></td><td>Centre des parcelles, pour placer chaque permis sur la carte</td><td>Parcelle</td><td><span class="acces libre">Libre</span></td></tr>
+        <tr><td>Inventaire des friches</td><td>Cerema, Cartofriches<br><span class="gris">data.gouv.fr, standard national CNIG</span></td><td>Sites, statut, type, surface, occupation, pollution, zonage, contour</td><td>Site</td><td><span class="acces libre">Libre</span></td></tr>
+        <tr><td>Documents d'urbanisme et zonage</td><td>Géoportail de l'Urbanisme<br><span class="gris">API Carto de l'IGN</span></td><td>Document applicable et ses dates, zones U, AU, A et N, secteurs des cartes communales, lien vers les règlements</td><td>Zone</td><td><span class="acces libre">Libre</span></td></tr>
+        <tr><td>Prescriptions</td><td>Géoportail de l'Urbanisme<br><span class="gris">API Carto de l'IGN</span></td><td>Espaces boisés classés, emplacements réservés, éléments de paysage et autres prescriptions graphiques</td><td>Objet</td><td><span class="acces libre">Libre</span></td></tr>
+        <tr><td>Servitudes d'utilité publique</td><td>Gestionnaires (État, ABF, ARS, réseaux), publiées sur le Géoportail de l'Urbanisme<br><span class="gris">API Carto de l'IGN</span></td><td>Monuments historiques, captages, plans de prévention des risques, lignes électriques…</td><td>Objet</td><td><span class="acces libre">Libre</span></td></tr>
+        <tr><td>Contours et population des communes</td><td>IGN et Insee<br><span class="gris">geo.api.gouv.fr</span></td><td>Limites communales, surface, population</td><td>Commune</td><td><span class="acces libre">Libre</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="gris" style="margin-top:12px;font-size:14.5px">Les cartes utilisent le Plan IGN et les photographies aériennes de l'IGN (Géoplateforme). Les fichiers téléchargés sont conservés sur le poste : 90 jours pour la consommation d'espaces, 30 jours pour les friches et le zonage, 180 jours pour le cadastre ; un bouton permet de chercher une version plus récente.</p>
+</section>
+
+<!-- ================================================================== -->
+<section id="precautions">
+  <div class="titre"><h2>Précautions de lecture</h2><p>Ce que les chiffres disent, et ce qu'ils ne disent pas</p></div>
+  <div class="limites">
+    <div><b>Dernière année provisoire</b>La consommation d'espaces de la dernière année est révisée à la hausse dans les millésimes suivants : il faut environ trois ans pour qu'un chiffre se stabilise.</div>
+    <div><b>Enveloppe indicative</b>L'enveloppe affichée vaut 50 % de la consommation 2011-2021, soit l'objectif national. L'enveloppe applicable est fixée par le SRADDET de Normandie puis le SCoT : c'est un repère, pas une limite opposable.</div>
+    <div><b>Permis tardifs</b>Des autorisations sont transmises avec retard : les deux dernières années sont incomplètes. Les ouvertures et fins de chantier sont souvent déclarées tard : « commencés » et « terminés » sont des minimums.</div>
+    <div><b>Communes fusionnées</b>Un permis déposé sous l'ancien code d'une commune nouvelle n'est pas retrouvé. Pour le zonage, une commune couverte par plusieurs documents n'est rattachée qu'à l'un d'eux ; l'outil le signale.</div>
+    <div><b>Localisation des permis</b>Chaque permis est placé au centre de sa parcelle cadastrale. Les permis dont la parcelle n'est pas retrouvée restent dans l'Excel mais pas sur la carte.</div>
+    <div><b>Friches</b>L'inventaire n'est pas exhaustif : il dépend des observatoires locaux transmis au Cerema. Une commune sans site recensé n'est pas forcément une commune sans friche.</div>
+    <div><b>Zonage</b>Seul le document en vigueur, consultable sur le Géoportail de l'Urbanisme ou en mairie, fait foi. De petits écarts de surface viennent des différences de tracé entre limites communales et documents.</div>
+    <div><b>Servitudes</b>Leur publication dépend de chaque gestionnaire : une catégorie absente de la carte n'est pas forcément absente du territoire.</div>
+    <div><b>Sources vivantes</b>Les producteurs font évoluer leurs fichiers. Chaque thème a un bouton de diagnostic qui indique ce que l'outil comprend de la source, et un journal de chaque appel.</div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section id="obtenir">
+  <div class="titre"><h2>Obtenir et utiliser l'outil</h2><p>Sans droits d'administrateur ni identifiant</p></div>
+  <ol class="etapes-install">
+    <li><b>Télécharger le dossier</b>Il contient l'outil, ses deux façons de le lancer et une note technique détaillée. <a href="../telechargements/OutilsUrbanisme_NCPA_v0.8.zip" download>Télécharger la version 0.8</a></li>
+    <li><b>Dans le navigateur</b>Double-cliquer sur <code>lancer_interface.bat</code> : les bibliothèques manquantes s'installent seules, puis la page s'ouvre. Python doit être présent sur le poste (voir le <a href="../index.html#guides">guide pratique</a>).</li>
+    <li><b>Ou en application Windows</b>L'application <code>OutilsUrbanisme_NCPA.exe</code> se fabrique une fois avec <code>fabriquer_exe.bat</code>, puis se copie sur n'importe quel poste, sans rien à installer.</li>
+    <li><b>Explorer et exporter</b>Choisir un thème et lancer l'extraction : quelques secondes à quelques minutes la première fois, bien moins ensuite. Un clic produit chaque export.</li>
+  </ol>
+</section>
+
+</div>
+</main>
+
+<footer>
+  <div class="page">
+    <span>Normandie Cabourg Pays d'Auge · <a href="../index.html">Champs des possibles</a></span>
+    <span>Outils Urbanisme, version 0.8 · <span id="mentionCaptures">captures réalisées sur les données de NCPA</span>, octobre 2026</span>
+  </div>
+</footer>
+
+<div id="zoom" role="dialog" aria-modal="true" aria-label="Capture agrandie">
+  <button id="zFermer" aria-label="Fermer">✕</button>
+  <button id="zPrec" aria-label="Capture précédente">‹</button>
+  <img id="zImg" alt="">
+  <p id="zTxt"></p>
+  <button id="zSuiv" aria-label="Capture suivante">›</button>
+</div>
+
+<script>
+"use strict";
+/* ---------- Captures de démonstration ----------
+   Les captures livrées avec cette page sont réalisées sur les vrais contours des 38 communes,
+   mais avec des chiffres fictifs. Une fois remplacées par des captures sur les données réelles
+   (mêmes noms de fichiers, dossier captures/outils-urbanisme/), passer CAPTURES_DEMO à false :
+   le bandeau « Données de démonstration » et l'avertissement disparaissent. */
+const CAPTURES_DEMO = true;
+if (CAPTURES_DEMO) {
+  document.body.classList.add("demo");
+  document.getElementById("mentionCaptures").textContent = "captures de démonstration (chiffres fictifs)";
+  document.querySelectorAll("main figure figcaption").forEach(c => c.append(" · données de démonstration"));
+}
+</script>
+<script>
+"use strict";
+/* ---------- Captures pas encore ajoutées : emplacement signalé ---------- */
+function captureManquante(im) {
+  const fig = im.closest("figure");
+  if (!fig || fig.classList.contains("manquante")) return;
+  fig.classList.add("manquante");
+  const v = document.createElement("div");
+  v.className = "vide";
+  v.innerHTML = "<b>Capture à ajouter</b><code></code>";
+  v.querySelector("code").textContent = im.getAttribute("src");
+  fig.insertBefore(v, im);
+}
+document.querySelectorAll("main figure img").forEach(im => {
+  if (im.complete && im.naturalWidth === 0) captureManquante(im);
+  else im.addEventListener("error", () => captureManquante(im));
+});
+
+/* ---------- Agrandissement des captures ---------- */
+(function () {
+  const toutes = [...document.querySelectorAll("main figure img")];
+  const z = document.getElementById("zoom"), zi = document.getElementById("zImg"), zt = document.getElementById("zTxt");
+  let liste = [], i = 0, dernier = null;
+  const dispo = () => toutes.filter(im => !im.closest("figure").classList.contains("manquante"));
+  function montrer(k) {
+    i = (k + liste.length) % liste.length;
+    zi.src = liste[i].src; zi.alt = liste[i].alt;
+    const cap = liste[i].closest("figure").querySelector("figcaption");
+    zt.textContent = cap ? cap.textContent : liste[i].alt;
+  }
+  function ouvrir(im) {
+    liste = dispo();
+    const k = liste.indexOf(im);
+    if (k < 0) return;
+    dernier = document.activeElement; montrer(k); z.classList.add("ouvert"); document.getElementById("zFermer").focus();
+  }
+  function fermer() { z.classList.remove("ouvert"); if (dernier) dernier.focus(); }
+  toutes.forEach(im => {
+    im.tabIndex = 0;
+    im.addEventListener("click", () => ouvrir(im));
+    im.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ouvrir(im); } });
+  });
+  document.getElementById("zFermer").onclick = fermer;
+  document.getElementById("zPrec").onclick = e => { e.stopPropagation(); montrer(i - 1); };
+  document.getElementById("zSuiv").onclick = e => { e.stopPropagation(); montrer(i + 1); };
+  zi.onclick = fermer;
+  z.addEventListener("click", e => { if (e.target === z) fermer(); });
+  document.addEventListener("keydown", e => {
+    if (!z.classList.contains("ouvert")) return;
+    if (e.key === "Escape") fermer();
+    if (e.key === "ArrowLeft") montrer(i - 1);
+    if (e.key === "ArrowRight") montrer(i + 1);
+  });
+})();
+
+/* ---------- Courbes de niveau décoratives (comme l'accueil du site) ---------- */
+(function () {
+  const svg = document.getElementById("topo");
+  const W = 1600, H = 600, cx = 1180, cy = 140;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", "xMaxYMin slice");
+  let d = "";
+  for (let k = 1; k <= 16; k++) {
+    const r = 34 * k, pts = [];
+    for (let j = 0; j <= 96; j++) {
+      const a = j / 96 * Math.PI * 2;
+      const n = 1 + 0.16 * Math.sin(3 * a + k * 0.35) + 0.08 * Math.sin(5 * a - k * 0.2) + 0.05 * Math.cos(7 * a + k * 0.5);
+      pts.push(`${(cx + Math.cos(a) * r * n * 1.35).toFixed(1)},${(cy + Math.sin(a) * r * n * 0.85).toFixed(1)}`);
+    }
+    d += `<path d="M${pts.join("L")}Z" fill="none" stroke="currentColor" stroke-width="${k % 4 === 0 ? 1.6 : 0.9}"/>`;
+  }
+  svg.innerHTML = d;
+})();
+</script>
+</body>
+</html>
