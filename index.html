@@ -306,6 +306,18 @@ const OUTILS = [
   },
   {
     theme: "amenagement",
+    titre: "Bâtiments 3D, toit par toit",
+    fichier: "outils/batiments-3d-ncpa.html",
+    apercu: "toitures",
+    badge: "Démonstrateur",
+    action: "Découvrir le projet",
+    description: "Maquette 3D des 38 communes où chaque bâtiment a retrouvé la forme réelle de sa toiture, reconstruite à partir du relevé laser aérien de l'IGN. Elle se parcourt comme un globe, sur le relief et la photo aérienne, avec une fiche par bâtiment. La page présente la démarche et ouvre la carte.",
+    interet: "Montrer l'insertion d'un projet, lire les gabarits d'un bourg ou d'un front de mer, et partager la maquette par un simple lien.",
+    limites: "Reconstruction automatique : les toitures complexes sont simplifiées et les hauteurs restent des ordres de grandeur, sans valeur réglementaire.",
+    tags: ["LiDAR HD · BD TOPO", "Toitures LOD 2", "Ombres selon l'heure", "Sans installation"]
+  },
+  {
+    theme: "amenagement",
     titre: "Outils Urbanisme",
     fichier: "outils/outils-urbanisme-ncpa.html",
     apercu: "urbanisme",
@@ -615,6 +627,21 @@ const APERCUS = {
       <line x1="20" y1="108" x2="340" y2="108" stroke="currentColor" stroke-width="2" opacity=".3" stroke-linecap="round"/>
       <line x1="20" y1="108" x2="236" y2="108" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
       <circle cx="236" cy="108" r="6" class="marq"/>
+    </svg>`,
+  toitures: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="none" stroke="currentColor" opacity=".16" stroke-width="1.2">
+        <path d="M0 112 L360 52"/><path d="M0 72 L240 132"/><path d="M120 0 L360 100"/>
+      </g>
+      <g stroke="var(--carte)" stroke-width="1.5" stroke-linejoin="round">
+        <polygon points="70,92 110,106 110,88 70,74" fill="#3a4a50"/><polygon points="110,106 136,94 136,76 110,88" fill="#2c3a40"/>
+        <polygon points="70,74 110,88 123,64 83,50" fill="#d9a27e"/><polygon points="110,88 136,76 123,64" fill="#2c3a40"/><polygon points="83,50 123,64 136,76 96,62" fill="#b98a6c"/>
+        <polygon points="160,84 214,102 214,72 160,54" fill="#3a4a50"/><polygon points="214,102 246,88 246,58 214,72" fill="#2c3a40"/>
+        <polygon points="160,54 214,72 230,40 176,22" fill="#d9a27e"/><polygon points="214,72 246,58 230,40" fill="#2c3a40"/><polygon points="176,22 230,40 246,58 192,40" fill="#b98a6c"/>
+        <polygon points="262,96 296,108 296,94 262,82" fill="#3a4a50"/><polygon points="296,108 318,98 318,84 296,94" fill="#2c3a40"/>
+        <polygon points="262,82 296,94 307,74 273,62" fill="#d9a27e"/><polygon points="273,62 307,74 318,84 284,72" fill="#b98a6c"/>
+      </g>
+      <circle cx="203" cy="31" r="6" class="marq"/>
     </svg>`,
   urbanisme: `
     <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
