@@ -239,8 +239,8 @@ figure.manquante .vide code{font-size:12.5px;color:var(--c);word-break:break-all
     <article class="carte">
       <div class="num">L'information</div>
       <h3>Une fiche au clic</h3>
-      <p>Un clic sur un bâtiment le met en évidence et affiche ses caractéristiques : identifiant BD TOPO, hauteurs et altitudes calculées pendant la reconstruction.</p>
-      <ul class="tags"><li>Identifiant BD TOPO</li><li>Hauteurs mesurées</li></ul>
+      <p>Un clic sur un bâtiment le met en évidence et affiche ses caractéristiques : usage, hauteur, étages, logements, altitudes, dates et identifiants BD TOPO et RNB.</p>
+      <ul class="tags"><li>Identifiants BD TOPO et RNB</li><li>Hauteurs mesurées</li></ul>
       <p class="interet"><b>Utile pour</b>Retrouver un bâtiment dans la BD TOPO ou dans un SIG grâce à son identifiant.</p>
     </article>
     <article class="carte">
@@ -261,7 +261,7 @@ figure.manquante .vide code{font-size:12.5px;color:var(--c);word-break:break-all
 
   <div style="margin-top:36px">
     <div class="etape">
-      <figure><img src="captures/batiments-3d/vue-ensemble.webp" width="1400" height="875" alt="Vue d'ensemble de la carte 3D : les bâtiments de Cabourg et Dives-sur-Mer sur la photo aérienne" loading="lazy" decoding="async"><figcaption>Vue d'ensemble : le bâti du littoral sur la photo aérienne</figcaption></figure>
+      <figure><img src="captures/batiments-3d/vue-ensemble.webp" width="1400" height="875" alt="Vue d'ensemble de la carte 3D : les bâtiments de Cabourg et Dives-sur-Mer de part et d'autre de la Dives, sur la photo aérienne" loading="lazy" decoding="async"><figcaption>Vue d'ensemble : Cabourg et Dives-sur-Mer de part et d'autre de la Dives</figcaption></figure>
       <div class="texte">
         <span class="etiquette">Parcourir</span>
         <h3>Naviguer comme sur un globe</h3>
@@ -278,14 +278,14 @@ figure.manquante .vide code{font-size:12.5px;color:var(--c);word-break:break-all
         <h3>Du bourg ancien au lotissement</h3>
         <p class="gris">En rapprochant la vue, les formes de toiture racontent l'histoire du bâti : longères et maisons à colombages aux toits pentus, villas balnéaires aux toitures découpées, pavillons récents aux volumes simples, bâtiments agricoles et zones d'activité aux grandes toitures à faible pente.</p>
       </div>
-      <figure><img src="captures/batiments-3d/zoom-bourg.webp" width="1400" height="875" alt="Vue rapprochée d'un bourg : toitures à pans des maisons et bâtiments agricoles" loading="lazy" decoding="async"><figcaption>Vue rapprochée : les toitures reconstruites d'un bourg</figcaption></figure>
+      <figure><img src="captures/batiments-3d/zoom-bourg.webp" width="1400" height="875" alt="Vue rapprochée du bourg de Beuvron-en-Auge : toitures à pans des maisons, de l'église et des bâtiments alentour" loading="lazy" decoding="async"><figcaption>Vue rapprochée : les toitures reconstruites de Beuvron-en-Auge</figcaption></figure>
     </div>
     <div class="etape">
-      <figure><img src="captures/batiments-3d/fiche-batiment.webp" width="1400" height="875" alt="Bâtiment sélectionné avec sa fiche d'informations" loading="lazy" decoding="async"><figcaption>Un bâtiment sélectionné et sa fiche</figcaption></figure>
+      <figure><img src="captures/batiments-3d/fiche-batiment.webp" width="1400" height="875" alt="Bâtiment sélectionné en jaune à Beuvron-en-Auge, avec sa fiche : usage, hauteur, étages, logements, altitudes, dates et identifiants" loading="lazy" decoding="async"><figcaption>Un bâtiment sélectionné et sa fiche</figcaption></figure>
       <div class="texte">
         <span class="etiquette">Interroger</span>
         <h3>Chaque bâtiment a sa fiche</h3>
-        <p class="gris">Le bâtiment survolé s'éclaire, le bâtiment cliqué change de couleur et sa fiche s'ouvre. Son identifiant est celui de la BD TOPO : on peut donc le retrouver dans QGIS et le croiser avec d'autres données.</p>
+        <p class="gris">Le bâtiment cliqué passe en jaune et sa fiche s'ouvre : usage, hauteur, nombre d'étages et de logements, altitudes du sol et du toit, dates d'apparition et de mise à jour. Ses identifiants BD TOPO et RNB se copient d'un clic : on peut donc le retrouver dans QGIS et le croiser avec d'autres données.</p>
       </div>
     </div>
   </div>
@@ -455,7 +455,7 @@ figure.manquante .vide code{font-size:12.5px;color:var(--c);word-break:break-all
 /* ---------- Lien vers la carte 3D ----------
    Renseigner ici l'adresse GitHub Pages de la carte (ex. "https://compte.github.io/ncpa-batiments-3d/").
    Tant qu'elle est vide, le bouton s'affiche comme « lien à venir ». */
-const CARTE_URL = "";
+const CARTE_URL = "https://ncpa-dechets.github.io/ncpa3d/";
 (function () {
   const a = document.getElementById("lienCarte");
   if (CARTE_URL) { a.href = CARTE_URL; a.target = "_blank"; a.rel = "noopener noreferrer"; }
