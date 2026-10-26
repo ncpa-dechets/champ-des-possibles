@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connecter QGIS à un assistant IA via MCP · Champ des possibles · NCPA</title>
+<meta name="description" content="Relier Claude Desktop à QGIS grâce au serveur MCP open source qgis_mcp : installation pas à pas, usages, limites et mises en garde.">
+<style>
+:root{
+  color-scheme:dark;
+  --rouge:#B91E27; --accent:#e0767a;
+  --fond:#121b1e; --fond-haut:#0e1618;
+  --carte:#18242a; --carte-haut:#1d2b31;
+  --encre:#e3eae7; --gris:#a2b1ad; --gris2:#6f817d;
+  --trait:rgba(214,232,226,.09); --trait-fort:rgba(214,232,226,.16);
+  --ombre:0 1px 2px rgba(0,0,0,.25), 0 8px 24px rgba(0,0,0,.18);
+  --c:#9fc0e6;            /* couleur de la page : QGIS + IA */
+  --mono:Consolas,"Cascadia Mono","Courier New",monospace;
+  font-family: Calibri, "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--fond);color:var(--encre);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--c)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.page{max-width:1080px;margin:0 auto;padding:0 24px}
+code{font-family:var(--mono);font-size:.92em;background:rgba(255,255,255,.06);border:1px solid var(--trait);border-radius:5px;padding:0 5px;color:var(--encre)}
+
+/* ---------- En-tête ---------- */
+header{position:relative;overflow:hidden;border-top:3px solid var(--rouge);border-bottom:1px solid var(--trait);
+  background:radial-gradient(900px 420px at 85% 10%, rgba(159,208,200,.11), transparent 70%),
+             radial-gradient(700px 380px at 0% 100%, rgba(140,191,143,.06), transparent 70%),
+             var(--fond-haut)}
+header svg.topo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;color:#9fd0c8;opacity:.10}
+header .page{position:relative;padding-top:28px;padding-bottom:48px}
+.retour{display:inline-block;margin:0 0 34px;font-size:14px;color:var(--gris);text-decoration:none}
+.retour:hover{color:var(--encre);text-decoration:underline}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(32px,4.8vw,50px);line-height:1.08;margin:12px 0 18px;font-weight:700;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--c)}
+.intro{max-width:700px;color:var(--gris);font-size:18px;margin:0}
+.principes{display:flex;flex-wrap:wrap;gap:10px;margin:30px 0 0;padding:0;list-style:none;font-size:14px}
+.principes li{display:flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--trait-fort);border-radius:999px;background:rgba(255,255,255,.025)}
+.principes li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* ---------- Sections ---------- */
+main .page{padding-top:8px;padding-bottom:72px}
+section{padding-top:48px}
+.titre{display:flex;flex-direction:column;gap:2px;margin-bottom:26px;padding-bottom:12px;border-bottom:1px solid var(--trait)}
+.titre h2{margin:0;font-size:24px;display:flex;align-items:center;gap:10px}
+.titre h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 60%,transparent)}
+.titre p{margin:0;color:var(--gris);font-size:15px}
+h3{font-size:19px;line-height:1.25;margin:0 0 6px}
+p{margin:0 0 10px}
+.gris{color:var(--gris)}
+
+/* ---------- Étapes ---------- */
+.etapes{counter-reset:n;list-style:none;margin:0;padding:0}
+.etape{counter-increment:n;display:grid;grid-template-columns:38px minmax(0,1fr) minmax(0,1.15fr);gap:6px 22px;align-items:start;padding:0 0 30px;margin:0 0 30px;border-bottom:1px dashed var(--trait-fort)}
+.etape:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.etape::before{content:counter(n);display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;
+  background:color-mix(in srgb,var(--c) 22%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);color:var(--encre);font-weight:700}
+.etape .texte p{color:var(--gris);font-size:15.5px}
+.etape .texte b{color:var(--encre)}
+.etape .visuel{min-width:0}
+.astuce{margin:12px 0 0;padding:9px 14px;background:color-mix(in srgb,var(--c) 8%,transparent);border-left:2px solid var(--c);border-radius:0 8px 8px 0;font-size:14.5px;color:var(--encre)}
+.astuce b{color:var(--c)}
+
+/* Bouton lien */
+.bouton{display:inline-flex;align-items:center;gap:10px;margin:4px 0 0;padding:10px 18px;border-radius:10px;background:var(--carte-haut);
+  border:1px solid color-mix(in srgb,var(--c) 50%,transparent);color:var(--encre);text-decoration:none;font-weight:700}
+.bouton:hover{background:color-mix(in srgb,var(--c) 14%,var(--carte))}
+.bouton small{font-weight:400;color:var(--gris)}
+
+/* ---------- Fenêtre d'invite de commandes ---------- */
+.term{background:#0b1113;border:1px solid var(--trait-fort);border-radius:10px;overflow:hidden;box-shadow:var(--ombre)}
+.term + .term{margin-top:12px}
+.term-barre{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px 6px 14px;background:var(--carte-haut);border-bottom:1px solid var(--trait);font-size:13px;color:var(--gris)}
+.copier{font:inherit;font-size:13px;font-weight:700;color:var(--encre);background:color-mix(in srgb,var(--c) 18%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
+  border-radius:999px;padding:3px 12px;cursor:pointer}
+.copier:hover{background:color-mix(in srgb,var(--c) 30%,transparent)}
+.copier.ok{background:rgba(140,191,143,.25);border-color:#8cbf8f}
+.term pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:#e8efec}
+.term .inv{color:var(--gris2)}
+.term .rep{color:#a9d6ab}
+.term .com{color:var(--gris2);font-style:italic}
+
+/* ---------- Maquette de l'installateur ---------- */
+.fenetre{background:#f3f3f3;color:#1b1b1b;border-radius:8px;overflow:hidden;box-shadow:var(--ombre);border:1px solid #c9c9c9;font-family:"Segoe UI",system-ui,sans-serif;font-size:13px}
+.fenetre .barre{background:#fff;border-bottom:1px solid #ddd;padding:6px 12px;font-size:12px;color:#444}
+.inst{display:grid;grid-template-columns:70px 1fr}
+.inst .bande{background:linear-gradient(180deg,#3d6fa3,#2b557f)}
+.inst .contenu{padding:14px 16px 12px}
+.inst .gros{font-size:17px;margin:0 0 10px;color:#1b1b1b}
+.inst .choix{padding:6px 8px;margin:0 0 4px;color:#1f5aa6}
+.inst .choix b{display:block;font-size:14px}
+.inst .choix span{font-size:11.5px;color:#555}
+.inst .cases{margin-top:10px;padding-top:8px;border-top:1px solid #ddd}
+.case{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;position:relative}
+.case i{width:14px;height:14px;border:1.5px solid #555;border-radius:2px;flex:0 0 auto;background:#fff;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;line-height:1;color:#fff}
+.case.coche i{background:#1f5aa6;border-color:#1f5aa6}
+.case.vise{outline:3px solid var(--accent);outline-offset:1px;background:#fff}
+.case .bulle{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--rouge);color:#fff;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.legende{font-size:13.5px;color:var(--gris);margin-top:8px}
+
+/* ---------- Maquette de l'explorateur ---------- */
+.adresse{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border-bottom:1px solid #ddd}
+.adresse .champ{flex:1;border:2px solid #1f5aa6;border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:14px;outline:3px solid var(--accent);outline-offset:2px}
+.adresse .champ::after{content:"";display:inline-block;width:1px;height:15px;background:#1b1b1b;margin-left:1px;vertical-align:-2px;animation:clign 1s steps(1) infinite}
+@keyframes clign{50%{opacity:0}}
+.adresse .touche{font-size:12px;font-weight:700;background:#e9e9e9;border:1px solid #bbb;border-bottom-width:3px;border-radius:5px;padding:2px 8px;color:#333}
+.fichiers{padding:8px 12px 10px;background:#fbfbfb}
+.fichiers div{display:flex;align-items:center;gap:8px;padding:3px 0;color:#333;font-size:13px}
+.fichiers .ico{width:14px;height:16px;border:1.5px solid #6b7c88;border-radius:2px;background:#fff;flex:0 0 auto}
+.fichiers.zone{position:relative;min-height:290px}
+.menu{position:absolute;left:34%;top:70px;margin:0;padding:5px;list-style:none;width:230px;background:#fff;border:1px solid #cfcfcf;border-radius:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:13px;color:#1b1b1b}
+.menu li{padding:5px 10px;border-radius:4px}
+.menu li.sep{border-top:1px solid #e3e3e3;margin-top:3px;padding-top:7px;border-radius:0}
+.menu li.vise{background:#e5eef9;outline:3px solid var(--accent);outline-offset:1px;font-weight:700}
+.clic{position:absolute;left:calc(34% - 6px);top:60px;transform:translateX(-100%);font-size:11.5px;font-weight:700;color:#fff;background:var(--rouge);border-radius:999px;padding:2px 9px;white-space:nowrap}
+
+/* ---------- Dépannage ---------- */
+.limites{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:14px}
+.limites div{padding:12px 16px;background:rgba(224,118,122,.07);border-left:2px solid var(--accent);border-radius:0 8px 8px 0;font-size:15px;color:var(--gris)}
+.limites b{display:block;font-size:14.5px;color:var(--encre);margin-bottom:3px}
+
+footer{border-top:1px solid var(--trait);background:var(--fond-haut)}
+footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;font-size:14px;color:var(--gris2)}
+footer a{color:var(--gris)}
+
+@media (max-width:860px){
+  .etape{grid-template-columns:38px minmax(0,1fr)}
+  .etape .visuel{grid-column:2}
+}
+@media (max-width:600px){
+  .page{padding:0 16px}
+  .intro{font-size:16px}
+  .case .bulle{position:static;transform:none;margin-left:auto}
+  .inst{grid-template-columns:22px 1fr}
+  .menu{left:auto;right:10px;width:200px}
+  .clic{left:12px;transform:none}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.adresse .champ::after{animation:none}}
+@media print{body{background:#fff;color:#000}.copier{display:none}}
+
+/* ========== Ajouts propres à ce guide ========== */
+.sommaire{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0;padding:0;list-style:none;font-size:14px}
+.sommaire a{display:inline-block;padding:4px 12px;border-radius:8px;color:var(--gris);text-decoration:none;background:rgba(255,255,255,.03);border:1px solid var(--trait)}
+.sommaire a:hover{color:var(--encre);border-color:var(--trait-fort)}
+
+/* Schéma de principe */
+.flux{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;align-items:stretch;margin:6px 0 18px}
+.noeud{position:relative;padding:16px 16px 14px;background:var(--carte);border:1px solid var(--trait);border-radius:12px;margin-right:34px}
+.noeud:last-child{margin-right:0}
+.noeud:not(:last-child)::after{content:"⇄";position:absolute;right:-30px;top:50%;transform:translateY(-50%);color:var(--c);font-size:20px;width:26px;text-align:center}
+.noeud .qui{font-size:13px;color:var(--gris2);margin:0 0 4px}
+.noeud h3{font-size:17px;margin:0 0 6px}
+.noeud p{font-size:14.5px;color:var(--gris);margin:0}
+.noeud.nuage{border-style:dashed}
+.flux-legende{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:860px){
+  .flux{grid-template-columns:1fr}
+  .noeud{margin:0 0 30px}
+  .noeud:last-child{margin-bottom:0}
+  .noeud:not(:last-child)::after{right:auto;left:50%;top:auto;bottom:-27px;transform:translateX(-50%)}
+  .flux-legende{grid-template-columns:1fr}
+}
+
+/* Encadrés */
+.note{padding:12px 16px;background:color-mix(in srgb,var(--c) 7%,transparent);border-left:2px solid var(--c);border-radius:0 8px 8px 0;font-size:15px;color:var(--gris)}
+.note b{color:var(--encre)}
+.alerte{padding:12px 16px;background:rgba(224,118,122,.08);border-left:2px solid var(--accent);border-radius:0 8px 8px 0;font-size:15px;color:var(--gris);margin:12px 0 0}
+.alerte b{color:var(--encre)}
+
+/* Bilan : possibilités / avantages / inconvénients */
+.bilan{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.bilan > div{padding:18px 20px;background:var(--carte);border:1px solid var(--trait);border-top:3px solid var(--k);border-radius:12px}
+.bilan h3{font-size:18px;margin:0 0 10px}
+.bilan ul{margin:0;padding:0 0 0 18px;color:var(--gris);font-size:15px}
+.bilan li{margin:0 0 7px}
+.bilan li b{color:var(--encre)}
+@media (max-width:860px){.bilan{grid-template-columns:1fr}}
+
+/* Exemples de demandes */
+.demandes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px;margin:0;padding:0;list-style:none}
+.demandes li{padding:12px 16px;background:var(--carte);border:1px solid var(--trait);border-radius:10px;font-size:15px}
+.demandes li span{display:block;font-size:13px;color:var(--gris2);margin-top:6px}
+
+/* Mises en garde */
+.garde{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:14px}
+.garde div{padding:14px 18px;background:rgba(224,118,122,.06);border:1px solid rgba(224,118,122,.18);border-radius:10px;font-size:15px;color:var(--gris)}
+.garde b{display:block;font-size:16px;color:var(--encre);margin-bottom:4px}
+.garde p{margin:6px 0 0}
+
+/* Maquettes : bouton Code de GitHub */
+.gh{background:#fff;padding:12px 14px 14px;position:relative;min-height:150px}
+.gh .ligne{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.gh .bt{font-size:12.5px;padding:4px 10px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;color:#24292f}
+.gh .bt.vert{background:#1f883d;color:#fff;border-color:#1a7f37;font-weight:600}
+.gh .deroule{position:absolute;right:14px;top:46px;width:240px;background:#fff;border:1px solid #d0d7de;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;margin:0;list-style:none;font-size:13px;color:#24292f}
+.gh .deroule li{padding:6px 10px;border-radius:5px}
+.gh .deroule li.vise{background:#f3f4f6;outline:3px solid var(--accent);outline-offset:1px;font-weight:600}
+.gh .depot{font-size:14px;color:#0969da;font-weight:600}
+
+/* Maquettes : Claude Desktop */
+.cd{display:grid;grid-template-columns:150px 1fr;min-height:200px;background:#faf9f5}
+.cd .menu-g{background:#f0eee6;padding:10px 8px;border-right:1px solid #e3e0d6;font-size:13px}
+.cd .menu-g div{padding:5px 9px;border-radius:6px;color:#3d3d3a}
+.cd .menu-g div.vise{background:#fff;outline:3px solid var(--accent);outline-offset:1px;font-weight:700}
+.cd .zone-d{padding:14px 16px;font-size:13px;color:#3d3d3a}
+.cd .zone-d h4{margin:0 0 8px;font-size:15px;color:#1f1e1d}
+.cd .serveur{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid #e3e0d6;border-radius:8px;background:#fff;margin:0 0 10px}
+.cd .pastille{font-size:11.5px;padding:1px 8px;border-radius:999px;background:#e3f1e4;color:#2d6a31;font-weight:700}
+.cd .btn{display:inline-block;padding:5px 12px;border:1px solid #d6d2c4;border-radius:7px;background:#fff;font-weight:600;position:relative}
+.cd .btn.vise{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Maquettes : conversation */
+.chat{background:#faf9f5;padding:14px 16px;display:flex;flex-direction:column;gap:10px;font-size:13.5px;color:#1f1e1d}
+.chat .moi{align-self:flex-end;background:#e9e6dc;border-radius:12px;padding:7px 12px;max-width:85%}
+.chat .outil{border:1px solid #e3e0d6;background:#fff;border-radius:10px;padding:9px 12px}
+.chat .outil .nom{font-family:var(--mono);font-size:12.5px;color:#5e5d59}
+.chat .outil .actions{display:flex;gap:8px;margin-top:8px}
+.chat .outil .actions span{padding:3px 10px;border-radius:6px;border:1px solid #d6d2c4;font-size:12.5px;position:relative}
+.chat .outil .actions span.vise{background:#1f1e1d;color:#fff;border-color:#1f1e1d;outline:3px solid var(--accent);outline-offset:2px}
+.chat .rep-c{line-height:1.5}
+.chat .boite{display:flex;align-items:center;gap:10px;border:1px solid #d6d2c4;background:#fff;border-radius:12px;padding:8px 10px;color:#8a8780}
+.chat .boite .plus{width:24px;height:24px;border-radius:7px;border:1px solid #d6d2c4;display:inline-flex;align-items:center;justify-content:center;color:#3d3d3a;font-weight:700}
+.chat .liste-outils{border:1px solid #e3e0d6;background:#fff;border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.12);width:min(100%,260px)}
+.chat .liste-outils div{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;color:#3d3d3a}
+.chat .liste-outils div.vise{outline:3px solid var(--accent);outline-offset:1px;background:#f5f3ec;font-weight:700}
+.inter{width:28px;height:16px;border-radius:999px;background:#c8c4b8;position:relative;flex:0 0 auto}
+.inter::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff}
+.inter.on{background:#2c84db}
+.inter.on::after{left:14px}
+
+/* Maquettes : QGIS */
+.qg{background:#efefef;font-size:13px;color:#222;position:relative;min-height:280px}
+.qg .menubar{display:flex;gap:14px;padding:5px 10px;background:#f7f7f7;border-bottom:1px solid #d5d5d5}
+.qg .menubar span.vise{background:#d9e6f5;border-radius:3px;padding:0 4px;outline:3px solid var(--accent);outline-offset:1px}
+.qg .sous{position:absolute;z-index:2;left:190px;top:30px;width:250px;background:#fff;border:1px solid #c5c5c5;box-shadow:0 6px 18px rgba(0,0,0,.22);padding:4px 0;margin:0;list-style:none}
+.qg .sous li{padding:4px 14px}
+.qg .sous li.sep{border-top:1px solid #e2e2e2;margin-top:3px;padding-top:6px}
+.qg .sous li.vise{background:#d9e6f5;outline:3px solid var(--accent);outline-offset:-1px;font-weight:700}
+.qg .dock{position:absolute;left:12px;bottom:12px;width:200px;background:#fff;border:1px solid #c5c5c5;padding:8px 10px}
+.qg .dock .t{font-weight:700;margin:0 0 6px}
+.qg .dock .b{display:inline-block;padding:3px 12px;border:1px solid #9a9a9a;border-radius:3px;background:#f2f2f2;outline:3px solid var(--accent);outline-offset:2px;font-weight:700}
+.qg .dock .s{font-size:12px;color:#2d6a31;margin-top:6px}
+
+/* Maquettes : arborescence */
+.arbo{padding:10px 14px 12px;background:#fbfbfb;font-size:13px;color:#333}
+.arbo div{display:flex;align-items:center;gap:8px;padding:3px 0}
+.arbo .d{width:16px;height:12px;background:#e8c35c;border-radius:2px;flex:0 0 auto}
+.arbo .f{width:12px;height:15px;border:1.5px solid #6b7c88;border-radius:2px;background:#fff;flex:0 0 auto}
+.arbo .n1{padding-left:22px}
+.arbo .ok{outline:3px solid var(--accent);outline-offset:1px;background:#fff;border-radius:4px;padding-left:4px;padding-right:6px;width:max-content;max-width:100%}
+.arbo .barre-adr{font-family:var(--mono);font-size:12px;color:#555;background:#fff;border:1px solid #ddd;border-radius:4px;padding:3px 8px;margin:0 0 8px;overflow-wrap:anywhere}
+.etiq{font-size:11.5px;font-weight:700;color:#fff;background:var(--rouge);border-radius:999px;padding:2px 9px;white-space:nowrap;margin-left:6px}
+
+/* Chemin JSON mis en avant */
+.term .cle{color:#9fc6e8}
+.term .chaine{color:#e6c88f}
+.term .modif{background:rgba(224,118,122,.22);border-radius:3px;padding:0 2px}
+
+@media (max-width:600px){
+  .cd{grid-template-columns:96px 1fr}
+  .qg .sous{left:auto;right:8px;width:210px}
+  .gh .deroule{width:200px}
+}
+
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="topo" id="topo" aria-hidden="true"></svg>
+  <div class="page">
+    <a class="retour" href="../index.html" title="Retour à l'accueil Champ des possibles">← Tous les outils</a>
+    <div class="eyebrow">NCPA · Champ des possibles · Prise en main</div>
+    <h1>Connecter QGIS<br><em>à un assistant IA via MCP</em></h1>
+    <p class="intro">Relier l'assistant Claude Desktop à QGIS pour lui demander, en français, de charger une couche, lancer un traitement ou produire une carte. Le lien passe par un « serveur MCP » gratuit et open source, qu'on installe une fois sur le poste.</p>
+    <ul class="principes">
+      <li>Environ 30 minutes la première fois</li>
+      <li>Gratuit et open source</li>
+      <li>Windows 10 et 11, QGIS 3.x</li>
+    </ul>
+    <ul class="sommaire" aria-label="Sommaire">
+      <li><a href="#principe">Le principe</a></li>
+      <li><a href="#installer">Installer</a></li>
+      <li><a href="#configurer">Configurer Claude</a></li>
+      <li><a href="#utiliser">Utiliser</a></li>
+      <li><a href="#bilan">Intérêts et limites</a></li>
+      <li><a href="#prudence">Mises en garde</a></li>
+      <li><a href="#depannage">En cas de souci</a></li>
+    </ul>
+  </div>
+</header>
+
+<main>
+<div class="page">
+
+<!-- ================================================================== -->
+<section id="principe">
+  <div class="titre"><h2>Le principe</h2><p>Quatre pièces qui se parlent</p></div>
+
+  <div class="flux">
+    <div class="noeud"><p class="qui">Vous</p><h3>Une demande en français</h3><p>« Charge la couche des PAV et colore-les par commune. »</p></div>
+    <div class="noeud nuage"><p class="qui">Claude Desktop</p><h3>L'assistant</h3><p>Comprend la demande et choisit les actions à faire dans QGIS.</p></div>
+    <div class="noeud"><p class="qui">Serveur MCP</p><h3>L'interprète</h3><p>Petit programme Python lancé par Claude Desktop sur le poste.</p></div>
+    <div class="noeud"><p class="qui">Plugin QGIS MCP</p><h3>L'oreille dans QGIS</h3><p>Reçoit les ordres et les exécute dans le projet ouvert.</p></div>
+  </div>
+
+  <div class="flux-legende">
+    <p class="note"><b>MCP, c'est quoi ?</b> Le <i>Model Context Protocol</i> est un standard qui permet à un assistant IA d'utiliser des logiciels installés sur l'ordinateur, un peu comme une prise universelle. Ici, il donne à Claude une « boîte à outils QGIS ».</p>
+    <p class="note"><b>Où vont les données ?</b> QGIS et les fichiers restent sur le poste. Mais tout ce que Claude lit pour répondre (noms de couches, attributs consultés, résultats) part vers les serveurs d'Anthropic, l'éditeur de Claude. Voir les <a href="#prudence">mises en garde</a>.</p>
+  </div>
+
+  <p class="gris" style="margin-top:14px">L'outil utilisé est <a href="https://github.com/jjsantos01/qgis_mcp" target="_blank" rel="noopener">qgis_mcp</a>, un projet communautaire publié sur GitHub. Il n'est édité ni par QGIS ni par Anthropic. Des guides payants circulent pour l'installer : ils ne sont pas nécessaires, tout est décrit ici.</p>
+</section>
+
+<!-- ================================================================== -->
+<section id="installer">
+  <div class="titre"><h2>Installer</h2><p>Une seule fois par poste · à faire valider par le service informatique sur un poste professionnel</p></div>
+  <ol class="etapes">
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Installer Claude Desktop</h3>
+        <p>Télécharger l'application Windows sur le site d'Anthropic, l'installer, puis se connecter avec un compte Claude.</p>
+        <p class="astuce"><b>Bon à savoir :</b> la version web de Claude (navigateur) ne peut pas piloter QGIS. Il faut l'application installée.</p>
+      </div>
+      <div class="visuel">
+        <a class="bouton" href="https://claude.ai/download" target="_blank" rel="noopener">claude.ai/download <small>nouvel onglet</small></a>
+      </div>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Installer uv</h3>
+        <p><b>uv</b> est un petit gestionnaire Python : il installera la bonne version de Python et les bibliothèques du serveur, sans toucher au reste du poste.</p>
+        <p>Ouvrir <b>PowerShell</b> (touche Windows, taper <code>powershell</code>, Entrée) et coller la première commande. Puis <b>fermer et rouvrir PowerShell</b> et vérifier avec la seconde.</p>
+        <p class="astuce"><b>Alternative :</b> <code>winget install --id=astral-sh.uv -e</code> fonctionne aussi.</p>
+      </div>
+      <div class="visuel">
+        <div class="term">
+          <div class="term-barre"><span>PowerShell · installation</span><button class="copier" data-cmd='powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'>Copier</button></div>
+          <pre><span class="inv">PS C:\Users\vous&gt;</span> powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</pre>
+        </div>
+        <div class="term">
+          <div class="term-barre"><span>PowerShell · vérification</span><button class="copier" data-cmd="uv --version">Copier</button></div>
+          <pre><span class="inv">PS C:\Users\vous&gt;</span> uv --version
+<span class="rep">uv 0.x.x</span></pre>
+        </div>
+      </div>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Installer Python 3.12 via uv</h3>
+        <p>Le serveur demande Python 3.12. On l'installe à la main maintenant, plutôt que de laisser Claude Desktop le faire au premier lancement.</p>
+        <p class="astuce"><b>Pourquoi ?</b> Claude Desktop lance parfois le serveur plusieurs fois en même temps. Les téléchargements se gênent et l'installation de Python reste à moitié faite (erreur « Missing expected target directory »).</p>
+      </div>
+      <div class="visuel">
+        <div class="term">
+          <div class="term-barre"><span>PowerShell</span><button class="copier" data-cmd="uv python install 3.12">Copier</button></div>
+          <pre><span class="inv">PS C:\Users\vous&gt;</span> uv python install 3.12
+<span class="rep">Installed Python 3.12.x</span></pre>
+        </div>
+      </div>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Télécharger le projet qgis_mcp</h3>
+        <p>Sur la page GitHub du projet, cliquer sur le bouton vert <b>Code</b>, puis <b>Download ZIP</b>. Pas besoin de compte GitHub.</p>
+        <p>Dézipper dans un dossier simple, sans espaces ni accents, par exemple <code>C:\outils\qgis_mcp</code>.</p>
+        <p class="astuce"><b>Attention :</b> le ZIP crée souvent un dossier <code>qgis_mcp-main</code>. Le renommer en <code>qgis_mcp</code> évite de devoir adapter les chemins plus loin.</p>
+        <a class="bouton" href="https://github.com/jjsantos01/qgis_mcp" target="_blank" rel="noopener">github.com/jjsantos01/qgis_mcp <small>nouvel onglet</small></a>
+      </div>
+      <figure class="visuel" style="margin:0">
+        <div class="fenetre" role="img" aria-label="Page GitHub du projet : bouton Code ouvert, option Download ZIP">
+          <div class="barre">github.com/jjsantos01/qgis_mcp</div>
+          <div class="gh">
+            <div class="ligne"><span class="depot" style="margin-right:auto">jjsantos01 / qgis_mcp</span><span class="bt">Go to file</span><span class="bt vert">&lt;&gt; Code ▾</span></div>
+            <ul class="deroule">
+              <li>Clone (HTTPS / SSH)</li>
+              <li>Open with GitHub Desktop</li>
+              <li class="vise">Download ZIP</li>
+            </ul>
+          </div>
+        </div>
+      </figure>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Copier le plugin dans QGIS</h3>
+        <p>Dans QGIS : <b>Préférences → Profils utilisateurs → Ouvrir le dossier du profil actif</b>, puis aller dans <code>python\plugins</code>.</p>
+        <p>Y copier <b>uniquement</b> le dossier <code>qgis_mcp_plugin</code> qui se trouve dans le projet dézippé. Pas le dossier entier du projet.</p>
+        <p class="astuce"><b>Contrôle :</b> en ouvrant <code>plugins\qgis_mcp_plugin</code>, on doit voir directement <code>metadata.txt</code> et <code>__init__.py</code>. Sinon QGIS affichera « Cette extension est corrompue ».</p>
+      </div>
+      <figure class="visuel" style="margin:0">
+        <div class="fenetre" role="img" aria-label="Explorateur : dossier qgis_mcp_plugin placé dans python\plugins, contenant metadata.txt">
+          <div class="barre">Explorateur de fichiers</div>
+          <div class="arbo">
+            <div class="barre-adr">…\QGIS\QGIS3\profiles\default\python\plugins</div>
+            <div class="ok"><span class="d"></span>qgis_mcp_plugin<span class="etiq">bon dossier</span></div>
+            <div class="n1"><span class="f"></span>__init__.py</div>
+            <div class="n1"><span class="f"></span>metadata.txt</div>
+            <div class="n1"><span class="f"></span>qgis_mcp_plugin.py</div>
+          </div>
+        </div>
+      </figure>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Activer le plugin</h3>
+        <p>Fermer et rouvrir QGIS. Dans <b>Extensions → Installer/Gérer les extensions</b>, onglet <b>Installées</b>, cocher <b>QGIS MCP</b>.</p>
+      </div>
+      <div class="visuel">
+        <p class="note">Le plugin n'est pas dans le dépôt officiel des extensions QGIS : il n'apparaît que parce qu'on l'a copié à la main à l'étape précédente.</p>
+      </div>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Préparer le serveur</h3>
+        <p>Cette commande télécharge les bibliothèques du serveur une bonne fois pour toutes. Adapter le chemin si le projet est ailleurs.</p>
+        <p>Si la fenêtre semble <b>bloquée sans message d'erreur</b>, c'est bon signe : le serveur attend Claude. Faire <b>Ctrl + C</b> pour l'arrêter.</p>
+      </div>
+      <div class="visuel">
+        <div class="term">
+          <div class="term-barre"><span>PowerShell</span><button class="copier" data-cmd="uv --directory C:\outils\qgis_mcp\src\qgis_mcp run qgis_mcp_server.py">Copier</button></div>
+          <pre><span class="inv">PS C:\Users\vous&gt;</span> uv --directory C:\outils\qgis_mcp\src\qgis_mcp run qgis_mcp_server.py
+<span class="com">(curseur qui clignote : normal, faire Ctrl + C)</span></pre>
+        </div>
+      </div>
+    </li>
+
+  </ol>
+</section>
+
+<!-- ================================================================== -->
+<section id="configurer">
+  <div class="titre"><h2>Configurer Claude Desktop</h2><p>Lui indiquer comment lancer le serveur</p></div>
+  <ol class="etapes">
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Ouvrir le fichier de configuration</h3>
+        <p>Dans Claude Desktop : <b>Paramètres → Développeur → Modifier la configuration</b>. L'explorateur s'ouvre sur le fichier <code>claude_desktop_config.json</code>. L'ouvrir avec le <b>Bloc-notes</b>.</p>
+        <p class="astuce"><b>Autre accès :</b> taper <code>%APPDATA%\Claude</code> dans la barre d'adresse de l'explorateur.</p>
+      </div>
+      <figure class="visuel" style="margin:0">
+        <div class="fenetre" role="img" aria-label="Paramètres de Claude Desktop, rubrique Développeur, bouton Modifier la configuration">
+          <div class="barre">Claude · Paramètres</div>
+          <div class="cd">
+            <div class="menu-g"><div>Général</div><div>Compte</div><div>Confidentialité</div><div>Connecteurs</div><div class="vise">Développeur</div></div>
+            <div class="zone-d">
+              <h4>Serveurs MCP locaux</h4>
+              <p style="margin:0 0 12px">Ajoutez ou modifiez les serveurs dans le fichier de configuration.</p>
+              <span class="btn vise">Modifier la configuration</span>
+            </div>
+          </div>
+        </div>
+      </figure>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Ajouter le serveur QGIS</h3>
+        <p><b>Si le fichier est vide</b> ou ne contient que <code>{}</code> : tout remplacer par le bloc ci-contre.</p>
+        <p><b>S'il contient déjà des réglages</b> : ne rien effacer. Coller les lignes <code>"mcpServers": { … },</code> juste après la première accolade <code>{</code>, avec une <b>virgule</b> à la fin pour les séparer du reste.</p>
+        <p class="astuce"><b>Deux pièges :</b> dans ce fichier, chaque <code>\</code> d'un chemin Windows s'écrit <code>\\</code>. Et le chemin doit mener au dossier qui contient <code>qgis_mcp_server.py</code>.</p>
+      </div>
+      <div class="visuel">
+        <div class="term">
+          <div class="term-barre"><span>claude_desktop_config.json</span><button class="copier" data-src="json-qgis">Copier</button></div>
+          <pre id="json-qgis">{
+  <span class="cle">"mcpServers"</span>: {
+    <span class="cle">"qgis"</span>: {
+      <span class="cle">"command"</span>: <span class="chaine">"uv"</span>,
+      <span class="cle">"args"</span>: [
+        <span class="chaine">"--directory"</span>,
+        <span class="chaine modif">"C:\\outils\\qgis_mcp\\src\\qgis_mcp"</span>,
+        <span class="chaine">"run"</span>,
+        <span class="chaine">"qgis_mcp_server.py"</span>
+      ]
+    }
+  }
+}</pre>
+        </div>
+        <div class="term">
+          <div class="term-barre"><span>Fichier déjà rempli : où insérer</span></div>
+          <pre>{
+  <span class="cle">"mcpServers"</span>: { <span class="com">… le bloc qgis …</span> }<span class="modif">,</span>
+  <span class="cle">"preferences"</span>: { <span class="com">… réglages existants, inchangés …</span> }
+}</pre>
+        </div>
+      </div>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Redémarrer Claude Desktop complètement</h3>
+        <p>Fermer la fenêtre ne suffit pas : faire <b>clic droit sur l'icône Claude</b> près de l'horloge, puis <b>Quitter</b>. Relancer ensuite l'application.</p>
+        <p class="astuce"><b>Important :</b> modifier le fichier pendant que Claude Desktop tourne peut faire perdre les changements, l'application réécrit ce fichier elle-même.</p>
+      </div>
+      <div class="visuel"></div>
+    </li>
+
+  </ol>
+</section>
+
+<!-- ================================================================== -->
+<section id="utiliser">
+  <div class="titre"><h2>Utiliser</h2><p>À chaque séance de travail</p></div>
+  <ol class="etapes">
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Démarrer le serveur dans QGIS</h3>
+        <p>Ouvrir le projet QGIS, puis <b>Extensions → QGIS MCP → QGIS MCP</b>. Dans le panneau qui s'ouvre, cliquer sur <b>Start Server</b>.</p>
+        <p>Toujours dans cet ordre : <b>QGIS d'abord, Claude ensuite</b>.</p>
+      </div>
+      <figure class="visuel" style="margin:0">
+        <div class="fenetre" role="img" aria-label="QGIS : menu Extensions, QGIS MCP, panneau avec le bouton Start Server">
+          <div class="barre">QGIS · Projet PAV</div>
+          <div class="qg">
+            <div class="menubar"><span>Projet</span><span>Éditer</span><span>Vue</span><span>Couche</span><span class="vise">Extensions</span><span>Vecteur</span><span>Raster</span></div>
+            <ul class="sous">
+              <li>Installer/Gérer les extensions…</li>
+              <li>Console Python</li>
+              <li class="sep vise">QGIS MCP ▸ QGIS MCP</li>
+            </ul>
+            <div class="dock"><p class="t">QGIS MCP</p><span class="b">Start Server</span><p class="s">Server running</p></div>
+          </div>
+        </div>
+      </figure>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Vérifier que Claude voit QGIS</h3>
+        <p>Dans une <b>nouvelle conversation</b>, cliquer sur le bouton <b>+</b> (ou l'icône des outils) dans la zone de saisie. <b>qgis</b> doit apparaître dans la liste, activé.</p>
+        <p>S'il est absent, Claude Desktop n'a pas réussi à lancer le serveur : voir <a href="#depannage">En cas de souci</a>.</p>
+      </div>
+      <figure class="visuel" style="margin:0">
+        <div class="fenetre" role="img" aria-label="Claude Desktop : liste des outils, qgis activé">
+          <div class="barre">Claude · Nouvelle conversation</div>
+          <div class="chat">
+            <div class="liste-outils">
+              <div>Recherche web <span class="inter on"></span></div>
+              <div class="vise">qgis <span class="inter on"></span></div>
+            </div>
+            <div class="boite"><span class="plus">+</span>Répondre à Claude…</div>
+          </div>
+        </div>
+      </figure>
+    </li>
+
+    <li class="etape">
+      <div class="texte">
+        <h3>Faire le test du « ping »</h3>
+        <p>Écrire simplement : <b>« Fais un ping sur QGIS pour vérifier la connexion. »</b></p>
+        <p>Claude demande l'autorisation d'utiliser l'outil. Cliquer sur <b>Autoriser</b>. S'il répond que QGIS a répondu, tout fonctionne.</p>
+      </div>
+      <figure class="visuel" style="margin:0">
+        <div class="fenetre" role="img" aria-label="Conversation : demande de ping, autorisation de l'outil, réponse de Claude">
+          <div class="barre">Claude · Test QGIS</div>
+          <div class="chat">
+            <div class="moi">Fais un ping sur QGIS pour vérifier la connexion.</div>
+            <div class="outil"><span class="nom">qgis · ping</span>
+              <div class="actions"><span class="vise">Autoriser</span><span>Refuser</span></div>
+            </div>
+            <div class="rep-c">QGIS a bien répondu : la connexion fonctionne. Que voulez-vous faire dans le projet ?</div>
+          </div>
+        </div>
+      </figure>
+    </li>
+
+  </ol>
+
+  <h3 style="margin:40px 0 14px">Exemples de demandes</h3>
+  <ul class="demandes">
+    <li>« Charge la couche C:\…\PAV.gpkg et zoome dessus. »<span>Chargement de données</span></li>
+    <li>« Liste les couches du projet avec leur nombre d'entités et leur système de coordonnées. »<span>Inventaire d'un projet reçu</span></li>
+    <li>« Compte les PAV par commune et donne-moi le résultat sous forme de tableau. »<span>Statistiques simples</span></li>
+    <li>« Crée un tampon de 200 m autour des PAV et enregistre-le en GeoPackage. »<span>Traitements</span></li>
+    <li>« Colore les PAV par type de flux, avec une légende claire. »<span>Mise en forme</span></li>
+    <li>« Exporte la vue actuelle en PNG dans C:\…\cartes\pav.png. »<span>Production de carte</span></li>
+  </ul>
+  <p class="alerte"><b>Réflexe :</b> ouvrir la table attributaire ou la couche produite pour vérifier le résultat, comme on le ferait pour le travail d'un stagiaire.</p>
+</section>
+
+<!-- ================================================================== -->
+<section id="bilan">
+  <div class="titre"><h2>Intérêts et limites</h2><p>Pour savoir quand ça vaut le coup</p></div>
+  <div class="bilan">
+    <div style="--k:var(--c)">
+      <h3>Ce que ça permet</h3>
+      <ul>
+        <li><b>Charger, ranger, styler</b> des couches vecteur et raster.</li>
+        <li><b>Lancer les traitements</b> de la boîte à outils QGIS (tampons, intersections, jointures…).</li>
+        <li><b>Interroger</b> un projet : couches, champs, entités.</li>
+        <li><b>Exporter</b> une carte en image, enregistrer le projet.</li>
+        <li><b>Exécuter du code Python</b> dans QGIS pour tout le reste.</li>
+      </ul>
+    </div>
+    <div style="--k:#8cbf8f">
+      <h3>Avantages</h3>
+      <ul>
+        <li><b>Accessible</b> sans connaître PyQGIS ni les menus avancés.</li>
+        <li><b>Gain de temps</b> sur les tâches répétitives ou fastidieuses.</li>
+        <li><b>Pédagogique</b> : on peut demander à Claude d'expliquer ce qu'il fait.</li>
+        <li><b>Données locales</b> : les fichiers ne sont pas envoyés en bloc.</li>
+        <li><b>Gratuit</b> côté outil, et réversible : on désactive le plugin.</li>
+      </ul>
+    </div>
+    <div style="--k:var(--accent)">
+      <h3>Inconvénients</h3>
+      <ul>
+        <li><b>Installation technique</b>, à refaire sur chaque poste.</li>
+        <li><b>Projet communautaire</b>, sans support ni garantie de suivi.</li>
+        <li><b>Erreurs possibles</b> : l'IA peut se tromper de champ, de projection, de couche.</li>
+        <li><b>Moins efficace</b> que QGIS en direct pour les gestes simples.</li>
+        <li><b>Compte Claude requis</b>, avec des limites d'usage selon l'abonnement.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section id="prudence">
+  <div class="titre"><h2>Mises en garde</h2><p>À lire avant toute utilisation sur des données de la collectivité</p></div>
+  <div class="garde">
+    <div><b>Claude peut exécuter du code sur le poste</b>
+      L'outil « exécuter du code » laisse Claude lancer n'importe quel script Python dans QGIS, avec les mêmes droits que vous : lire, modifier ou supprimer des fichiers.
+      <p>Garder l'autorisation demandée à chaque action, lire ce qui est proposé, et travailler sur <b>des copies</b> des données.</p></div>
+    <div><b>Confidentialité et RGPD</b>
+      Ce que Claude consulte pour répondre (attributs, extraits de tables, chemins de fichiers) est envoyé aux serveurs d'Anthropic, aux États-Unis.
+      <p>Ne pas l'utiliser sur des <b>données personnelles</b> (fichiers d'usagers, redevance, adresses nominatives) ni sur des données sous licence restreinte, comme les <b>fichiers fonciers</b>. En cas de doute, demander au DPO.</p></div>
+    <div><b>Validation par le service informatique</b>
+      L'installation ajoute des logiciels (uv, Python, plugin non officiel) et ouvre une connexion locale entre deux applications.
+      <p>Sur un poste professionnel, faire valider la démarche avant de l'installer.</p></div>
+    <div><b>Fiabilité des résultats</b>
+      Claude peut se tromper avec assurance : mauvais champ, mauvaise unité, filtre oublié.
+      <p>Tout résultat destiné à un rapport, un élu ou un marché doit être <b>vérifié à la main</b>.</p></div>
+    <div><b>Outil communautaire</b>
+      qgis_mcp est maintenu par un particulier et n'a été testé que sur certaines versions de QGIS. Une mise à jour de QGIS ou de Claude peut le casser.
+      <p>Ne pas en faire une brique indispensable d'un processus métier.</p></div>
+    <div><b>Arrêter le serveur après usage</b>
+      Tant que <i>Start Server</i> est actif, QGIS accepte des ordres venant du poste.
+      <p>Cliquer sur <b>Stop Server</b> (ou fermer QGIS) en fin de séance.</p></div>
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<section id="depannage">
+  <div class="titre"><h2>En cas de souci</h2><p>Les messages rencontrés lors de l'installation</p></div>
+  <div class="limites">
+    <div><b>QGIS : « Cette extension est corrompue · Fichier de métadonnées manquant »</b>Le mauvais dossier a été copié (souvent le projet entier, nommé <code>qgis_mcp</code>). Le supprimer de <code>python\plugins</code> et copier à la place <code>qgis_mcp_plugin</code>, qui contient <code>metadata.txt</code>.</div>
+    <div><b>Journal Claude : « Missing expected target directory for Python minor version link »</b>Installation de Python interrompue. Quitter Claude Desktop, lancer <code>uv python uninstall 3.12</code> puis <code>uv python install 3.12</code>, et refaire l'étape « Préparer le serveur ».</div>
+    <div><b>« qgis » n'apparaît pas dans les outils de Claude</b>Erreur dans le fichier de configuration (virgule manquante, <code>\</code> non doublés) ou chemin faux. Les journaux sont dans <code>%APPDATA%\Claude\logs</code>, fichier <code>mcp-server-qgis.log</code>.</div>
+    <div><b>« uv n'est pas reconnu… » ou serveur qui ne démarre pas</b>Rouvrir PowerShell après l'installation d'uv. Si Claude ne le trouve toujours pas, taper <code>Get-Command uv</code> et remplacer <code>"uv"</code> par le chemin complet affiché, en doublant les <code>\</code>.</div>
+    <div><b>Claude répond que la connexion à QGIS est refusée</b>Le serveur n'est pas démarré dans QGIS. Cliquer sur <i>Start Server</i>, puis redemander.</div>
+    <div><b>Les modifications du fichier de configuration disparaissent</b>Claude Desktop était ouvert pendant la modification. Le quitter complètement, refaire la modification, puis le relancer.</div>
+  </div>
+
+  <p class="gris" style="margin-top:22px">Pour aller plus loin : <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener">documentation du protocole MCP</a> · <a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener">documentation d'uv</a> · le même serveur fonctionne aussi avec <i>Claude Code</i>, la version en ligne de commande.</p>
+</section>
+
+</div>
+</main>
+
+<footer>
+  <div class="page">
+    <span>Normandie Cabourg Pays d'Auge · <a href="../index.html">Champ des possibles</a></span>
+    <span>Guide de prise en main · Windows 10 et 11 · octobre 2026</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ---------- Boutons « Copier » ---------- */
+document.querySelectorAll(".copier").forEach(b => b.addEventListener("click", async () => {
+  const t = b.dataset.cmd ?? document.getElementById(b.dataset.src).textContent;
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) {
+    const z = document.createElement("textarea");
+    z.value = t; document.body.appendChild(z); z.select();
+    document.execCommand("copy"); z.remove();
+  }
+  b.textContent = "Copié ✓"; b.classList.add("ok");
+  setTimeout(() => { b.textContent = "Copier"; b.classList.remove("ok"); }, 1600);
+}));
+
+/* ---------- Courbes de niveau décoratives (en-tête) ---------- */
+(function () {
+  const svg = document.getElementById("topo");
+  const W = 1600, H = 600, cx = 1180, cy = 140;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", "xMaxYMin slice");
+  let d = "";
+  for (let k = 1; k <= 16; k++) {
+    const r = 34 * k, pts = [];
+    for (let i = 0; i <= 96; i++) {
+      const a = i / 96 * Math.PI * 2;
+      const n = 1 + 0.16 * Math.sin(3 * a + k * 0.35) + 0.08 * Math.sin(5 * a - k * 0.2) + 0.05 * Math.cos(7 * a + k * 0.5);
+      pts.push(`${(cx + Math.cos(a) * r * n * 1.35).toFixed(1)},${(cy + Math.sin(a) * r * n * 0.85).toFixed(1)}`);
+    }
+    d += `<path d="M${pts.join("L")}Z" fill="none" stroke="currentColor" stroke-width="${k % 4 === 0 ? 1.6 : 0.9}"/>`;
+  }
+  svg.innerHTML = d;
+})();
+</script>
+</body>
+</html>
