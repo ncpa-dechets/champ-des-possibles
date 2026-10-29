@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catalogue des données et API ouvertes · NCPA</title>
+<meta name="description" content="Catalogue des API, flux SIG et jeux de données ouverts utiles à une intercommunalité : contenu, usages par compétence, conditions d’accès.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== Couleurs : à ajuster ici pour coller à la charte exacte ===== */
+:root{
+  --paper:#f6f7f3; --surface:#ffffff; --ink:#1c2624; --muted:#5b6662; --line:#d9ddd6;
+  --field:#2d6a4f; --field-soft:#e3efe8;
+  --key:#8a5d0e; --key-soft:#f7ecd5; --lock:#a3412f; --lock-soft:#f6e3de;
+  --type:#34558b; --type-soft:#e4ebf6; --warn-soft:#fff4d6; --warn:#7a5a00;
+  --focus:#1f5fbf;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#121815; --surface:#18201c; --ink:#e6ebe7; --muted:#9aa59f; --line:#2a332f;
+    --field:#78c49c; --field-soft:#1d2b24;
+    --key:#e0b45a; --key-soft:#2d2515; --lock:#e48a77; --lock-soft:#2f1d19;
+    --type:#9db8e8; --type-soft:#1b2433; --warn-soft:#2c2614; --warn:#e6c76a;
+    --focus:#8ab4ff;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:16px;line-height:1.55}
+a{color:var(--field)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1140px;margin:0 auto;padding:0 20px}
+
+.brand{border-bottom:1px solid var(--line);background:var(--surface)}
+.brand .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px;flex-wrap:wrap}
+.brand-name{font-weight:600}
+.brand-name span{color:var(--muted);font-weight:400}
+.tabs{display:flex;gap:4px}
+.tab{border:0;background:none;font:inherit;color:var(--muted);padding:8px 12px;border-radius:6px;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);background:var(--field-soft);font-weight:600}
+
+.hero{padding:44px 0 26px}
+.hero h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(2rem,4.6vw,3.1rem);line-height:1.1;margin:0 0 16px;max-width:20ch}
+.hero h1 em{font-weight:500;color:var(--field)}
+.hero p{max-width:64ch;color:var(--muted);margin:0 0 20px;font-size:1.06rem}
+.points{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 28px}
+.points li{padding-left:18px;position:relative;font-weight:500}
+.points li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:8px;border-radius:50%;background:var(--field)}
+
+.toolbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 93%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 0}
+.row1{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search{flex:1 1 260px;position:relative}
+.search input{width:100%;font:inherit;padding:10px 12px 10px 38px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+select{font:inherit;font-size:.95rem;padding:10px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);max-width:100%}
+select.on{border-color:var(--field);box-shadow:inset 0 0 0 1px var(--field)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.chip{font:inherit;font-size:.86rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:4px 11px;border-radius:999px;cursor:pointer}
+.chip small{color:var(--muted);margin-left:4px}
+.chip[aria-pressed="true"]{background:var(--field);border-color:var(--field);color:var(--paper)}
+.chip[aria-pressed="true"] small{color:inherit;opacity:.8}
+.status{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.9rem;color:var(--muted)}
+.linkbtn{border:0;background:none;color:var(--field);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+
+.list{padding:8px 0 40px}
+.item{border-bottom:1px solid var(--line)}
+.item-head{width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:18px 4px;display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:start}
+.item-head:hover .item-name{color:var(--field)}
+.item-name{font-family:"Fraunces",Georgia,serif;font-size:1.22rem;font-weight:600;line-height:1.25}
+.item-prod{color:var(--muted);font-size:.9rem;margin-top:2px}
+.item-sum{grid-column:1/-1;margin:2px 0 0;max-width:75ch}
+.meta{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.badge{font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.b-libre{background:var(--field-soft);color:var(--field)}
+.b-cle{background:var(--key-soft);color:var(--key)}
+.b-mixte,.b-habil{background:var(--lock-soft);color:var(--lock)}
+.b-type{background:var(--type-soft);color:var(--type)}
+.themes{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.themes span{font-size:.8rem;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 7px}
+.caret{transition:transform .2s;color:var(--muted)}
+.item-head[aria-expanded="true"] .caret{transform:rotate(180deg)}
+
+.detail{padding:0 4px 24px;display:none}
+.detail.open{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 36px}
+.grid h3{font-size:.85rem;font-weight:600;color:var(--muted);margin:0 0 4px}
+.grid p{margin:0}
+.uses{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.uses li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline}
+.uses b{font-size:.78rem;font-weight:600;color:var(--field);background:var(--field-soft);border-radius:4px;padding:1px 7px;white-space:nowrap}
+.warn{grid-column:1/-1;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn);padding:10px 14px;border-radius:0 6px 6px 0}
+.warn strong{color:var(--warn)}
+.specs{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 20px;margin:0;padding:14px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
+.specs div{min-width:0}
+.specs dt{font-size:.78rem;color:var(--muted);font-weight:600}
+.specs dd{margin:0;font-size:.93rem;overflow-wrap:anywhere}
+.links{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.links a{display:inline-block;padding:7px 12px;border:1px solid var(--line);border-radius:6px;text-decoration:none;background:var(--surface);font-size:.92rem}
+.links a:hover{border-color:var(--field)}
+.links a.try{border-color:var(--field);color:var(--field);font-weight:600}
+.check{font-size:.82rem;color:var(--muted);margin-left:auto}
+.empty{padding:40px 0;text-align:center;color:var(--muted)}
+
+.guide{padding:8px 0 48px;max-width:780px}
+.guide h2{font-family:"Fraunces",Georgia,serif;font-size:1.5rem;margin:32px 0 8px}
+.guide p,.guide li{max-width:70ch}
+.guide code{background:var(--field-soft);padding:2px 6px;border-radius:4px;font-size:.9em;word-break:break-all}
+.levels{display:grid;gap:10px;margin:12px 0}
+.levels div{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:baseline}
+.levels .badge{justify-self:start}
+
+footer{border-top:1px solid var(--line);padding:20px 0 32px;color:var(--muted);font-size:.88rem}
+[hidden]{display:none!important}
+@media (max-width:760px){
+  .grid{grid-template-columns:1fr}
+  .item-head{grid-template-columns:1fr}
+  .meta{justify-content:flex-start}
+  .hero{padding:30px 0 20px}
+  .levels div{grid-template-columns:1fr}
+  .check{margin-left:0;width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="brand">
+  <div class="wrap">
+    <div class="brand-name">NCPA <span>· Champ des possibles</span></div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="v-cat" id="t-cat">Catalogue</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="v-guide" id="t-guide">Comprendre les API</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap">
+    <h1>Des données ouvertes <em>au service du territoire</em></h1>
+    <p>API, flux cartographiques et jeux de données publics utiles à une intercommunalité. Pour chaque source : ce qu’on y trouve, ce que chaque service peut en faire, et comment y accéder depuis Excel, QGIS ou un outil web.</p>
+    <ul class="points">
+      <li>Sources publiques, gratuites pour l’essentiel</li>
+      <li>Usages classés par compétence</li>
+      <li>Niveau technique indiqué pour chaque source</li>
+    </ul>
+  </div>
+</section>
+
+<div id="v-cat" role="tabpanel" aria-labelledby="t-cat">
+  <div class="toolbar">
+    <div class="wrap">
+      <div class="row1">
+        <label class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="Rechercher : adresse, SIRET, inondation, PLU, allocataires…" aria-label="Rechercher dans le catalogue">
+        </label>
+        <select id="f-comp" aria-label="Filtrer par compétence"></select>
+        <select id="f-type" aria-label="Filtrer par type de ressource"></select>
+        <select id="f-acces" aria-label="Filtrer par accès"></select>
+        <select id="f-niv" aria-label="Filtrer par niveau technique"></select>
+      </div>
+      <div class="chips" id="chips" aria-label="Filtrer par thématique"></div>
+      <div class="status"><span id="count" aria-live="polite"></span><button class="linkbtn" id="reset" type="button">Effacer les filtres</button></div>
+    </div>
+  </div>
+  <div class="wrap"><div class="list" id="list"></div></div>
+</div>
+
+<div id="v-guide" role="tabpanel" aria-labelledby="t-guide" hidden>
+  <div class="wrap guide">
+    <h2>Une API, c’est quoi ?</h2>
+    <p>Une adresse web qui renvoie des données brutes au lieu d’une page à lire. On écrit la question dans l’adresse, le serveur répond avec les données. Essayez : cette adresse demande les informations de Cabourg à l’API Géo.</p>
+    <p><a href="https://geo.api.gouv.fr/communes?nom=Cabourg&amp;fields=nom,code,codesPostaux,population,codeEpci" target="_blank" rel="noopener"><code>geo.api.gouv.fr/communes?nom=Cabourg&amp;fields=nom,code,population</code></a></p>
+    <p>La réponse arrive en JSON : du texte structuré, lisible par un programme. Firefox l’affiche joliment ; Excel et QGIS savent le lire.</p>
+
+    <h2>Cinq types de ressources</h2>
+    <div class="levels">
+      <div><span class="badge b-type">API</span><span>Interrogation à la demande, réponse en JSON. Idéal pour un outil ou une mise à jour automatique.</span></div>
+      <div><span class="badge b-type">API statistique</span><span>Indicateurs et séries déjà calculés, filtrables par territoire et par année.</span></div>
+      <div><span class="badge b-type">Flux SIG</span><span>Couche cartographique (WMS, WMTS, WFS) à ajouter directement dans QGIS.</span></div>
+      <div><span class="badge b-type">Téléchargement</span><span>Fichier complet (CSV, GeoPackage…). Souvent plus simple qu’une API pour une analyse ponctuelle ou de gros volumes.</span></div>
+      <div><span class="badge b-type">Catalogue</span><span>Portail qui recense d’autres sources.</span></div>
+    </div>
+
+    <h2>Quatre niveaux d’accès</h2>
+    <div class="levels">
+      <div><span class="badge b-libre">Libre</span><span>On interroge directement, sans compte.</span></div>
+      <div><span class="badge b-cle">Inscription gratuite</span><span>On crée un compte et on reçoit une clé (ou jeton) à joindre à chaque requête.</span></div>
+      <div><span class="badge b-mixte">En partie restreint</span><span>Une partie est ouverte ; le reste demande une habilitation ou un abonnement.</span></div>
+      <div><span class="badge b-habil">Sur habilitation</span><span>Réservé aux administrations, après une demande justifiant l’usage.</span></div>
+    </div>
+
+    <h2>Les exploiter sans être développeur</h2>
+    <ul>
+      <li><strong>Excel :</strong> Données › À partir du web, coller l’adresse de l’API. Power Query transforme le JSON en tableau actualisable d’un clic.</li>
+      <li><strong>QGIS :</strong> les flux SIG s’ajoutent comme une couche ; les GeoPackage s’ouvrent par glisser-déposer.</li>
+      <li><strong>Python ou page HTML :</strong> pour automatiser, croiser plusieurs sources ou construire un outil.</li>
+    </ul>
+
+    <h2>Croiser les sources</h2>
+    <p>Deux sources se relient grâce à un identifiant commun : le <strong>code INSEE</strong> de la commune, le <strong>SIREN</strong> de l’EPCI ou de l’entreprise, le <strong>SIRET</strong> de l’établissement, la <strong>référence cadastrale</strong> de la parcelle, ou l’<strong>identifiant BAN</strong> de l’adresse. Chaque fiche indique les identifiants disponibles.</p>
+
+    <h2>Points de vigilance</h2>
+    <ul>
+      <li><strong>Quotas :</strong> la plupart limitent le nombre de requêtes. Pour de gros volumes, préférer le fichier complet.</li>
+      <li><strong>Pérennité :</strong> les adresses et les versions changent. L’API Adresse est passée de data.gouv.fr à l’IGN en 2025 ; Géorisques a introduit une version 2 avec jeton ; les anciens fichiers FINESS ne sont plus mis à jour depuis juillet 2026.</li>
+      <li><strong>Licence :</strong> la Licence Ouverte impose de citer la source ; l’ODbL (OpenStreetMap, Atmo) impose en plus de repartager les bases dérivées sous la même licence.</li>
+      <li><strong>Décalage :</strong> une donnée « à jour » peut avoir un ou deux ans de retard (recensement, enquêtes).</li>
+      <li><strong>Données personnelles :</strong> croiser des sources ouvertes peut recréer des données sensibles ; le RGPD s’applique aux traitements qu’on en fait.</li>
+    </ul>
+  </div>
+</div>
+</main>
+
+<footer>
+  <div class="wrap">Catalogue établi en octobre 2026. Conditions d’accès et adresses évoluent : la page du producteur fait foi. La mention « vérifié » indique une fiche contrôlée sur la source le 29/10/2026. Normandie Cabourg Pays d’Auge</div>
+</footer>
+
+<script>
+const THEMES = {
+  adr:"Adresses et découpage", carto:"Cartographie", pop:"Population et société", eco:"Économie et emploi",
+  fon:"Foncier, urbanisme, habitat", env:"Environnement et risques", eau:"Eau et littoral", ene:"Énergie et climat",
+  dec:"Déchets", mob:"Mobilité", tour:"Tourisme, culture, sport", agri:"Agriculture", fin:"Finances et marchés",
+  meteo:"Météo", serv:"Services publics", reg:"Droit", cat:"Catalogues"
+};
+const COMP = {
+  dec:"Déchets", eau:"Eau et assainissement", gem:"GEMAPI, risques, littoral", urb:"Urbanisme et habitat",
+  eco:"Développement économique", tour:"Tourisme et culture", fin:"Finances et achats", env:"Environnement et PCAET",
+  soc:"Action sociale et santé", mob:"Mobilité", sig:"SIG et observation", adm:"Administration et usagers"
+};
+const TYPES = {rest:"API", stat:"API statistique", flux:"Flux SIG", fichier:"Téléchargement", catalogue:"Catalogue"};
+const ACCES = {libre:"Libre", cle:"Inscription gratuite", mixte:"En partie restreint", habil:"Sur habilitation"};
+const NIV = {1:"Facile", 2:"Intermédiaire", 3:"Avancé"};
+const NIVTXT = {1:"Facile : navigateur ou Excel", 2:"Intermédiaire : QGIS, Power Query avec paramètres", 3:"Avancé : script, authentification"};
+const LO = "Licence Ouverte";
+
+/* n nom · p producteur · ty type · t thèmes · a accès · sc échelle · fo formats · mj mise à jour · li licence
+   x identifiants de croisement · lv niveau · r résumé · data contenu · u usages [compétence, texte] · w avertissement
+   lim accès et limites · doc/pres liens · ex exemple de requête · v vérifié le 29/10/2026 */
+const S = [
+// ---------- Adresses, cartographie ----------
+{n:"Géocodage de la Base Adresse Nationale",p:"IGN, Géoplateforme",ty:"rest",t:["adr","carto"],a:"libre",
+ sc:"Adresse, parcelle",fo:"JSON, GeoJSON, CSV",mj:"Hebdomadaire",li:LO,x:"Identifiant BAN, code INSEE",lv:1,v:1,
+ r:"Transformer une adresse en coordonnées, et l’inverse.",
+ data:"Adresses de la Base Adresse Nationale, lieux-dits, parcelles cadastrales et points d’intérêt. Géocodage unitaire ou par fichier CSV.",
+ u:[["sig","Fiabiliser et localiser tout fichier d’adresses ; préalable à presque toute carte."],["dec","Géolocaliser foyers, bacs, points d’apport volontaire et signalements."],["adm","Contrôler les adresses des fichiers d’usagers et de facturation."],["eau","Géolocaliser abonnés et branchements."]],
+ lim:"Libre, sans clé, 50 requêtes par seconde. L’ancienne adresse api-adresse.data.gouv.fr est remplacée par data.geopf.fr.",
+ doc:"https://geoservices.ign.fr/documentation/services/services-geoplateforme/geocodage",pres:"https://adresse.data.gouv.fr",
+ ex:"https://data.geopf.fr/geocodage/search?q=avenue%20de%20la%20mer%20cabourg&limit=3"},
+{n:"Découpage administratif (API Géo)",p:"État, DINUM",ty:"rest",t:["adr","pop"],a:"libre",
+ sc:"Commune, EPCI, département, région",fo:"JSON, GeoJSON",mj:"Annuelle",li:LO,x:"Code INSEE, SIREN de l’EPCI",lv:1,
+ r:"Communes, EPCI, départements : codes, contours et population.",
+ data:"Codes INSEE et postaux, rattachement aux EPCI, contours géographiques, population légale.",
+ u:[["sig","Table de référence pour relier entre elles toutes les autres sources par code INSEE."],["dec","Ratios en kg par habitant et par commune avec la population légale à jour."]],
+ lim:"Libre, sans clé.",
+ doc:"https://geo.api.gouv.fr/decoupage-administratif",pres:"https://geo.api.gouv.fr",
+ ex:"https://geo.api.gouv.fr/communes?nom=Cabourg&fields=nom,code,codesPostaux,population,codeEpci"},
+{n:"API Carto",p:"IGN",ty:"rest",t:["carto","fon"],a:"libre",
+ sc:"Point, parcelle",fo:"GeoJSON",mj:"Selon le module",li:LO,x:"Référence cadastrale, code INSEE",lv:2,
+ r:"Savoir en un appel sur quelle parcelle et dans quel zonage se trouve un point.",
+ data:"Modules cadastre, urbanisme (zonages du Géoportail de l’urbanisme), appellations d’origine, registre parcellaire agricole, espaces naturels.",
+ u:[["urb","Vérifier rapidement les contraintes d’un terrain."],["dec","Contrôler la parcelle et le zonage d’un futur emplacement de colonnes enterrées."]],
+ lim:"Libre, sans clé.",
+ doc:"https://apicarto.ign.fr/api/doc/",pres:"https://geoservices.ign.fr"},
+{n:"Fonds de carte IGN (Plan IGN, orthophotos)",p:"IGN, Géoplateforme",ty:"flux",t:["carto"],a:"libre",
+ sc:"France entière",fo:"WMTS, WMS (images)",mj:"Variable selon la couche",li:LO,x:"—",lv:1,
+ r:"Les fonds officiels à afficher sous ses propres données.",
+ data:"Plan IGN, orthophotographies récentes et historiques, cartes topographiques, cadastre en image.",
+ u:[["sig","Fond de référence pour QGIS et les cartes web."],["dec","Caler les implantations d’équipements sur l’orthophoto."],["urb","Comparer l’occupation du sol entre deux campagnes d’orthophotos."]],
+ lim:"Libre pour l’essentiel ; s’ajoute dans QGIS comme une couche WMTS.",
+ doc:"https://geoservices.ign.fr",pres:"https://cartes.gouv.fr"},
+{n:"Données vectorielles IGN (BD TOPO, Parcellaire Express, OCS GE)",p:"IGN, Géoplateforme",ty:"flux",t:["carto","fon"],a:"libre",
+ sc:"Objet (bâtiment, tronçon, parcelle)",fo:"WFS, GeoPackage",mj:"Plusieurs éditions par an",li:LO,x:"Identifiants IGN, code INSEE, référence cadastrale",lv:2,
+ r:"Bâtiments, routes, parcelles et occupation du sol en objets exploitables.",
+ data:"BD TOPO (bâtiments, voies, hydrographie, équipements), Parcellaire Express (cadastre vectoriel), OCS GE (occupation du sol à grande échelle).",
+ u:[["sig","Socle des analyses spatiales : comptage de bâtiments, linéaires de voirie."],["dec","Voies de la BD TOPO pour préparer les circuits de collecte."],["urb","Suivi de l’artificialisation avec l’OCS GE."]],
+ lim:"Libre. WFS pour une emprise limitée, téléchargement par département pour de gros volumes.",
+ doc:"https://geoservices.ign.fr",pres:"https://cartes.gouv.fr"},
+{n:"Altimétrie et LiDAR HD",p:"IGN",ty:"fichier",t:["carto","env"],a:"libre",
+ sc:"Dalle de 1 km",fo:"LAZ (nuages de points), GeoTIFF (modèles)",mj:"Couverture nationale progressive",li:LO,x:"—",lv:3,
+ r:"Le relief et la hauteur des objets, au décimètre près.",
+ data:"Nuages de points LiDAR HD classés, modèles numériques de terrain, de surface et de hauteur ; RGE ALTI.",
+ u:[["gem","Modéliser les zones basses exposées à la submersion."],["urb","Hauteur des bâtiments, pentes, ombrages, modèles 3D."],["sig","Profils en long, calculs de volumes."],["eau","Pentes et altitudes pour les réseaux d’assainissement gravitaire."]],
+ lim:"Libre. Fichiers volumineux : à traiter dans QGIS ou par script.",
+ doc:"https://geoservices.ign.fr/lidarhd",pres:"https://cartes.gouv.fr"},
+{n:"Itinéraires et isochrones",p:"IGN, Géoplateforme",ty:"rest",t:["carto","mob"],a:"libre",
+ sc:"Point",fo:"JSON, GeoJSON",mj:"Selon le réseau BD TOPO",li:LO,x:"Coordonnées",lv:2,
+ r:"Calculer un trajet ou la zone accessible en un temps donné.",
+ data:"Itinéraires en voiture ou à pied et isochrones, sur le réseau routier de la BD TOPO.",
+ u:[["mob","Accessibilité des équipements publics, zones de chalandise."],["dec","Temps d’accès aux déchèteries ; effet d’une fermeture de site."]],
+ lim:"Libre, sans clé, avec un plafond de requêtes.",
+ doc:"https://geoservices.ign.fr",pres:"https://cartes.gouv.fr"},
+{n:"OpenRouteService",p:"HeiGIT (université de Heidelberg)",ty:"rest",t:["mob","carto"],a:"cle",
+ sc:"Point",fo:"JSON, GeoJSON",mj:"Suit OpenStreetMap",li:"Données ODbL",x:"Coordonnées",lv:2,
+ r:"Itinéraires multimodaux, isochrones et optimisation de tournées.",
+ data:"Itinéraires voiture, poids lourd, vélo et marche ; isochrones ; matrices de distances ; module d’optimisation de tournées.",
+ u:[["mob","Accessibilité à vélo ou à pied."],["dec","Profil camion et optimisation d’une tournée à partir d’une liste d’arrêts."]],
+ lim:"Clé gratuite, quotas journaliers.",
+ doc:"https://openrouteservice.org/dev/#/api-docs",pres:"https://openrouteservice.org"},
+{n:"Overpass (OpenStreetMap)",p:"Communauté OpenStreetMap",ty:"rest",t:["carto","mob","tour"],a:"libre",
+ sc:"Objet",fo:"JSON, XML",mj:"En continu",li:"ODbL",x:"Coordonnées",lv:3,
+ r:"Interroger tous les objets cartographiés par les contributeurs d’OpenStreetMap.",
+ data:"Commerces, équipements, chemins, bancs, conteneurs, pistes cyclables : tout ce qui est saisi dans OpenStreetMap.",
+ u:[["sig","Recenser des équipements absents des bases officielles."],["dec","Repérer les conteneurs à verre ou à textile déjà cartographiés."],["tour","Inventorier sentiers, points de vue, aires de pique-nique."]],
+ lim:"Libre ; langage de requête spécifique ; qualité variable selon les contributeurs locaux.",
+ doc:"https://wiki.openstreetmap.org/wiki/Overpass_API",pres:"https://overpass-turbo.eu"},
+{n:"Géoportail de l’urbanisme",p:"IGN, DGALN",ty:"flux",t:["fon","carto"],a:"libre",
+ sc:"Zone, parcelle",fo:"WFS, WMS, téléchargement par document",mj:"À chaque publication d’un document",li:LO,x:"Code INSEE, identifiant de document",lv:2,
+ r:"PLU, cartes communales et servitudes d’utilité publique.",
+ data:"Zonages et prescriptions des documents d’urbanisme, servitudes d’utilité publique, règlements en PDF.",
+ u:[["urb","Constituer la couche réglementaire du SIG ; préparer les projets d’aménagement."],["dec","Vérifier les contraintes d’un site de déchèterie ou de quai de transfert."]],
+ lim:"Libre. Pour une requête ponctuelle, l’API Carto (module urbanisme) suffit.",
+ doc:"https://www.geoportail-urbanisme.gouv.fr",pres:"https://www.geoportail-urbanisme.gouv.fr"},
+
+// ---------- Population, social ----------
+{n:"Melodi",p:"INSEE",ty:"stat",t:["pop","eco","fon"],a:"libre",
+ sc:"Commune, EPCI, souvent IRIS",fo:"JSON, CSV",mj:"Selon le jeu (souvent annuelle)",li:LO,x:"Code INSEE",lv:2,v:1,
+ r:"Tout le catalogue statistique de l’INSEE en une seule API.",
+ data:"Recensement, revenus, logement, équipements (BPE), emploi, naissances et décès.",
+ u:[["sig","Portraits de territoire, comparaisons entre communes, tableau de bord."],["dec","Logements et résidences secondaires par commune pour dimensionner la collecte en saison."],["soc","Structure par âge, ménages, niveau de vie."]],
+ lim:"Libre sans souscription, 30 interrogations par minute.",
+ doc:"https://portail-api.insee.fr/catalog/api/a890b735-159c-4c91-90b7-35159c7c9126/doc",pres:"https://catalogue-donnees.insee.fr/fr/catalogue/recherche",
+ ex:"https://api.insee.fr/melodi/data/DS_POPULATIONS_REFERENCE?GEO=FRANCE-F"},
+{n:"Données locales (ancienne API)",p:"INSEE",ty:"stat",t:["pop"],a:"cle",
+ sc:"Commune",fo:"JSON",mj:"Voir avertissement",li:LO,x:"Code INSEE",lv:2,
+ r:"Chiffres détaillés à la commune sous forme de tableaux prédéfinis.",
+ w:"L’INSEE oriente désormais vers Melodi. Pour tout nouvel outil, partir de Melodi ; garder cette API uniquement pour les traitements existants.",
+ data:"Populations légales, logement, emploi, en tableaux croisés par commune.",
+ u:[["sig","Maintenance d’outils existants qui l’utilisent déjà."]],
+ lim:"Clé gratuite sur le portail INSEE.",
+ doc:"https://portail-api.insee.fr",pres:"https://www.insee.fr/fr/information/8184146"},
+{n:"Cafdata",p:"CNAF et CAF",ty:"rest",t:["pop"],a:"libre",
+ sc:"Commune, EPCI, IRIS",fo:"JSON, CSV",mj:"Annuelle",li:LO,x:"Code INSEE, SIREN de l’EPCI",lv:1,v:1,
+ r:"Allocataires et prestations sociales à la commune et à l’EPCI.",
+ data:"Foyers allocataires, taux de couverture, aides au logement par type de parc, petite enfance, minima sociaux.",
+ u:[["soc","Portrait social, analyse de la précarité, analyse des besoins sociaux."],["urb","Poids des aides au logement dans le parc privé et social."]],
+ lim:"Libre ; plateforme Opendatasoft (API standard et export).",
+ doc:"https://data.caf.fr",pres:"https://data.caf.fr"},
+{n:"FINESS+",p:"Agence du Numérique en Santé",ty:"fichier",t:["pop"],a:"libre",
+ sc:"Établissement",fo:"JSON (conversion CSV communautaire)",mj:"Quotidienne",li:LO,x:"Numéro FINESS, SIRET",lv:2,v:1,
+ r:"Les établissements sanitaires, sociaux et médico-sociaux.",
+ w:"Une nouvelle version de FINESS est en service depuis le 20 juillet 2026 : les anciens fichiers d’extraction ne sont plus mis à jour. Utiliser les nouveaux flux.",
+ data:"Hôpitaux, EHPAD, structures pour personnes handicapées, crèches médicalisées, avec activités et autorisations.",
+ u:[["soc","Cartographier l’offre de santé et médico-sociale."],["dec","Repérer les établissements producteurs de déchets d’activités de soins."]],
+ lim:"Libre. Format JSON ; une conversion CSV mensuelle est proposée par la communauté sur data.gouv.fr.",
+ doc:"https://finess.esante.gouv.fr",pres:"https://www.data.gouv.fr/datasets/finess-en-csv-conversion-mensuelle-de-finess/"},
+{n:"Calendrier scolaire et annuaire de l’éducation",p:"Ministère de l’Éducation nationale",ty:"rest",t:["serv","pop"],a:"libre",
+ sc:"Établissement, zone",fo:"JSON, CSV",mj:"Annuelle",li:LO,x:"Code UAI, code INSEE",lv:1,
+ r:"Vacances scolaires par zone et annuaire des établissements.",
+ data:"Dates des vacances par zone ; écoles, collèges, lycées avec adresse et effectifs.",
+ u:[["soc","Périscolaire, petite enfance, transport scolaire."],["dec","Adapter les fréquences de collecte des zones touristiques pendant les vacances."]],
+ lim:"Libre ; API standard Opendatasoft.",
+ doc:"https://data.education.gouv.fr",pres:"https://data.education.gouv.fr/explore/dataset/fr-en-calendrier-scolaire/"},
+
+// ---------- Économie ----------
+{n:"API Sirene",p:"INSEE",ty:"rest",t:["eco"],a:"cle",
+ sc:"Établissement",fo:"JSON",mj:"Quotidienne",li:LO,x:"SIREN, SIRET, code INSEE",lv:2,
+ r:"Toutes les entreprises et établissements, avec activité et adresse.",
+ data:"SIRET, activité (code NAF), tranche d’effectifs, adresse, dates de création et de fermeture.",
+ u:[["eco","Connaître le tissu économique, suivre créations et fermetures."],["dec","Cibler les redevables de la redevance spéciale."],["fin","Recenser les bases de la fiscalité économique."]],
+ lim:"Clé gratuite sur le portail des API de l’INSEE.",
+ doc:"https://portail-api.insee.fr",pres:"https://www.insee.fr/fr/information/8184146"},
+{n:"Recherche d’entreprises",p:"État, DINUM",ty:"rest",t:["eco"],a:"libre",
+ sc:"Établissement",fo:"JSON",mj:"Quotidienne",li:LO,x:"SIREN, SIRET",lv:1,
+ r:"La base Sirene enrichie, interrogeable sans clé.",
+ data:"Entreprises et établissements, dirigeants, labels, conventions collectives ; recherche par nom, commune ou activité.",
+ u:[["eco","Recherche rapide, idéale pour un premier outil."],["dec","Vérifier qu’un établissement producteur de déchets existe toujours."]],
+ lim:"Libre, sans clé, débit limité.",
+ doc:"https://recherche-entreprises.api.gouv.fr/docs/",pres:"https://annuaire-entreprises.data.gouv.fr",
+ ex:"https://recherche-entreprises.api.gouv.fr/search?q=cabourg&per_page=5"},
+{n:"BODACC",p:"DILA",ty:"rest",t:["eco"],a:"libre",
+ sc:"Annonce",fo:"JSON, CSV",mj:"Quotidienne",li:LO,x:"SIREN",lv:1,
+ r:"Annonces légales de la vie des entreprises.",
+ data:"Créations, ventes de fonds de commerce, procédures collectives, radiations.",
+ u:[["eco","Veille sur les entreprises du territoire."],["dec","Repérer fermetures et reprises pour mettre à jour la redevance spéciale."]],
+ lim:"Libre ; API standard Opendatasoft.",
+ doc:"https://bodacc-datadila.opendatasoft.com",pres:"https://www.bodacc.fr"},
+{n:"Offres d’emploi (France Travail)",p:"France Travail",ty:"rest",t:["eco"],a:"cle",
+ sc:"Offre, commune",fo:"JSON",mj:"Quotidienne",li:"Conditions France Travail",x:"Code INSEE, code métier ROME",lv:3,
+ r:"Les offres d’emploi publiées, filtrables par territoire et métier.",
+ data:"Offres en cours, métier, type de contrat, employeur, localisation.",
+ u:[["eco","Mesurer les tensions de recrutement, afficher les offres locales."]],
+ lim:"Inscription gratuite sur francetravail.io, clé par API, authentification à jeton.",
+ doc:"https://francetravail.io",pres:"https://francetravail.io"},
+{n:"Statistiques du marché du travail (France Travail)",p:"France Travail",ty:"stat",t:["eco"],a:"cle",
+ sc:"Bassin d’emploi, département, commune selon l’API",fo:"JSON",mj:"Périodique",li:"Conditions France Travail",x:"Code INSEE",lv:3,
+ r:"Demandeurs d’emploi, embauches et indicateurs de dynamisme par territoire.",
+ data:"Demandeurs d’emploi, offres, embauches, salaires, établissements et salariés selon les API proposées.",
+ u:[["eco","Observatoire de l’emploi, attractivité du territoire."],["soc","Suivi des publics éloignés de l’emploi."]],
+ lim:"Inscription gratuite ; chaque API du catalogue a son propre périmètre : vérifier l’échelle disponible.",
+ doc:"https://francetravail.io",pres:"https://francetravail.io"},
+{n:"Répertoire national des associations",p:"Ministère de l’Intérieur",ty:"fichier",t:["eco","pop"],a:"libre",
+ sc:"Association",fo:"CSV",mj:"Mensuelle",li:LO,x:"Numéro RNA, code INSEE",lv:1,
+ r:"Toutes les associations déclarées, avec objet et adresse.",
+ data:"Associations actives et dissoutes, objet social, adresse du siège, dates.",
+ u:[["soc","Connaître le tissu associatif local."],["tour","Repérer les acteurs culturels et sportifs."]],
+ lim:"Libre ; fichiers nationaux à filtrer sur les communes du territoire.",
+ doc:"https://www.data.gouv.fr/datasets/repertoire-national-des-associations"},
+{n:"Séries et indices (BDM)",p:"INSEE",ty:"stat",t:["fin","eco"],a:"libre",
+ sc:"National, parfois régional",fo:"JSON, XML (SDMX)",mj:"Mensuelle",li:LO,x:"Identifiant de série (idBank)",lv:2,
+ r:"Indices de prix et séries chronologiques.",
+ data:"Indices des prix, coût du travail, carburants, indices utilisés dans les formules de révision des marchés.",
+ u:[["fin","Automatiser les révisions de prix des marchés."],["dec","Révision annuelle des prix des marchés de collecte et de traitement."]],
+ lim:"Portail des API de l’INSEE ; conditions d’accès à vérifier sur la fiche.",
+ doc:"https://portail-api.insee.fr",pres:"https://www.insee.fr/fr/information/8184146"},
+
+// ---------- Foncier, habitat ----------
+{n:"Données foncières (Cerema)",p:"Cerema, DGALN",ty:"rest",t:["fon"],a:"mixte",
+ sc:"Parcelle, mutation, commune, EPCI",fo:"JSON, GeoJSON",mj:"Semestrielle (DVF)",li:"Licence Ouverte (partie libre)",x:"Référence cadastrale, code INSEE",lv:3,v:1,
+ r:"Ventes immobilières et indicateurs fonciers ; fichiers fonciers sur habilitation.",
+ data:"Libre : ventes DVF+ géolocalisées, indicateurs de prix et de consommation d’espace. Restreint : fichiers fonciers et DV3F (propriétaires, locaux).",
+ u:[["urb","Observatoire foncier, suivi de l’artificialisation, vacance des logements."],["fin","Évolution des valeurs immobilières."]],
+ lim:"Partie libre ; partie restreinte réservée aux acteurs publics habilités. L’adresse de l’API porte la mention « preprod », mais c’est celle indiquée par le Cerema dans sa documentation.",
+ doc:"https://apidf-preprod.cerema.fr",pres:"https://www.data.gouv.fr/dataservices/api-donnees-foncieres"},
+{n:"Cartofriches",p:"Cerema",ty:"fichier",t:["fon"],a:"libre",
+ sc:"Site",fo:"GeoJSON, CSV ; aussi par l’API du Cerema",mj:"Régulière",li:LO,x:"Code INSEE, référence cadastrale",lv:1,v:1,
+ r:"L’inventaire national des friches.",
+ data:"Friches industrielles, commerciales, d’habitat : contour, surface, type, statut, source.",
+ u:[["urb","Identifier les gisements de requalification (sobriété foncière)."],["eco","Repérer des terrains pour l’accueil d’activités."]],
+ lim:"Libre : carte interactive, téléchargement sur data.gouv.fr, ou API Données foncières.",
+ doc:"https://cartofriches.cerema.fr",pres:"https://www.data.gouv.fr/datasets/sites-references-dans-cartofriches/"},
+{n:"BDNB (Base de données nationale des bâtiments)",p:"CSTB",ty:"rest",t:["fon","ene"],a:"mixte",
+ sc:"Bâtiment",fo:"JSON ; GeoPackage, CSV en téléchargement",mj:"Plusieurs millésimes par an",li:"Licence Ouverte (version open)",x:"Identifiant bâtiment, référence cadastrale, adresse BAN",lv:2,v:1,
+ r:"Une fiche par bâtiment, croisant une trentaine de bases publiques.",
+ data:"Caractéristiques du bâti, usage, date de construction, étiquettes énergie, données foncières consolidées.",
+ u:[["urb","Observatoire du parc, repérage des logements à rénover."],["env","Cibler les actions de rénovation énergétique du PCAET."],["dec","Typer le bâti (collectif, individuel) pour adapter le mode de collecte."]],
+ lim:"API Open gratuite avec quota mensuel ; offre Open Plus pour des volumes supérieurs ; données enrichies sous conditions.",
+ doc:"https://api-portail.bdnb.io",pres:"https://www.data.gouv.fr/dataservices/api-bdnb-open-plus"},
+{n:"Diagnostics de performance énergétique",p:"ADEME",ty:"rest",t:["ene","fon"],a:"libre",
+ sc:"Logement",fo:"JSON, CSV",mj:"En continu",li:LO,x:"Adresse BAN, numéro de DPE",lv:2,
+ r:"Les DPE des logements et bâtiments, avec adresse et étiquette.",
+ data:"Étiquettes énergie et climat, caractéristiques des logements diagnostiqués.",
+ u:[["env","Repérer les passoires thermiques, nourrir le PCAET."],["urb","Cibler les aides à la rénovation."]],
+ lim:"Libre ; ne couvre que les logements ayant fait l’objet d’un DPE.",
+ doc:"https://data.ademe.fr"},
+{n:"Statistiques du ministère de la Transition écologique (DiDo)",p:"SDES",ty:"stat",t:["fon","ene","mob"],a:"libre",
+ sc:"Commune, département",fo:"CSV, JSON",mj:"Mensuelle à annuelle",li:LO,x:"Code INSEE",lv:2,
+ r:"Construction, logement social, véhicules, énergie.",
+ data:"Logements autorisés et commencés (Sitadel), parc social (RPLS), parc de véhicules, consommations d’énergie.",
+ u:[["urb","Suivi de la construction, programme local de l’habitat."],["dec","Anticiper les nouveaux foyers à desservir."],["mob","Électrification du parc de véhicules."]],
+ lim:"Libre.",
+ doc:"https://data.statistiques.developpement-durable.gouv.fr",pres:"https://www.statistiques.developpement-durable.gouv.fr"},
+
+// ---------- Environnement, risques, eau, littoral ----------
+{n:"Géorisques",p:"Ministère de la Transition écologique, BRGM",ty:"rest",t:["env"],a:"mixte",
+ sc:"Commune, point, parcelle",fo:"JSON, PDF (rapport)",mj:"Variable",li:LO,x:"Code INSEE, coordonnées",lv:1,v:1,
+ r:"Risques naturels et technologiques par commune ou par point.",
+ w:"Deux versions coexistent : la v1 reste accessible sans jeton ; la v2, plus riche en filtres, demande un jeton gratuit valable un an (compte Cerbère ou FranceConnect).",
+ data:"Inondation, retrait-gonflement des argiles, cavités, radon, arrêtés de catastrophe naturelle, installations classées, sites et sols pollués.",
+ u:[["gem","Connaissance des risques, documents d’information des habitants."],["urb","Diagnostic de site avant projet."],["dec","Lister les installations classées liées aux déchets."]],
+ lim:"v1 libre (1 000 requêtes par minute) ; v2 sur jeton gratuit.",
+ doc:"https://www.georisques.gouv.fr/inscription",pres:"https://www.data.gouv.fr/dataservices/api-georisques",
+ ex:"https://georisques.gouv.fr/api/v1/gaspar/catnat?code_insee=14117&page_size=20"},
+{n:"Hub’Eau",p:"OFB, BRGM",ty:"rest",t:["eau","env"],a:"libre",
+ sc:"Station, commune",fo:"JSON, CSV, GeoJSON",mj:"Quotidienne à annuelle",li:LO,x:"Code INSEE, code station",lv:1,
+ r:"Toutes les données publiques sur l’eau.",
+ data:"Qualité de l’eau potable et des rivières, niveaux des nappes, hauteurs et débits des cours d’eau, prélèvements.",
+ u:[["eau","Qualité de l’eau distribuée, suivi des prélèvements."],["gem","Suivi des crues et des étiages."]],
+ lim:"Libre, sans clé.",
+ doc:"https://hubeau.eaufrance.fr/page/apis",pres:"https://hubeau.eaufrance.fr",
+ ex:"https://hubeau.eaufrance.fr/api/v1/qualite_eau_potable/communes_udi?code_commune=14117"},
+{n:"SISPEA (services d’eau et d’assainissement)",p:"OFB",ty:"fichier",t:["eau"],a:"libre",
+ sc:"Service, commune",fo:"CSV",mj:"Annuelle",li:LO,x:"Code INSEE, SIREN",lv:1,
+ r:"Prix et performances des services d’eau et d’assainissement.",
+ data:"Tarifs, rendement des réseaux, conformité, taux de renouvellement, mode de gestion.",
+ u:[["eau","Comparer les performances et les tarifs avec des services similaires."],["fin","Préparer un transfert ou une harmonisation tarifaire."]],
+ lim:"Libre ; fichiers à télécharger plutôt qu’API.",
+ doc:"https://www.services.eaufrance.fr",pres:"https://www.services.eaufrance.fr"},
+{n:"GéoLittoral",p:"Ministère de la Mer",ty:"flux",t:["eau","env"],a:"libre",
+ sc:"Linéaire côtier",fo:"WMS, WFS, téléchargements",mj:"Variable",li:LO,x:"—",lv:2,
+ r:"Données géographiques du littoral.",
+ data:"Trait de côte, évolution historique, occupation du littoral, ouvrages de défense.",
+ u:[["gem","Suivi de l’érosion et du recul du trait de côte."],["urb","Aménagement des communes littorales."]],
+ lim:"Libre.",
+ doc:"https://www.geolittoral.developpement-durable.gouv.fr"},
+{n:"SHOM : observations marégraphiques (REFMAR)",p:"SHOM",ty:"fichier",t:["eau","env"],a:"mixte",
+ sc:"Marégraphe",fo:"CSV, texte",mj:"Temps réel et historique",li:"Conditions du SHOM",x:"Code de station",lv:2,
+ r:"Niveaux de la mer observés aux marégraphes.",
+ w:"Les observations REFMAR sont gratuites ; les API de prédiction des marées sont payantes.",
+ data:"Hauteurs d’eau mesurées, séries historiques, surcotes lors des tempêtes.",
+ u:[["gem","Analyser les épisodes de submersion marine."]],
+ lim:"Observations gratuites ; prédictions sur abonnement.",
+ doc:"https://refmar.shom.fr",pres:"https://data.shom.fr"},
+{n:"OpenObs (biodiversité)",p:"Muséum national d’Histoire naturelle, OFB",ty:"rest",t:["env"],a:"libre",
+ sc:"Observation, maille",fo:"JSON, CSV",mj:"En continu",li:"Variable selon la source",x:"Code taxon (TAXREF)",lv:2,
+ r:"Observations d’espèces de l’inventaire national.",
+ data:"Observations de faune et de flore, espèces protégées, localisées.",
+ u:[["env","Trame verte et bleue, études d’impact."],["urb","Enjeux de biodiversité d’un site avant travaux."]],
+ lim:"Libre ; précision géographique dégradée pour les espèces sensibles.",
+ doc:"https://openobs.mnhn.fr",pres:"https://inpn.mnhn.fr"},
+{n:"Atmo Data (qualité de l’air)",p:"Atmo France et associations régionales",ty:"rest",t:["env"],a:"cle",
+ sc:"Commune, EPCI",fo:"JSON, GeoJSON",mj:"Quotidienne (indice), pluriannuelle (émissions)",li:"ODbL",x:"Code INSEE, SIREN de l’EPCI",lv:3,v:1,
+ r:"Indice de qualité de l’air, épisodes de pollution, émissions par EPCI.",
+ data:"Indice ATMO quotidien, épisodes de pollution prévus ou constatés, émissions de polluants et de gaz à effet de serre par EPCI.",
+ u:[["env","Diagnostic air-climat du PCAET, information des habitants."]],
+ lim:"Inscription validée par Atmo France, puis jeton. Données sous licence ODbL : citer la source.",
+ doc:"https://admindata.atmo-france.org/api/doc",pres:"https://map.atmo-france.org"},
+{n:"Hub d’indicateurs territoriaux de transition écologique",p:"Ministère de la Transition écologique (CGDD)",ty:"stat",t:["env","ene"],a:"cle",
+ sc:"Commune, EPCI, département, région",fo:"JSON",mj:"Variable selon l’indicateur",li:"À vérifier par indicateur",x:"Code INSEE, SIREN de l’EPCI",lv:3,v:1,
+ r:"Des indicateurs de transition écologique déjà calculés, avec leurs métadonnées.",
+ data:"Consommation d’espace, énergie, agriculture biologique, achats durables et autres indicateurs ; le ministère propose aussi un standard de métadonnées d’indicateurs.",
+ u:[["env","Alimenter un tableau de bord PCAET sans recalculer les indicateurs."],["sig","Comparer le territoire à d’autres EPCI."]],
+ lim:"Jeton à demander par formulaire. Les indicateurs sont aussi consultables sur ecologie.data.gouv.fr.",
+ doc:"https://www.data.gouv.fr/dataservices/hub-dindicateurs-territoriaux-de-transition-ecologique",pres:"https://ecologie.data.gouv.fr/indicators"},
+
+// ---------- Énergie ----------
+{n:"Agence ORE (électricité et gaz)",p:"Agence ORE et distributeurs (Enedis, GRDF…)",ty:"rest",t:["ene"],a:"libre",
+ sc:"Commune, EPCI, IRIS",fo:"JSON, CSV",mj:"Annuelle",li:LO,x:"Code INSEE, code NAF",lv:1,v:1,
+ r:"Consommation et production d’énergie à la commune et à l’EPCI.",
+ data:"Consommations annuelles d’électricité et de gaz par secteur ; installations de production solaire ; distributeurs par commune.",
+ u:[["env","Diagnostic énergie du PCAET, suivi des renouvelables."],["eco","Consommation des zones d’activités."]],
+ lim:"Libre ; API standard Opendatasoft.",
+ doc:"https://opendata.agenceore.fr",pres:"https://www.agenceore.fr"},
+{n:"ODRÉ (réseaux d’énergie)",p:"RTE, GRTgaz et partenaires",ty:"rest",t:["ene"],a:"libre",
+ sc:"Région, installation",fo:"JSON, CSV",mj:"Temps réel à annuelle",li:LO,x:"Code INSEE (installations)",lv:1,
+ r:"Production et consommation d’énergie, historique et temps réel.",
+ data:"Données éCO2mix régionales, registre des installations de production, réseaux de transport.",
+ u:[["env","Recensement des installations de production renouvelable."]],
+ lim:"Libre ; API standard Opendatasoft.",
+ doc:"https://opendata.reseaux-energies.fr"},
+{n:"Base Empreinte",p:"ADEME",ty:"rest",t:["ene","dec"],a:"cle",
+ sc:"Facteur d’émission",fo:"JSON, CSV",mj:"Annuelle",li:"Conditions ADEME",x:"—",lv:2,
+ r:"Facteurs d’émission officiels de gaz à effet de serre.",
+ data:"Facteurs d’émission pour les carburants, matériaux, transports, traitements de déchets.",
+ u:[["env","Bilan carbone de la collectivité et du territoire."],["dec","Émissions de la collecte et des filières de traitement."]],
+ lim:"Compte gratuit requis.",
+ doc:"https://base-empreinte.ademe.fr"},
+
+// ---------- Déchets ----------
+{n:"SINOE Déchets",p:"ADEME",ty:"fichier",t:["dec"],a:"libre",
+ sc:"EPCI, déchèterie, installation",fo:"CSV ; API via data.ademe.fr",mj:"Bisannuelle (enquête collecte des années impaires)",li:LO,x:"SIREN de l’EPCI, code INSEE",lv:1,v:1,
+ r:"L’observation nationale des déchets ménagers.",
+ data:"Tonnages de déchets ménagers par EPCI et par flux, annuaire des déchèteries, installations de traitement, coûts du service.",
+ u:[["dec","Comparer les performances de collecte (kg par habitant et par flux) avec des EPCI de même profil."],["fin","Situer le coût du service par rapport aux références nationales."]],
+ lim:"Libre ; données issues d’enquêtes, avec un à deux ans de décalage.",
+ doc:"https://data.ademe.fr",pres:"https://www.sinoe.org"},
+{n:"Autres données de l’ADEME",p:"ADEME",ty:"catalogue",t:["ene","env","cat"],a:"libre",
+ sc:"Variable",fo:"JSON, CSV",mj:"Variable",li:LO,x:"Variable",lv:2,
+ r:"Le portail de données de l’ADEME, au-delà des déchets.",
+ data:"Aides attribuées, mobilité, énergie, économie circulaire, chaque jeu disposant de sa propre API.",
+ u:[["env","Recenser les aides ADEME versées sur le territoire."]],
+ lim:"Libre.",
+ doc:"https://data.ademe.fr"},
+
+// ---------- Météo ----------
+{n:"Portail des API de Météo-France",p:"Météo-France",ty:"rest",t:["meteo","env"],a:"cle",
+ sc:"Station, point",fo:"JSON, CSV",mj:"Temps réel et historique",li:LO,x:"Code de station",lv:2,
+ r:"Observations, climatologie, prévisions et vigilances.",
+ data:"Mesures des stations, séries climatologiques, prévisions, vigilances.",
+ u:[["gem","Analyse d’événements, gestion de crise."],["dec","Relier les apports de déchets verts à la pluviométrie."],["env","Adaptation au changement climatique."],["eau","Pluviométrie pour la gestion des eaux pluviales."]],
+ lim:"Clé gratuite sur le portail.",
+ doc:"https://portail-api.meteofrance.fr",pres:"https://meteo.data.gouv.fr"},
+{n:"Open-Meteo",p:"Open-Meteo",ty:"rest",t:["meteo"],a:"libre",
+ sc:"Point",fo:"JSON, CSV",mj:"Horaire",li:"CC BY 4.0",x:"Coordonnées",lv:1,
+ r:"Historique météo depuis 1940 et prévisions, en tout point.",
+ w:"Gratuit uniquement pour un usage non commercial et dans la limite d’un quota journalier. Un usage commercial demande un abonnement.",
+ data:"Température, précipitations, vent, ensoleillement, au pas horaire ou journalier.",
+ u:[["sig","Analyses rapides sans inscription."],["dec","Expliquer une variation de tonnage par la météo du mois."]],
+ lim:"Sans clé pour un usage non commercial.",
+ doc:"https://open-meteo.com/en/docs",pres:"https://open-meteo.com/en/terms",
+ ex:"https://archive-api.open-meteo.com/v1/archive?latitude=49.28&longitude=-0.11&start_date=2025-07-01&end_date=2025-07-31&daily=precipitation_sum"},
+
+// ---------- Mobilité ----------
+{n:"transport.data.gouv.fr",p:"Ministère des Transports",ty:"catalogue",t:["mob","cat"],a:"libre",
+ sc:"Réseau, point",fo:"GTFS, CSV, GeoJSON",mj:"Variable selon le jeu",li:"Licence Ouverte ou ODbL selon le jeu",x:"Coordonnées, code INSEE",lv:2,
+ r:"Toutes les données de mobilité publiées en France.",
+ data:"Horaires de transports en commun, bornes de recharge, aires de covoiturage, aménagements cyclables.",
+ u:[["mob","Plan de mobilité, schéma des bornes de recharge."],["tour","Desserte des sites touristiques."]],
+ lim:"Libre.",
+ doc:"https://transport.data.gouv.fr"},
+
+// ---------- Tourisme, culture, sport, agriculture ----------
+{n:"DataTourisme",p:"ADN Tourisme",ty:"rest",t:["tour"],a:"cle",
+ sc:"Point d’intérêt",fo:"JSON-LD, CSV, XML",mj:"Quotidienne",li:LO,x:"Code INSEE",lv:2,
+ r:"L’offre touristique nationale, alimentée par les offices de tourisme.",
+ data:"Hébergements, restaurants, sites de visite, événements, avec localisation et descriptifs.",
+ u:[["tour","Valoriser l’offre locale, croiser fréquentation et équipements."],["dec","Localiser campings et événements qui créent des pics de déchets en saison."]],
+ lim:"Inscription gratuite ; flux à configurer.",
+ doc:"https://www.datatourisme.fr"},
+{n:"Patrimoine protégé (POP, Mérimée)",p:"Ministère de la Culture",ty:"rest",t:["tour"],a:"libre",
+ sc:"Monument",fo:"JSON, CSV",mj:"Régulière",li:LO,x:"Référence Mérimée, code INSEE",lv:1,
+ r:"Monuments historiques et patrimoine bâti.",
+ data:"Immeubles protégés, notices descriptives, dates et nature de la protection ; plateforme POP pour les notices complètes.",
+ u:[["tour","Cartographie patrimoniale et touristique."],["urb","Repérer les contraintes liées aux abords des monuments historiques."]],
+ lim:"Libre ; immeubles protégés interrogeables par l’API Opendatasoft du ministère.",
+ doc:"https://data.culture.gouv.fr",pres:"https://pop.culture.gouv.fr"},
+{n:"Basilic (équipements culturels)",p:"Ministère de la Culture",ty:"fichier",t:["tour"],a:"libre",
+ sc:"Équipement",fo:"CSV, JSON",mj:"Annuelle",li:LO,x:"Code INSEE",lv:1,
+ r:"Les lieux et équipements culturels.",
+ data:"Bibliothèques, musées, salles de spectacle, cinémas, conservatoires, localisés.",
+ u:[["tour","Schéma culturel, maillage des équipements."]],
+ lim:"Libre.",
+ doc:"https://data.culture.gouv.fr"},
+{n:"Recensement des équipements sportifs (Data ES)",p:"Ministère des Sports",ty:"rest",t:["tour"],a:"libre",
+ sc:"Équipement",fo:"JSON, CSV",mj:"En continu",li:LO,x:"Code INSEE",lv:1,
+ r:"Tous les équipements sportifs, localisés et décrits.",
+ data:"Type d’équipement, propriétaire, gestionnaire, accessibilité.",
+ u:[["tour","Planification des investissements sportifs."]],
+ lim:"Libre.",
+ doc:"https://equipements.sports.gouv.fr"},
+{n:"Agreste (statistique agricole)",p:"Ministère de l’Agriculture",ty:"fichier",t:["agri"],a:"libre",
+ sc:"Commune",fo:"CSV, tableurs",mj:"Recensement décennal et enquêtes",li:LO,x:"Code INSEE",lv:1,
+ r:"Exploitations, surfaces et productions agricoles.",
+ data:"Nombre et taille des exploitations, surface agricole utilisée, cheptels, orientations de production.",
+ u:[["eco","Suivi de l’activité agricole."],["dec","Repérer les gisements de déchets agricoles et de biodéchets."]],
+ lim:"Libre ; données communales soumises au secret statistique.",
+ doc:"https://agreste.agriculture.gouv.fr"},
+
+// ---------- Finances, marchés ----------
+{n:"Finances locales (OFGL)",p:"Observatoire des finances et de la gestion publique locales",ty:"rest",t:["fin"],a:"libre",
+ sc:"Collectivité",fo:"JSON, CSV",mj:"Annuelle",li:LO,x:"SIREN",lv:1,
+ r:"Comptes et budgets de toutes les collectivités.",
+ data:"Comptes des communes, EPCI et syndicats depuis 2012, fiscalité, ratios financiers.",
+ u:[["fin","Analyse financière comparée, prospective."],["dec","Comparer le produit de la TEOM et les charges du service."]],
+ lim:"Libre ; API standard Opendatasoft.",
+ doc:"https://data.ofgl.fr"},
+{n:"Commande publique et comptes publics",p:"Ministère de l’Économie, DGFiP",ty:"rest",t:["fin"],a:"libre",
+ sc:"Marché, collectivité",fo:"JSON, CSV",mj:"Variable",li:LO,x:"SIRET de l’acheteur et du titulaire",lv:2,
+ r:"Marchés publics attribués et comptes des collectivités.",
+ data:"Données essentielles de la commande publique (objet, montant, titulaire), balances comptables, fiscalité locale.",
+ u:[["fin","Comparer les prix des marchés, connaître les titulaires d’un secteur."],["dec","Comparer les marchés de collecte, de traitement ou de bacs passés ailleurs."]],
+ lim:"Libre ; qualité variable selon la saisie des acheteurs.",
+ doc:"https://data.economie.gouv.fr"},
+{n:"BOAMP",p:"DILA",ty:"rest",t:["fin"],a:"libre",
+ sc:"Avis",fo:"JSON, CSV",mj:"Quotidienne",li:LO,x:"—",lv:1,
+ r:"Les avis de marchés publics publiés.",
+ data:"Appels d’offres et avis d’attribution, avec acheteur, objet et dates.",
+ u:[["fin","Veille sur les consultations des collectivités voisines."],["eco","Informer les entreprises locales des marchés ouverts."]],
+ lim:"Libre ; API standard Opendatasoft.",
+ doc:"https://boamp-datadila.opendatasoft.com",pres:"https://www.boamp.fr"},
+
+// ---------- Services publics, droit ----------
+{n:"Jours fériés",p:"État, DINUM",ty:"rest",t:["serv"],a:"libre",
+ sc:"Année",fo:"JSON",mj:"Annuelle",li:LO,x:"Date",lv:1,
+ r:"Les jours fériés par année, en métropole et outre-mer.",
+ data:"Date et nom de chaque jour férié.",
+ u:[["adm","Planification des services, calendriers automatiques."],["dec","Décaler automatiquement les collectes qui tombent un jour férié."]],
+ lim:"Libre, sans clé.",
+ doc:"https://calendrier.api.gouv.fr/jours-feries/",
+ ex:"https://calendrier.api.gouv.fr/jours-feries/metropole/2027.json"},
+{n:"Annuaire de l’administration",p:"Service-Public.fr (DILA)",ty:"rest",t:["serv"],a:"libre",
+ sc:"Service",fo:"JSON, CSV",mj:"En continu",li:LO,x:"Code INSEE",lv:1,
+ r:"Coordonnées et horaires des services publics.",
+ data:"Mairies, services de l’État, organismes publics : adresses, téléphones, horaires.",
+ u:[["adm","Tenir à jour l’annuaire des partenaires, afficher les mairies sur une carte."]],
+ lim:"Libre.",
+ doc:"https://api-lannuaire.service-public.fr",pres:"https://lannuaire.service-public.fr"},
+{n:"API Entreprise et API Particulier",p:"État, DINUM",ty:"rest",t:["serv","eco"],a:"habil",
+ sc:"Entreprise, association, usager",fo:"JSON",mj:"Temps réel",li:"Réservé aux administrations",x:"SIRET, identité de l’usager",lv:3,
+ r:"Récupérer directement des justificatifs administratifs pour instruire un dossier.",
+ data:"Entreprises et associations : attestations fiscales et sociales, données financières. Usagers : quotient familial, statut étudiant, etc.",
+ u:[["adm","Simplifier les démarches : ne plus demander de pièces justificatives."],["fin","Instruction des marchés et des subventions."],["soc","Tarification sociale des services."]],
+ lim:"Sur habilitation, demande motivée par démarche. Données personnelles : analyse RGPD obligatoire.",
+ doc:"https://entreprise.api.gouv.fr",pres:"https://particulier.api.gouv.fr"},
+{n:"Légifrance (via PISTE)",p:"DILA",ty:"rest",t:["reg"],a:"cle",
+ sc:"Texte",fo:"JSON",mj:"Quotidienne",li:LO,x:"Identifiants Légifrance, NOR",lv:3,
+ r:"Textes de loi, codes et jurisprudence.",
+ data:"Codes, lois, décrets, arrêtés, conventions collectives, jurisprudence.",
+ u:[["adm","Veille réglementaire automatisée."],["dec","Suivre les évolutions du code de l’environnement sur les déchets."]],
+ lim:"Compte gratuit sur PISTE.",
+ doc:"https://piste.gouv.fr",pres:"https://www.legifrance.gouv.fr"},
+
+// ---------- Catalogues ----------
+{n:"data.gouv.fr et son catalogue d’API",p:"État, DINUM",ty:"catalogue",t:["cat"],a:"libre",
+ sc:"National",fo:"JSON",mj:"En continu",li:"Selon les jeux",x:"—",lv:2,v:1,
+ r:"Le catalogue national des données et des API publiques.",
+ data:"Recherche de jeux de données ; fiches des API publiques (qui remplacent api.gouv.fr) ; interrogation de fichiers CSV hébergés sans les télécharger.",
+ u:[["sig","Trouver une donnée, construire une veille sur un thème."],["adm","Repérer les API réservées aux collectivités et leur démarche d’habilitation."]],
+ lim:"Libre.",
+ doc:"https://www.data.gouv.fr/dataservices",pres:"https://www.data.gouv.fr",
+ ex:"https://www.data.gouv.fr/api/1/datasets/?q=d%C3%A9chets&page_size=5"},
+{n:"Open Data Normandie",p:"Région Normandie",ty:"catalogue",t:["cat"],a:"libre",
+ sc:"Région",fo:"Selon les jeux",mj:"Variable",li:"Selon les jeux",x:"Code INSEE",lv:1,v:1,
+ r:"Les données de la Région et la passerelle vers les portails normands.",
+ data:"Transports régionaux, lycées, aides régionales, environnement, et liens vers les autres portails normands.",
+ u:[["sig","Données comparables entre territoires normands ; lien avec la démarche DataLab de la Région."]],
+ lim:"Libre.",
+ doc:"https://opendata.normandie.fr"}
+];
+
+// ---------- Logique ----------
+const $ = s => document.querySelector(s);
+const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const state = {q:"", themes:new Set(), comp:"", type:"", acces:"", niv:""};
+
+S.forEach((a,i)=>{
+  a.id=i; a.comp = a.u.map(x=>x[0]);
+  a.idx = norm([a.n,a.p,a.r,a.data,a.lim,a.w,a.sc,a.fo,a.x,a.u.map(x=>COMP[x[0]]+" "+x[1]).join(" "),a.t.map(k=>THEMES[k]).join(" "),TYPES[a.ty]].join(" "));
+});
+
+function fillSelect(id, label, dict, countFn){
+  const sel = $(id);
+  sel.innerHTML = `<option value="">${label}</option>` +
+    Object.entries(dict).map(([k,v])=>{ const n=countFn(k); return n?`<option value="${k}">${v} (${n})</option>`:""; }).join("");
+}
+fillSelect("#f-comp","Toutes les compétences",COMP,k=>S.filter(a=>a.comp.includes(k)).length);
+fillSelect("#f-type","Tous les types",TYPES,k=>S.filter(a=>a.ty===k).length);
+fillSelect("#f-acces","Tous les accès",ACCES,k=>S.filter(a=>a.a===k).length);
+fillSelect("#f-niv","Tous les niveaux",NIV,k=>S.filter(a=>String(a.lv)===k).length);
+
+function buildChips(){
+  const box = $("#chips");
+  Object.entries(THEMES).forEach(([k,label])=>{
+    const n = S.filter(a=>a.t.includes(k)).length; if(!n) return;
+    const b = document.createElement("button");
+    b.className="chip"; b.type="button"; b.setAttribute("aria-pressed","false");
+    b.innerHTML = `${label}<small>${n}</small>`;
+    b.onclick = ()=>{ state.themes.has(k)?state.themes.delete(k):state.themes.add(k); b.setAttribute("aria-pressed",state.themes.has(k)); render(); };
+    box.appendChild(b);
+  });
+}
+
+function match(a){
+  if(state.comp && !a.comp.includes(state.comp)) return false;
+  if(state.type && a.ty!==state.type) return false;
+  if(state.acces && a.a!==state.acces) return false;
+  if(state.niv && String(a.lv)!==state.niv) return false;
+  if(state.themes.size && !a.t.some(k=>state.themes.has(k))) return false;
+  if(state.q) return norm(state.q).split(/\s+/).filter(Boolean).every(w=>a.idx.includes(w));
+  return true;
+}
+
+function card(a){
+  const el = document.createElement("article"); el.className="item";
+  const did = "d"+a.id;
+  const uses = a.u.slice().sort((x,y)=> state.comp ? (y[0]===state.comp)-(x[0]===state.comp) : 0);
+  el.innerHTML = `
+  <button class="item-head" type="button" aria-expanded="false" aria-controls="${did}">
+    <div><div class="item-name">${a.n}</div><div class="item-prod">${a.p}</div></div>
+    <div class="meta">
+      <span class="badge b-type">${TYPES[a.ty]}</span>
+      <span class="badge b-${a.a}">${ACCES[a.a]}</span>
+      <svg class="caret" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <p class="item-sum">${a.r}</p>
+    <div class="themes">${a.t.map(k=>`<span>${THEMES[k]}</span>`).join("")}</div>
+  </button>
+  <div class="detail" id="${did}">
+    <div class="grid">
+      ${a.w?`<div class="warn"><strong>À savoir : </strong>${a.w}</div>`:""}
+      <div>
+        <h3>Ce qu’on y trouve</h3><p>${a.data}</p>
+        <h3 style="margin-top:14px">Accès et limites</h3><p>${a.lim}</p>
+      </div>
+      <div>
+        <h3>Usages par compétence</h3>
+        <ul class="uses">${uses.map(([c,t])=>`<li><b>${COMP[c]}</b><span>${t}</span></li>`).join("")}</ul>
+      </div>
+      <dl class="specs">
+        <div><dt>Échelle</dt><dd>${a.sc}</dd></div>
+        <div><dt>Formats</dt><dd>${a.fo}</dd></div>
+        <div><dt>Mise à jour</dt><dd>${a.mj}</dd></div>
+        <div><dt>Licence</dt><dd>${a.li}</dd></div>
+        <div><dt>Identifiants de croisement</dt><dd>${a.x}</dd></div>
+        <div><dt>Niveau technique</dt><dd>${NIVTXT[a.lv]}</dd></div>
+      </dl>
+      <div class="links">
+        ${a.doc?`<a href="${a.doc}" target="_blank" rel="noopener">Documentation</a>`:""}
+        ${a.pres&&a.pres!==a.doc?`<a href="${a.pres}" target="_blank" rel="noopener">Présentation</a>`:""}
+        ${a.ex?`<a class="try" href="${a.ex}" target="_blank" rel="noopener">Voir un exemple de réponse</a>`:""}
+        <span class="check">${a.v?"Fiche vérifiée sur la source le 29/10/2026":"Fiche à vérifier sur la source"}</span>
+      </div>
+    </div>
+  </div>`;
+  const head = el.querySelector(".item-head"), det = el.querySelector(".detail");
+  head.onclick = ()=>{ const o = head.getAttribute("aria-expanded")==="true"; head.setAttribute("aria-expanded",!o); det.classList.toggle("open",!o); };
+  return el;
+}
+
+function render(){
+  const list = $("#list"); list.innerHTML="";
+  const res = S.filter(match);
+  res.forEach(a=>list.appendChild(card(a)));
+  $("#count").textContent = `${res.length} source${res.length>1?"s":""} sur ${S.length}`;
+  ["#f-comp","#f-type","#f-acces","#f-niv"].forEach(id=>$(id).classList.toggle("on",!!$(id).value));
+  if(!res.length) list.innerHTML = `<div class="empty"><p>Aucune source ne correspond à ces critères.</p><button class="linkbtn" type="button" onclick="resetAll()">Effacer les filtres</button></div>`;
+}
+function resetAll(){
+  Object.assign(state,{q:"",comp:"",type:"",acces:"",niv:""}); state.themes.clear();
+  $("#q").value=""; ["#f-comp","#f-type","#f-acces","#f-niv"].forEach(id=>$(id).value="");
+  document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));
+  render();
+}
+
+$("#q").addEventListener("input", e=>{ state.q=e.target.value; render(); });
+$("#f-comp").addEventListener("change", e=>{ state.comp=e.target.value; render(); });
+$("#f-type").addEventListener("change", e=>{ state.type=e.target.value; render(); });
+$("#f-acces").addEventListener("change", e=>{ state.acces=e.target.value; render(); });
+$("#f-niv").addEventListener("change", e=>{ state.niv=e.target.value; render(); });
+$("#reset").addEventListener("click", resetAll);
+
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected", x===t));
+  document.querySelectorAll('[role="tabpanel"]').forEach(p=>p.hidden = p.id!==t.getAttribute("aria-controls"));
+}));
+
+buildChips(); render();
+</script>
+</body>
+</html>
