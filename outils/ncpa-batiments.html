@@ -90,9 +90,32 @@ footer { margin-top: 20px; font-size: 12px; color: var(--muted); }
 #yearRange { width: 100%; margin: 4px 0 0; accent-color: var(--rouge); }
 .axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-#basemap { position: absolute; left: 14px; top: 14px; z-index: 2; display: flex; background: rgba(255,255,255,0.94); border: 1px solid var(--line); border-radius: 6px; padding: 3px; box-shadow: 0 4px 18px rgba(31,35,40,0.10); }
+#mapTools { position: absolute; left: 14px; top: 14px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.tools { display: flex; gap: 8px; }
+#basemap { display: flex;background: rgba(255,255,255,0.94); border: 1px solid var(--line); border-radius: 6px; padding: 3px; box-shadow: 0 4px 18px rgba(31,35,40,0.10); }
 #basemap button { border: 0; background: none; padding: 6px 12px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; border-radius: 4px; }
 #basemap button[aria-pressed="true"] { background: var(--ink); color: #fff; font-weight: 700; }
+
+/* Mode drone */
+#droneBtn { padding: 6px 12px; font-size: 13px; color: var(--ink); background: rgba(255,255,255,0.94); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; box-shadow: 0 4px 18px rgba(31,35,40,0.10); }
+#droneBtn[aria-pressed="true"] { background: var(--rouge); border-color: var(--rouge); color: #fff; font-weight: 700; }
+#droneHud { width: 264px; background: rgba(255,255,255,0.94); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-size: 13px; box-shadow: 0 4px 18px rgba(31,35,40,0.10); }
+#droneHud[hidden] { display: none; }
+.dstats { display: flex; gap: 14px; align-items: baseline; }
+.dstats b { font-size: 22px; font-weight: 300; font-variant-numeric: tabular-nums; }
+.dstats span { color: var(--muted); }
+#droneState { color: var(--muted); min-height: 1.4em; margin: 2px 0 6px; }
+#droneState.busy { color: #B36B00; }
+.dspeed { display: flex; gap: 2px; margin-bottom: 8px; }
+.dspeed button { flex: 1; border: 1px solid var(--line); background: none; padding: 4px 0; font-size: 13px; color: var(--muted); cursor: pointer; border-radius: 4px; }
+.dspeed button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
+.dpad { display: grid; grid-template-columns: repeat(3, 34px) 10px 34px; grid-template-rows: repeat(2, 30px); gap: 4px; margin-bottom: 8px; }
+.dpad button { border: 1px solid var(--line); background: var(--paper); border-radius: 4px; cursor: pointer; font-size: 14px; color: var(--ink); touch-action: none; user-select: none; padding: 0; }
+.dpad button.on { background: var(--ink); color: #fff; }
+.dkeys { margin: 0 0 6px; padding: 0; list-style: none; color: var(--muted); line-height: 1.5; }
+.dkeys kbd { font: inherit; font-size: 12px; color: var(--ink); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; background: var(--paper); }
+#droneHud label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+#droneHud input { margin: 0; accent-color: var(--rouge); }
 
 #tip { position: absolute; left: 0; top: 0; z-index: 4; pointer-events: none; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 8px 11px; font-size: 13px; max-width: 260px; box-shadow: 0 4px 16px rgba(31,35,40,0.14); }
 #tip .ty { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
@@ -187,6 +210,7 @@ tr.tot td { font-weight: 700; border-top: 2px solid var(--ink); }
       <p>Les données téléchargées sont gardées dans la mémoire du navigateur pour ne pas les retélécharger. <button class="link" id="clearCache">Vider cette mémoire</button></p>
       <p id="cacheMsg"></p>
       <p>Glisser : déplacer. Molette : zoomer. Clic droit ou Ctrl + glisser : pivoter et incliner.</p>
+      <p>Le mode drone survole la carte au clavier (flèches) ou avec les boutons à l’écran. Il ralentit tant que les fonds et les bâtiments se chargent, et charge au passage les communes survolées.</p>
     </details>
 
     <footer>Sources : IGN BD TOPO, BDNB (CSTB), API Découpage administratif (contours et populations), sous Licence Ouverte Etalab 2.0. Fonds de carte © IGN (Plan IGN, BD ORTHO) via la Géoplateforme. Inspiré de paris.bogachev.fr.</footer>
@@ -210,9 +234,39 @@ tr.tot td { font-weight: 700; border-top: 2px solid var(--ink); }
         <input type="range" id="yearRange" aria-label="Année affichée" step="1">
         <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
       </div>
-      <div id="basemap" role="group" aria-label="Fond de carte">
-        <button data-base="plan" aria-pressed="true">Plan IGN</button>
-        <button data-base="ortho" aria-pressed="false">Satellite</button>
+      <div id="mapTools">
+        <div class="tools">
+          <div id="basemap" role="group" aria-label="Fond de carte">
+            <button data-base="plan" aria-pressed="true">Plan IGN</button>
+            <button data-base="ortho" aria-pressed="false">Satellite</button>
+          </div>
+          <button id="droneBtn" aria-pressed="false">Mode drone</button>
+        </div>
+        <div id="droneHud" hidden>
+          <div class="dstats"><b id="droneKmh">0</b><span>km/h</span><b id="droneAlt">–</b><span>m d’altitude</span></div>
+          <div id="droneState" aria-live="polite"></div>
+          <div class="dspeed" role="group" aria-label="Vitesse maximale">
+            <button data-lvl="0" aria-pressed="true">Lent</button>
+            <button data-lvl="1" aria-pressed="false">Moyen</button>
+            <button data-lvl="2" aria-pressed="false">Rapide</button>
+          </div>
+          <div class="dpad" aria-hidden="true">
+            <button data-k="up" style="grid-column:2;grid-row:1">▲</button>
+            <button data-k="left" style="grid-column:1;grid-row:2">◀</button>
+            <button data-k="down" style="grid-column:2;grid-row:2">▼</button>
+            <button data-k="right" style="grid-column:3;grid-row:2">▶</button>
+            <button data-k="climb" style="grid-column:5;grid-row:1" title="Monter">+</button>
+            <button data-k="dive" style="grid-column:5;grid-row:2" title="Descendre">−</button>
+          </div>
+          <ul class="dkeys">
+            <li><kbd>↑</kbd> avancer, <kbd>↓</kbd> freiner ou reculer</li>
+            <li><kbd>←</kbd> <kbd>→</kbd> tourner</li>
+            <li><kbd>+</kbd> <kbd>−</kbd> ou <kbd>Page ↑</kbd> <kbd>Page ↓</kbd> altitude</li>
+            <li><kbd>Espace</kbd> pilote automatique, <kbd>Échap</kbd> quitter</li>
+          </ul>
+          <label><input type="checkbox" id="droneSlow" checked> Ralentir pendant les chargements</label>
+          <label><input type="checkbox" id="droneLoad" checked> Charger les communes survolées</label>
+        </div>
       </div>
       <div id="tip" hidden></div>
     </div>
@@ -1117,6 +1171,7 @@ function showTab(t) {
   $('tabCmp').setAttribute('aria-selected', t === 'cmp');
   $('mapView').hidden = t !== 'map';
   $('cmpView').hidden = t !== 'cmp';
+  if (t !== 'map') Drone.toggle(false);
   if (t === 'map') { map.resize(); drawHist(); } else renderCompare();
 }
 
@@ -1257,6 +1312,124 @@ map.on('load', async () => {
     if (fc && fc.properties.insee !== S.scope) selectScope(fc.properties.insee);
   });
 });
+
+/* ---- Mode drone : survol au clavier ---- */
+const Drone = (() => {
+  // Vitesses maximales au sol à l’altitude du zoom 16 (m/s) ; elles doublent à chaque cran de zoom en arrière
+  const SPEEDS = [18, 40, 85];
+  const ZMIN = 14.5, ZMAX = 18.5, SLOW = 0.3;
+  const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    PageUp: 'climb', PageDown: 'dive', NumpadAdd: 'climb', NumpadSubtract: 'dive' };
+  const D = { on: false, keys: new Set(), cruise: false, level: 0, v: 0, turn: 0, climb: 0, last: 0, busy: '', checkT: 0, hudT: 0 };
+  const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  const ease = (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
+
+  function communeAtCenter() {
+    if (!map.getLayer('communes-fill')) return null;
+    const f = map.queryRenderedFeatures(map.project(map.getCenter()), { layers: ['communes-fill'] })[0];
+    return f ? S.byInsee.get(f.properties.insee) : null;
+  }
+
+  // Charge la commune survolée et repère ce qui est encore en cours de chargement
+  function check() {
+    const loading = S.communes.find(c => c.status === 'loading');
+    const here = communeAtCenter();
+    if ($('droneLoad').checked && here && here.status === 'idle' && !loading) {
+      loadCommune(here);
+      D.busy = `Chargement des bâtiments de ${here.nom}…`;
+    } else if (loading) D.busy = `Chargement des bâtiments de ${loading.nom}…`;
+    else if (!map.areTilesLoaded()) D.busy = 'Chargement du fond de carte…';
+    else D.busy = '';
+    const st = $('droneState');
+    const slowed = D.busy && $('droneSlow').checked;
+    st.textContent = D.busy ? D.busy + (slowed ? ' Vitesse réduite.' : '') : (here ? `Survol de ${here.nom}` : 'Hors de NCPA');
+    st.classList.toggle('busy', !!slowed);
+  }
+
+  function hud() {
+    $('droneKmh').textContent = Math.round(Math.abs(D.v) * 3.6) + (D.cruise ? ' ⟳' : '');
+    // Altitude approximative de la caméra : distance caméra–centre (1,5 × hauteur de la carte) × mètres par pixel
+    const c = map.getCenter();
+    const mpp = 40075016.7 * Math.cos(c.lat * Math.PI / 180) / (512 * Math.pow(2, map.getZoom()));
+    const alt = 1.5 * map.getCanvas().clientHeight * mpp * Math.cos(map.getPitch() * Math.PI / 180);
+    $('droneAlt').textContent = fmt(Math.round(alt / 10) * 10);
+  }
+
+  function frame(t) {
+    if (!D.on) return;
+    const dt = D.last ? Math.min(0.1, (t - D.last) / 1000) : 0; D.last = t;
+    if (t - D.checkT > 400) { D.checkT = t; check(); }
+    const k = D.keys, zoom = map.getZoom();
+    const thrust = k.has('down') ? -0.5 : (k.has('up') || D.cruise ? 1 : 0);
+    const vmax = SPEEDS[D.level] * Math.pow(2, 16 - zoom) * (D.busy && $('droneSlow').checked ? SLOW : 1);
+    D.v = ease(D.v, thrust * vmax, 1.6, dt);
+    D.turn = ease(D.turn, ((k.has('right') ? 1 : 0) - (k.has('left') ? 1 : 0)) * 32, 4, dt);
+    D.climb = ease(D.climb, ((k.has('climb') ? 1 : 0) - (k.has('dive') ? 1 : 0)) * 0.6, 4, dt);
+    const moving = Math.abs(D.v) > 0.05 || Math.abs(D.turn) > 0.05 || Math.abs(D.climb) > 0.002;
+    if (moving && !map.isEasing()) {
+      const c = map.getCenter(), bearing = map.getBearing() + D.turn * dt, b = bearing * Math.PI / 180, d = D.v * dt;
+      map.jumpTo({
+        center: [c.lng + d * Math.sin(b) / (111320 * Math.cos(c.lat * Math.PI / 180)), c.lat + d * Math.cos(b) / 111320],
+        bearing, zoom: clamp(zoom + D.climb * dt, ZMIN, ZMAX)
+      });
+    } else if (!moving) D.v = D.turn = D.climb = 0;
+    if (t - D.hudT > 120) { D.hudT = t; hud(); }
+    requestAnimationFrame(frame);
+  }
+
+  function setLevel(l) {
+    D.level = l;
+    document.querySelectorAll('.dspeed button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.lvl === l));
+  }
+
+  function toggle(force) {
+    const on = force !== undefined ? force : !D.on;
+    if (on === D.on) return;
+    D.on = on; D.keys.clear(); D.cruise = false; D.v = D.turn = D.climb = 0; D.last = 0;
+    $('droneBtn').setAttribute('aria-pressed', on);
+    $('droneBtn').textContent = on ? 'Quitter le drone' : 'Mode drone';
+    $('droneHud').hidden = !on;
+    document.querySelectorAll('.dpad button').forEach(b => b.classList.remove('on'));
+    if (on) {
+      map.keyboard.disable();
+      if (document.activeElement) document.activeElement.blur();
+      // Toutes les communes chargées restent visibles pendant le survol
+      if (S.scope !== 'all' && map.getLayer('communes-fill')) selectScope('all', false);
+      map.easeTo({ pitch: 65, zoom: clamp(map.getZoom(), 15.5, 17.5), duration: 1200 });
+      check(); hud();
+      requestAnimationFrame(frame);
+    } else map.keyboard.enable();
+  }
+
+  const typing = el => el && (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type !== 'range' && el.type !== 'checkbox'));
+  window.addEventListener('keydown', e => {
+    if (!D.on || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
+    const k = KEYS[e.code] || (e.key === '+' ? 'climb' : e.key === '-' ? 'dive' : null);
+    if (k) { D.keys.add(k); if (k === 'down') D.cruise = false; }
+    else if (e.code === 'Space') { if (!e.repeat) D.cruise = !D.cruise; }
+    else if (e.code === 'Escape') toggle(false);
+    else if (/^(Digit|Numpad)[123]$/.test(e.code)) setLevel(+e.code.slice(-1) - 1);
+    else return;
+    e.preventDefault();
+  }, true);
+  window.addEventListener('keyup', e => {
+    const k = KEYS[e.code] || (e.key === '+' ? 'climb' : e.key === '-' ? 'dive' : null);
+    if (k) D.keys.delete(k);
+    if (D.on && e.code === 'Space') e.preventDefault();
+  }, true);
+  window.addEventListener('blur', () => D.keys.clear());
+
+  document.querySelectorAll('.dpad button').forEach(b => {
+    const k = b.dataset.k;
+    const up = () => { D.keys.delete(k); b.classList.remove('on'); };
+    b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); D.keys.add(k); b.classList.add('on'); if (k === 'down') D.cruise = false; });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, up));
+  });
+  document.querySelectorAll('.dspeed button').forEach(b => { b.onclick = () => { setLevel(+b.dataset.lvl); b.blur(); }; });
+  $('droneBtn').onclick = () => toggle();
+
+  return { toggle };
+})();
 
 /* ---- Contrôles ---- */
 $('play').onclick = () => togglePlay();
