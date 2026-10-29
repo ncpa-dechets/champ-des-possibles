@@ -54,6 +54,17 @@ nav.filtres .page::-webkit-scrollbar{display:none}
 
 /* ---------- Thématiques ---------- */
 main .page{padding-top:48px;padding-bottom:72px}
+/* ---------- À la une ---------- */
+a.une{display:flex;align-items:center;gap:28px;margin:0 0 52px;padding:26px 30px;text-decoration:none;border:1px solid color-mix(in srgb,var(--c) 40%,transparent);border-radius:18px;background:linear-gradient(120deg,color-mix(in srgb,var(--c) 14%,var(--carte)),var(--carte) 70%);box-shadow:var(--ombre);transition:transform .25s ease,border-color .25s}
+a.une:hover{transform:translateY(-3px);border-color:var(--c)}
+.une-ico{flex:0 0 auto;width:96px;height:72px;color:var(--c)}
+.une-texte{flex:1;min-width:0}
+.une-badge{display:inline-block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 50%,transparent);border-radius:999px;padding:2px 10px}
+.une h2{margin:8px 0 6px;font-size:24px;line-height:1.2}
+.une p{margin:0;color:var(--gris);font-size:15.5px;max-width:720px}
+.une-go{flex:0 0 auto;font-weight:700;color:var(--c);white-space:nowrap}
+a.une:hover .une-go span{display:inline-block;transform:translateX(4px)}
+@media (max-width:760px){a.une{flex-direction:column;align-items:flex-start;gap:14px;padding:22px 20px}}
 #catalogue{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:52px 24px;align-items:stretch}
 section.theme{display:flex;flex-direction:column;min-width:0}
 section.theme.large{grid-column:1/-1}
@@ -179,6 +190,15 @@ footer .page{padding-top:24px;padding-bottom:28px;display:flex;flex-wrap:wrap;ju
 
 <main>
   <div class="page">
+    <a class="une" href="outils/catalogue-api-opendata.html" style="--c:#9fd0c8">
+      <svg class="une-ico" viewBox="0 0 76 56" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="38" cy="14" rx="20" ry="7"/><path d="M18 14v14c0 4 9 7 20 7s20-3 20-7V14"/><path d="M18 28v14c0 4 9 7 20 7s20-3 20-7V28"/></svg>
+      <div class="une-texte">
+        <span class="une-badge">À la une</span>
+        <h2>Catalogue des données et API ouvertes</h2>
+        <p>Plus de 50 sources publiques recensées (adresses, cadastre, risques, eau, énergie, déchets, emploi…) : ce qu'on y trouve, les usages par compétence et comment y accéder depuis Excel, QGIS ou un outil web.</p>
+      </div>
+      <span class="une-go">Consulter le catalogue <span aria-hidden="true">→</span></span>
+    </a>
     <div id="catalogue"></div>
     <section class="logiciels" id="logiciels" aria-labelledby="h-logiciels">
       <div class="logiciels-tete"><h2 id="h-logiciels">Mini-logiciels</h2><p>Des outils de création plutôt que de consultation : on y saisit ses propres données, on obtient un visuel prêt à insérer dans un rapport ou une présentation. Tout reste dans le navigateur, rien n'est transmis.</p></div>
