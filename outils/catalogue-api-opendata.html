@@ -5,53 +5,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Catalogue des données et API ouvertes · NCPA</title>
 <meta name="description" content="Catalogue des API, flux SIG et jeux de données ouverts utiles à une intercommunalité : contenu, usages par compétence, conditions d’accès.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ===== Couleurs : à ajuster ici pour coller à la charte exacte ===== */
+/* ===== Charte Champ des possibles (sombre, filet rouge NCPA) ===== */
 :root{
-  --paper:#f6f7f3; --surface:#ffffff; --ink:#1c2624; --muted:#5b6662; --line:#d9ddd6;
-  --field:#2d6a4f; --field-soft:#e3efe8;
-  --key:#8a5d0e; --key-soft:#f7ecd5; --lock:#a3412f; --lock-soft:#f6e3de;
-  --type:#34558b; --type-soft:#e4ebf6; --warn-soft:#fff4d6; --warn:#7a5a00;
-  --focus:#1f5fbf;
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){
-  :root{
-    --paper:#121815; --surface:#18201c; --ink:#e6ebe7; --muted:#9aa59f; --line:#2a332f;
-    --field:#78c49c; --field-soft:#1d2b24;
-    --key:#e0b45a; --key-soft:#2d2515; --lock:#e48a77; --lock-soft:#2f1d19;
-    --type:#9db8e8; --type-soft:#1b2433; --warn-soft:#2c2614; --warn:#e6c76a;
-    --focus:#8ab4ff;
-    color-scheme:dark;
-  }
+  color-scheme:dark;
+  --rouge:#B91E27; --accent:#e0767a;
+  --paper:#121b1e; --fond-haut:#0e1618; --surface:#18242a; --surface2:#1d2b31;
+  --ink:#e3eae7; --muted:#a2b1ad; --muted2:#6f817d;
+  --line:rgba(214,232,226,.12); --line-fort:rgba(214,232,226,.18);
+  --field:#9fd0c8; --field-soft:rgba(159,208,200,.14);
+  --key:#e0b45a; --key-soft:rgba(224,180,90,.14); --lock:#e48a77; --lock-soft:rgba(228,138,119,.14);
+  --type:#9fc0e6; --type-soft:rgba(159,192,230,.14); --warn-soft:rgba(224,180,90,.10); --warn:#e6c76a;
+  --focus:#e0767a;
+  font-family:Calibri,"Segoe UI",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 html,body{margin:0;background:var(--paper);color:var(--ink)}
-body{font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:16px;line-height:1.55}
+body{font-family:inherit;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
 a{color:var(--field)}
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .wrap{max-width:1140px;margin:0 auto;padding:0 20px}
 
-.brand{border-bottom:1px solid var(--line);background:var(--surface)}
-.brand .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px;flex-wrap:wrap}
-.brand-name{font-weight:600}
-.brand-name span{color:var(--muted);font-weight:400}
-.tabs{display:flex;gap:4px}
-.tab{border:0;background:none;font:inherit;color:var(--muted);padding:8px 12px;border-radius:6px;cursor:pointer}
-.tab[aria-selected="true"]{color:var(--ink);background:var(--field-soft);font-weight:600}
+header{border-top:3px solid var(--rouge);border-bottom:1px solid var(--line);background:radial-gradient(900px 420px at 85% 10%,rgba(159,208,200,.11),transparent 70%),var(--fond-haut)}
+header .wrap{padding-top:28px;padding-bottom:48px}
+.retour{display:inline-block;margin:0 0 30px;font-size:14px;color:var(--muted);text-decoration:none}
+.retour:hover{color:var(--ink);text-decoration:underline}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(2rem,4.8vw,3.1rem);line-height:1.08;letter-spacing:-.01em;margin:12px 0 18px;font-weight:700;max-width:22ch}
+h1 em{font-style:normal;color:var(--field)}
+.intro{max-width:700px;color:var(--muted);margin:0;font-size:18px}
+.points{list-style:none;padding:0;margin:30px 0 0;display:flex;flex-wrap:wrap;gap:10px;font-size:14px}
+.points li{display:flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--line-fort);border-radius:999px;background:rgba(255,255,255,.025)}
+.points li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.tabbar{border-bottom:1px solid var(--line);background:var(--surface)}
+.tabs{display:flex;gap:4px;padding:8px 0}
+.tab{border:0;background:none;font:inherit;color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);background:var(--field-soft);font-weight:700}
 
-.hero{padding:44px 0 26px}
-.hero h1{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(2rem,4.6vw,3.1rem);line-height:1.1;margin:0 0 16px;max-width:20ch}
-.hero h1 em{font-weight:500;color:var(--field)}
-.hero p{max-width:64ch;color:var(--muted);margin:0 0 20px;font-size:1.06rem}
-.points{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 28px}
-.points li{padding-left:18px;position:relative;font-weight:500}
-.points li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:8px;border-radius:50%;background:var(--field)}
-
-.toolbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 93%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 0}
+.toolbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 94%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 0}
 .row1{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .search{flex:1 1 260px;position:relative}
 .search input{width:100%;font:inherit;padding:10px 12px 10px 38px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
@@ -61,7 +54,7 @@ select.on{border-color:var(--field);box-shadow:inset 0 0 0 1px var(--field)}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
 .chip{font:inherit;font-size:.86rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:4px 11px;border-radius:999px;cursor:pointer}
 .chip small{color:var(--muted);margin-left:4px}
-.chip[aria-pressed="true"]{background:var(--field);border-color:var(--field);color:var(--paper)}
+.chip[aria-pressed="true"]{background:var(--field);border-color:var(--field);color:#0e1618;font-weight:700}
 .chip[aria-pressed="true"] small{color:inherit;opacity:.8}
 .status{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.9rem;color:var(--muted)}
 .linkbtn{border:0;background:none;color:var(--field);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
@@ -70,7 +63,7 @@ select.on{border-color:var(--field);box-shadow:inset 0 0 0 1px var(--field)}
 .item{border-bottom:1px solid var(--line)}
 .item-head{width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:18px 4px;display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:start}
 .item-head:hover .item-name{color:var(--field)}
-.item-name{font-family:"Fraunces",Georgia,serif;font-size:1.22rem;font-weight:600;line-height:1.25}
+.item-name{font-size:1.22rem;font-weight:600;line-height:1.25}
 .item-prod{color:var(--muted);font-size:.9rem;margin-top:2px}
 .item-sum{grid-column:1/-1;margin:2px 0 0;max-width:75ch}
 .meta{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
@@ -101,56 +94,58 @@ select.on{border-color:var(--field);box-shadow:inset 0 0 0 1px var(--field)}
 .links{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .links a{display:inline-block;padding:7px 12px;border:1px solid var(--line);border-radius:6px;text-decoration:none;background:var(--surface);font-size:.92rem}
 .links a:hover{border-color:var(--field)}
-.links a.try{border-color:var(--field);color:var(--field);font-weight:600}
+.links a.try{border-color:var(--field);color:var(--field);font-weight:700}
 .check{font-size:.82rem;color:var(--muted);margin-left:auto}
 .empty{padding:40px 0;text-align:center;color:var(--muted)}
 
 .guide{padding:8px 0 48px;max-width:780px}
-.guide h2{font-family:"Fraunces",Georgia,serif;font-size:1.5rem;margin:32px 0 8px}
+.guide h2{font-size:1.5rem;margin:32px 0 8px}
 .guide p,.guide li{max-width:70ch}
-.guide code{background:var(--field-soft);padding:2px 6px;border-radius:4px;font-size:.9em;word-break:break-all}
+.guide code{background:rgba(255,255,255,.06);border:1px solid var(--line);padding:0 5px;border-radius:5px;font-size:.9em;word-break:break-all}
 .levels{display:grid;gap:10px;margin:12px 0}
 .levels div{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:baseline}
 .levels .badge{justify-self:start}
 
-footer{border-top:1px solid var(--line);padding:20px 0 32px;color:var(--muted);font-size:.88rem}
+footer{border-top:1px solid var(--line);background:var(--fond-haut);padding:24px 0 28px;color:var(--muted2);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px}
+footer a{color:var(--muted)}
 [hidden]{display:none!important}
 @media (max-width:760px){
   .grid{grid-template-columns:1fr}
   .item-head{grid-template-columns:1fr}
   .meta{justify-content:flex-start}
-  .hero{padding:30px 0 20px}
   .levels div{grid-template-columns:1fr}
   .check{margin-left:0;width:100%}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 </style>
 </head>
 <body>
 
-<header class="brand">
+<header>
   <div class="wrap">
-    <div class="brand-name">NCPA <span>· Champ des possibles</span></div>
-    <nav class="tabs" role="tablist" aria-label="Sections">
-      <button class="tab" role="tab" aria-selected="true" aria-controls="v-cat" id="t-cat">Catalogue</button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="v-guide" id="t-guide">Comprendre les API</button>
-    </nav>
-  </div>
-</header>
-
-<main>
-<section class="hero">
-  <div class="wrap">
+    <a class="retour" href="../index.html" title="Retour à l’accueil Champ des possibles">← Tous les outils</a>
+    <div class="eyebrow">NCPA · Champ des possibles · Catalogue</div>
     <h1>Des données ouvertes <em>au service du territoire</em></h1>
-    <p>API, flux cartographiques et jeux de données publics utiles à une intercommunalité. Pour chaque source : ce qu’on y trouve, ce que chaque service peut en faire, et comment y accéder depuis Excel, QGIS ou un outil web.</p>
+    <p class="intro">API, flux cartographiques et jeux de données publics utiles à une intercommunalité. Pour chaque source : ce qu’on y trouve, ce que chaque service peut en faire, et comment y accéder depuis Excel, QGIS ou un outil web.</p>
     <ul class="points">
       <li>Sources publiques, gratuites pour l’essentiel</li>
       <li>Usages classés par compétence</li>
       <li>Niveau technique indiqué pour chaque source</li>
     </ul>
   </div>
-</section>
+</header>
 
+<div class="tabbar">
+  <div class="wrap">
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="v-cat" id="t-cat">Catalogue</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="v-guide" id="t-guide">Comprendre les API</button>
+    </nav>
+  </div>
+</div>
+
+<main>
 <div id="v-cat" role="tabpanel" aria-labelledby="t-cat">
   <div class="toolbar">
     <div class="wrap">
@@ -218,7 +213,10 @@ footer{border-top:1px solid var(--line);padding:20px 0 32px;color:var(--muted);f
 </main>
 
 <footer>
-  <div class="wrap">Catalogue établi en octobre 2026. Conditions d’accès et adresses évoluent : la page du producteur fait foi. La mention « vérifié » indique une fiche contrôlée sur la source le 29/10/2026. Normandie Cabourg Pays d’Auge</div>
+  <div class="wrap">
+    <span>Normandie Cabourg Pays d’Auge · <a href="../index.html">Champ des possibles</a></span>
+    <span>Catalogue établi en octobre 2026. Conditions d’accès et adresses évoluent : la page du producteur fait foi. La mention « vérifié » indique une fiche contrôlée sur la source le 29/10/2026.</span>
+  </div>
 </footer>
 
 <script>
