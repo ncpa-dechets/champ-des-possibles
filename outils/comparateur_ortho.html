@@ -99,6 +99,11 @@ kbd{font-family:inherit;border:1px solid var(--ligne);border-bottom-width:2px;bo
 #tagB.dans-loupe .annee{font-size:17px}
 
 .leaflet-container{font-family:var(--police)}
+/* Joints entre tuiles : quand l'échelle d'affichage n'est pas de 100 % (zoom navigateur, mise à l'échelle Windows),
+   les bords des tuiles tombent entre deux pixels écran. Le mode de fusion "plus-lighter" de Leaflet 1.9.4
+   éclaircit alors ces bords (fines lignes blanches en quadrillage). On le neutralise et on fait déborder
+   chaque tuile d'un demi-pixel sur sa voisine pour qu'aucun interstice ne subsiste. */
+.leaflet-container img.leaflet-tile{mix-blend-mode:normal;width:256.5px!important;height:256.5px!important}
 path.leaflet-interactive:focus{outline:none}
 .leaflet-tooltip.nom-commune{background:rgba(255,255,255,.92);border:0;font-weight:700;font-size:12.5px;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 
