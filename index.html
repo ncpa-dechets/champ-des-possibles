@@ -259,6 +259,16 @@ const OUTILS = [
     tags: ["Déchets acceptés", "Horaires", "Conditions d'accès", "FR · EN"]
   },
   {
+    theme: "dechets",
+    titre: "Réseaux enterrés",
+    fichier: "https://ncpa-dechets.github.io/visualiseur-reseaux/",
+    apercu: "reseaux",
+    description: "Carte des réseaux souterrains repérés sur les communes du territoire : électricité Enedis (basse et haute tension), assainissement et gaz (transport et distribution), sur plan, photo aérienne ou cadastre, avec Street View au clic et pose de points de terrain.",
+    interet: "Pré-repérer en quelques minutes si un emplacement de colonnes enterrées est envisageable, avant d'engager les études et les DT-DICT.",
+    limites: "Pré-repérage indicatif : les tracés ne sont ni exhaustifs ni précis au mètre. Seules les réponses aux DT-DICT font foi avant tout terrassement.",
+    tags: ["Enedis · GRDF · GRTgaz", "Assainissement SAUR · Veolia", "Cadastre · Street View", "Export Excel"]
+  },
+  {
     theme: "mobilite",
     titre: "Accès aux équipements",
     fichier: "outils/acces-equipements-ncpa.html",
@@ -712,6 +722,24 @@ const APERCUS = {
       <line x1="48" y1="84" x2="312" y2="84" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".6"/>
       <path d="M68 92 L94 88 L120 90 L146 80 L172 74 L198 76 L224 64 L250 56 L276 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
       <circle cx="276" cy="48" r="6" class="marq"/>
+    </svg>`,
+  reseaux: `
+    <svg viewBox="0 0 360 132" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect x="0" y="30" width="360" height="44" fill="currentColor" opacity=".08"/>
+      <g fill="none" stroke="currentColor" stroke-width="1.5" opacity=".22">
+        <path d="M0 30 H360"/><path d="M0 74 H360"/><path d="M0 92 H360"/>
+        <path d="M90 0 V30"/><path d="M200 0 V30"/><path d="M290 0 V30"/>
+        <path d="M60 92 V132"/><path d="M170 92 V132"/><path d="M250 92 V132"/>
+      </g>
+      <path d="M0 42 H360" fill="none" stroke="#E2B84A" stroke-width="2.5" stroke-dasharray="7 5"/>
+      <path d="M0 56 H360" fill="none" stroke="#a9785a" stroke-width="2.5"/>
+      <g fill="#a9785a"><circle cx="70" cy="56" r="4.5"/><circle cx="180" cy="56" r="4.5"/><circle cx="290" cy="56" r="4.5"/></g>
+      <path d="M0 83 H222 Q230 83 230 91 V132" fill="none" stroke="#e0767a" stroke-width="2.5"/>
+      <rect x="98" y="72" width="22" height="22" rx="2" class="vide" stroke="currentColor" stroke-width="2" opacity=".55"/>
+      <path d="M102 76 L116 90 M116 76 L102 90" stroke="#e0767a" stroke-width="2.5" stroke-linecap="round"/>
+      <rect x="276" y="86" width="44" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4" opacity=".6"/>
+      <rect x="287" y="95" width="22" height="22" rx="2" class="vide" stroke="currentColor" stroke-width="2"/>
+      <circle cx="298" cy="106" r="6" class="marq"/>
     </svg>`
 };
 
